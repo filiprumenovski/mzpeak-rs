@@ -1,0 +1,42 @@
+# Build artifacts
+/target/
+**/*.rs.bk
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# Test outputs
+*.parquet
+!tests/fixtures/*.parquet
+
+# Logs
+*.log
+
+# Coverage
+*.profraw
+*.profdata
+lcov.info
+coverage/
+
+# Documentation build
+/doc/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Large data files (not needed for build)
+*.mzML
+*.raw
+*.RAW
+*.mzpeak.parquet
+
+# Keep Cargo.lock for reproducible builds (binary)
+# !Cargo.lock

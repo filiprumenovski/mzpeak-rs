@@ -1,0 +1,66 @@
+[package]
+name = "mzpeak"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.70"
+authors = ["mzPeak Contributors"]
+description = "A modern, scalable, and interoperable mass spectrometry data format based on Apache Parquet"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/mzpeak/mzpeak-rs"
+documentation = "https://docs.rs/mzpeak"
+homepage = "https://github.com/mzpeak/mzpeak-rs"
+readme = "README.md"
+keywords = ["mass-spectrometry", "proteomics", "metabolomics", "parquet", "bioinformatics"]
+categories = ["science", "encoding", "parser-implementations"]
+exclude = ["*.mzML", "*.raw", "*.parquet", "mzPeak_preprint_v02.pdf"]
+
+[dependencies]
+# Apache Arrow and Parquet for columnar storage
+arrow = { version = "54", features = ["prettyprint"] }
+parquet = { version = "54", features = ["arrow", "zstd", "snap"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# CSV/TSV parsing for SDRF
+csv = "1.3"
+
+# Chrono for timestamps
+chrono = { version = "0.4", features = ["serde"] }
+
+# UUID for unique identifiers
+uuid = { version = "1.11", features = ["v4", "serde"] }
+
+# Logging
+log = "0.4"
+env_logger = "0.11"
+
+# mzML parsing
+quick-xml = { version = "0.37", features = ["encoding"] }
+base64 = "0.22"
+flate2 = "1.0"
+byteorder = "1.5"
+
+# CLI argument parsing
+clap = { version = "4.5", features = ["derive"] }
+
+[dev-dependencies]
+tempfile = "3.14"
+
+[lib]
+name = "mzpeak"
+path = "src/lib.rs"
+
+[[bin]]
+name = "mzpeak-convert"
+path = "src/main.rs"
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
