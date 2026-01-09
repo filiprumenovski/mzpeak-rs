@@ -295,6 +295,13 @@ impl<W: Write + Send> ChromatogramWriter<W> {
         })
     }
 
+    /// Finalize and return the inner writer (for buffer extraction)
+    pub fn finish_into_inner(self) -> Result<W, ChromatogramWriterError> {
+        // Close the writer and get the inner writer back
+        let writer = self.writer.into_inner()?;
+        Ok(writer)
+    }
+
     /// Get current statistics
     pub fn stats(&self) -> ChromatogramWriterStats {
         ChromatogramWriterStats {

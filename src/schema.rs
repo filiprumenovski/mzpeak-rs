@@ -31,6 +31,9 @@
 //! | base_peak_mz | Float64 (nullable) | Base peak m/z | MS:1000504 |
 //! | base_peak_intensity | Float32 (nullable) | Base peak intensity | MS:1000505 |
 //! | injection_time | Float32 (nullable) | Ion injection time in ms | MS:1000927 |
+//! | pixel_x | Int32 (nullable) | X coordinate for MSI data | IMS:1000050 |
+//! | pixel_y | Int32 (nullable) | Y coordinate for MSI data | IMS:1000051 |
+//! | pixel_z | Int32 (nullable) | Z coordinate for 3D MSI data | IMS:1000052 |
 //!
 //! ## Compression Strategy
 //!
@@ -48,8 +51,11 @@ pub const MS_CV_PREFIX: &str = "MS";
 /// mzPeak format version - follows semantic versioning
 pub const MZPEAK_FORMAT_VERSION: &str = "1.0.0";
 
-/// File extension for mzPeak files
+/// File extension for mzPeak files (legacy single-file format)
 pub const MZPEAK_EXTENSION: &str = ".mzpeak.parquet";
+
+/// MIME type for mzPeak container files (public for use in validator and dataset modules)
+pub const MZPEAK_MIMETYPE: &str = "application/vnd.mzpeak";
 
 /// Metadata key for format version in Parquet footer
 pub const KEY_FORMAT_VERSION: &str = "mzpeak:format_version";
@@ -101,6 +107,14 @@ pub mod columns {
     pub const BASE_PEAK_MZ: &str = "base_peak_mz";
     pub const BASE_PEAK_INTENSITY: &str = "base_peak_intensity";
     pub const INJECTION_TIME: &str = "injection_time";
+
+    // MSI (Mass Spectrometry Imaging) spatial columns
+    /// X coordinate position for imaging data (pixels)
+    pub const PIXEL_X: &str = "pixel_x";
+    /// Y coordinate position for imaging data (pixels)
+    pub const PIXEL_Y: &str = "pixel_y";
+    /// Z coordinate position for 3D imaging data (pixels, optional)
+    pub const PIXEL_Z: &str = "pixel_z";
 }
 
 /// Column names for chromatogram schema
@@ -130,7 +144,7 @@ fn field_with_cv(name: &str, data_type: DataType, nullable: bool, cv_accession: 
 /// use mzpeak::schema::create_mzpeak_schema;
 ///
 /// let schema = create_mzpeak_schema();
-/// assert_eq!(schema.fields().len(), 18);
+/// assert_eq!(schema.fields().len(), 21); // includes MSI spatial columns
 /// ```
 pub fn create_mzpeak_schema() -> Schema {
     let mut builder = SchemaBuilder::new();
@@ -270,6 +284,29 @@ pub fn create_mzpeak_schema() -> Schema {
         DataType::Float32,
         true,
         "MS:1000927", // ion injection time
+    ));
+
+    // MSI (Mass Spectrometry Imaging) spatial columns (nullable)
+    // These columns enable ion image extraction and spatial analysis
+    builder.push(field_with_cv(
+        columns::PIXEL_X,
+        DataType::Int32,
+        true,
+        "IMS:1000050", // position x (from imzML imaging MS CV)
+    ));
+
+    builder.push(field_with_cv(
+        columns::PIXEL_Y,
+        DataType::Int32,
+        true,
+        "IMS:1000051", // position y (from imzML imaging MS CV)
+    ));
+
+    builder.push(field_with_cv(
+        columns::PIXEL_Z,
+        DataType::Int32,
+        true,
+        "IMS:1000052", // position z (from imzML imaging MS CV)
     ));
 
     let mut schema = builder.finish();
@@ -432,13 +469,18 @@ mod tests {
     #[test]
     fn test_schema_creation() {
         let schema = create_mzpeak_schema();
-        assert_eq!(schema.fields().len(), 18);
+        assert_eq!(schema.fields().len(), 21); // 18 original + 3 MSI columns
 
         // Check required columns exist
         assert!(schema.field_with_name(columns::SPECTRUM_ID).is_ok());
         assert!(schema.field_with_name(columns::MZ).is_ok());
         assert!(schema.field_with_name(columns::INTENSITY).is_ok());
         assert!(schema.field_with_name(columns::ION_MOBILITY).is_ok());
+
+        // Check MSI columns exist
+        assert!(schema.field_with_name(columns::PIXEL_X).is_ok());
+        assert!(schema.field_with_name(columns::PIXEL_Y).is_ok());
+        assert!(schema.field_with_name(columns::PIXEL_Z).is_ok());
     }
 
     #[test]

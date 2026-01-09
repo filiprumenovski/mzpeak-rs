@@ -52,9 +52,13 @@ enum Commands {
         #[arg(value_name = "INPUT")]
         input: PathBuf,
 
-        /// Output mzPeak file path (defaults to input name with .mzpeak.parquet extension)
+        /// Output mzPeak file path (defaults to .mzpeak container format)
         #[arg(value_name = "OUTPUT")]
         output: Option<PathBuf>,
+
+        /// Use legacy single-file .mzpeak.parquet format instead of container
+        #[arg(long)]
+        legacy: bool,
 
         /// Compression level for ZSTD (1-22, default: 3)
         #[arg(short = 'c', long, default_value = "3")]
@@ -110,11 +114,12 @@ fn main() -> Result<()> {
         Commands::Convert {
             input,
             output,
+            legacy,
             compression_level,
             row_group_size,
             batch_size,
         } => {
-            run_convert(input, output, compression_level, row_group_size, batch_size)
+            run_convert(input, output, legacy, compression_level, row_group_size, batch_size)
         }
         Commands::Demo {
             output,
@@ -129,6 +134,7 @@ fn main() -> Result<()> {
 fn run_convert(
     input: PathBuf,
     output: Option<PathBuf>,
+    legacy: bool,
     compression_level: i32,
     row_group_size: usize,
     batch_size: usize,
@@ -138,17 +144,26 @@ fn run_convert(
         anyhow::bail!("Input file does not exist: {}", input.display());
     }
 
-    // Determine output path
+    // Determine output path (default to .mzpeak container format or .mzpeak.parquet if legacy)
     let output = output.unwrap_or_else(|| {
         let stem = input.file_stem().unwrap_or_default().to_string_lossy();
         let stem = stem.trim_end_matches(".mzML").trim_end_matches(".mzml");
-        input.with_file_name(format!("{}.mzpeak.parquet", stem))
+        if legacy {
+            input.with_file_name(format!("{}.mzpeak.parquet", stem))
+        } else {
+            input.with_file_name(format!("{}.mzpeak", stem))
+        }
     });
 
     info!("mzPeak Converter - mzML to mzPeak");
     info!("==================================");
     info!("Input:  {}", input.display());
     info!("Output: {}", output.display());
+    if legacy {
+        info!("Format: Legacy single-file .mzpeak.parquet");
+    } else {
+        info!("Format: Container .mzpeak (standard)");
+    }
     info!("Compression level: {}", compression_level);
     info!("Row group size: {}", row_group_size);
     info!("Batch size: {}", batch_size);

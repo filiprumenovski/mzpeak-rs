@@ -75,11 +75,10 @@ use zip::write::SimpleFileOptions;
 use zip::CompressionMethod;
 use zip::ZipWriter;
 
+use crate::chromatogram_writer::{Chromatogram, ChromatogramWriter, ChromatogramWriterConfig, ChromatogramWriterStats};
 use crate::metadata::MzPeakMetadata;
+use crate::schema::MZPEAK_MIMETYPE;
 use crate::writer::{MzPeakWriter, Spectrum, WriterConfig, WriterError, WriterStats};
-
-/// MIME type for mzPeak container files
-pub const MZPEAK_MIMETYPE: &str = "application/vnd.mzpeak";
 
 /// Errors that can occur during dataset operations
 #[derive(Debug, thiserror::Error)]
@@ -99,6 +98,9 @@ pub enum DatasetError {
     #[error("ZIP error: {0}")]
     ZipError(#[from] zip::result::ZipError),
 
+    #[error("Chromatogram writer error: {0}")]
+    ChromatogramWriterError(String),
+
     #[error("Invalid dataset path: {0}")]
     InvalidPath(String),
 
@@ -115,7 +117,10 @@ pub struct DatasetStats {
     /// Statistics from the peak writer
     pub peak_stats: WriterStats,
 
-    /// Number of chromatograms written (placeholder for future chromatogram support)
+    /// Statistics from the chromatogram writer
+    pub chromatogram_stats: Option<ChromatogramWriterStats>,
+
+    /// Number of chromatograms written
     pub chromatograms_written: usize,
 
     /// Total dataset size in bytes
@@ -185,12 +190,14 @@ enum DatasetSink {
     Directory {
         root_path: PathBuf,
         peak_writer: Option<MzPeakWriter<File>>,
+        chromatogram_writer: Option<ChromatogramWriter<File>>,
     },
     /// Container mode: writes to a ZIP archive
     Container {
         output_path: PathBuf,
         zip_writer: ZipWriter<BufWriter<File>>,
         peak_writer: Option<MzPeakWriter<ParquetBuffer>>,
+        chromatogram_writer: Option<ChromatogramWriter<ParquetBuffer>>,
     },
 }
 
@@ -298,11 +305,18 @@ impl MzPeakDatasetWriter {
         let peak_buffer = ParquetBuffer::new();
         let peak_writer = MzPeakWriter::new(peak_buffer, metadata, config.clone())?;
 
+        // Initialize chromatogram writer to buffer
+        let chrom_buffer = ParquetBuffer::new();
+        let chrom_config = ChromatogramWriterConfig::default();
+        let chrom_writer = ChromatogramWriter::new(chrom_buffer, metadata, chrom_config)
+            .map_err(|e| DatasetError::ChromatogramWriterError(e.to_string()))?;
+
         Ok(Self {
             sink: DatasetSink::Container {
                 output_path,
                 zip_writer,
                 peak_writer: Some(peak_writer),
+                chromatogram_writer: Some(chrom_writer),
             },
             mode: OutputMode::Container,
             metadata: metadata.clone(),
@@ -345,10 +359,17 @@ impl MzPeakDatasetWriter {
         let peak_file_path = peaks_dir.join("peaks.parquet");
         let peak_writer = MzPeakWriter::new_file(&peak_file_path, metadata, config.clone())?;
 
+        // Initialize chromatogram writer
+        let chrom_file_path = chromatograms_dir.join("chromatograms.parquet");
+        let chrom_config = ChromatogramWriterConfig::default();
+        let chrom_writer = ChromatogramWriter::new_file(&chrom_file_path, metadata, chrom_config)
+            .map_err(|e| DatasetError::ChromatogramWriterError(e.to_string()))?;
+
         Ok(Self {
             sink: DatasetSink::Directory {
                 root_path,
                 peak_writer: Some(peak_writer),
+                chromatogram_writer: Some(chrom_writer),
             },
             mode: OutputMode::Directory,
             metadata: metadata.clone(),
@@ -399,6 +420,48 @@ impl MzPeakDatasetWriter {
             DatasetSink::Container { peak_writer, .. } => {
                 let writer = peak_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
                 writer.write_spectra(spectra)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Write a single chromatogram to the dataset
+    pub fn write_chromatogram(&mut self, chromatogram: &Chromatogram) -> Result<(), DatasetError> {
+        if self.finalized {
+            return Err(DatasetError::NotInitialized);
+        }
+
+        match &mut self.sink {
+            DatasetSink::Directory { chromatogram_writer, .. } => {
+                let writer = chromatogram_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
+                writer.write_chromatogram(chromatogram)
+                    .map_err(|e| DatasetError::ChromatogramWriterError(e.to_string()))?;
+            }
+            DatasetSink::Container { chromatogram_writer, .. } => {
+                let writer = chromatogram_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
+                writer.write_chromatogram(chromatogram)
+                    .map_err(|e| DatasetError::ChromatogramWriterError(e.to_string()))?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Write multiple chromatograms to the dataset
+    pub fn write_chromatograms(&mut self, chromatograms: &[Chromatogram]) -> Result<(), DatasetError> {
+        if self.finalized {
+            return Err(DatasetError::NotInitialized);
+        }
+
+        match &mut self.sink {
+            DatasetSink::Directory { chromatogram_writer, .. } => {
+                let writer = chromatogram_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
+                writer.write_chromatograms(chromatograms)
+                    .map_err(|e| DatasetError::ChromatogramWriterError(e.to_string()))?;
+            }
+            DatasetSink::Container { chromatogram_writer, .. } => {
+                let writer = chromatogram_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
+                writer.write_chromatograms(chromatograms)
+                    .map_err(|e| DatasetError::ChromatogramWriterError(e.to_string()))?;
             }
         }
         Ok(())
@@ -487,13 +550,21 @@ impl MzPeakDatasetWriter {
         // Build metadata JSON before consuming sink (to avoid borrow issues)
         let json_string = self.build_metadata_json()?;
 
-        let (peak_stats, total_size) = match self.sink {
-            DatasetSink::Directory { root_path, mut peak_writer } => {
+        let (peak_stats, chromatogram_stats, total_size) = match self.sink {
+            DatasetSink::Directory { root_path, mut peak_writer, mut chromatogram_writer } => {
                 // Finalize peak writer
-                let stats = if let Some(writer) = peak_writer.take() {
+                let peak_stats = if let Some(writer) = peak_writer.take() {
                     writer.finish()?
                 } else {
                     return Err(DatasetError::NotInitialized);
+                };
+
+                // Finalize chromatogram writer
+                let chromatogram_stats = if let Some(writer) = chromatogram_writer.take() {
+                    Some(writer.finish()
+                        .map_err(|e| DatasetError::ChromatogramWriterError(e.to_string()))?)
+                } else {
+                    None
                 };
 
                 // Write metadata.json to root directory
@@ -505,15 +576,16 @@ impl MzPeakDatasetWriter {
                 // Calculate total dataset size
                 let total_size = calculate_directory_size(&root_path)?;
 
-                (stats, total_size)
+                (peak_stats, chromatogram_stats, total_size)
             }
             DatasetSink::Container {
                 output_path,
                 mut zip_writer,
                 mut peak_writer,
+                mut chromatogram_writer,
             } => {
                 // Finalize peak writer and get the buffer
-                let (stats, parquet_data) = if let Some(writer) = peak_writer.take() {
+                let (peak_stats, parquet_data) = if let Some(writer) = peak_writer.take() {
                     let buffer = writer.finish_into_inner()?;
                     let data = buffer.into_inner();
                     let stats = WriterStats {
@@ -525,6 +597,36 @@ impl MzPeakDatasetWriter {
                     (stats, data)
                 } else {
                     return Err(DatasetError::NotInitialized);
+                };
+
+                // Finalize chromatogram writer and get the buffer
+                let (chromatogram_stats, chrom_data_opt) = if let Some(writer) = chromatogram_writer.take() {
+                    // Check if any chromatograms were written
+                    let stats = writer.stats();
+                    if stats.chromatograms_written > 0 {
+                        // Extract the buffer
+                        match writer.finish_into_inner() {
+                            Ok(buffer) => {
+                                let data = buffer.into_inner();
+                                let final_stats = ChromatogramWriterStats {
+                                    chromatograms_written: stats.chromatograms_written,
+                                    data_points_written: stats.data_points_written,
+                                    row_groups_written: 0, // Estimated
+                                    file_size_bytes: data.len() as u64,
+                                };
+                                (Some(final_stats), Some(data))
+                            }
+                            Err(e) => {
+                                log::warn!("Failed to finalize chromatogram writer: {}", e);
+                                (None, None)
+                            }
+                        }
+                    } else {
+                        // No chromatograms written, don't include in ZIP
+                        (None, None)
+                    }
+                } else {
+                    (None, None)
                 };
 
                 // Write metadata.json (Deflate compressed)
@@ -541,6 +643,15 @@ impl MzPeakDatasetWriter {
                 zip_writer.start_file("peaks/peaks.parquet", options)?;
                 zip_writer.write_all(&parquet_data)?;
 
+                // Write chromatograms/chromatograms.parquet if available (MUST be uncompressed/Stored for seekability)
+                if let Some(chrom_data) = chrom_data_opt {
+                    let options = SimpleFileOptions::default()
+                        .compression_method(CompressionMethod::Stored)
+                        .unix_permissions(0o644);
+                    zip_writer.start_file("chromatograms/chromatograms.parquet", options)?;
+                    zip_writer.write_all(&chrom_data)?;
+                }
+
                 // Finalize the ZIP archive
                 let inner = zip_writer.finish()?;
                 inner.into_inner().map_err(|e| {
@@ -553,15 +664,18 @@ impl MzPeakDatasetWriter {
                 // Get final file size
                 let total_size = fs::metadata(&output_path)?.len();
 
-                (stats, total_size)
+                (peak_stats, chromatogram_stats, total_size)
             }
         };
 
         self.finalized = true;
 
+        let chromatograms_written = chromatogram_stats.as_ref().map(|s| s.chromatograms_written).unwrap_or(0);
+
         Ok(DatasetStats {
             peak_stats,
-            chromatograms_written: 0, // Placeholder
+            chromatogram_stats,
+            chromatograms_written,
             total_size_bytes: total_size,
         })
     }
@@ -876,6 +990,72 @@ mod tests {
         {
             let peaks_entry = archive.by_name("peaks/peaks.parquet").unwrap();
             assert_eq!(peaks_entry.compression(), zip::CompressionMethod::Stored);
+        }
+    }
+
+    #[test]
+    fn test_container_mode_with_chromatograms() {
+        use crate::prelude::Chromatogram;
+
+        let dir = tempdir().unwrap();
+        let dataset_path = dir.path().join("chrom_test.mzpeak");
+
+        let metadata = MzPeakMetadata::new();
+        let config = WriterConfig::default();
+
+        let mut dataset =
+            MzPeakDatasetWriter::new_container(&dataset_path, &metadata, config).unwrap();
+
+        let spectrum = SpectrumBuilder::new(0, 1)
+            .ms_level(1)
+            .retention_time(60.0)
+            .polarity(1)
+            .add_peak(400.0, 10000.0)
+            .build();
+
+        dataset.write_spectrum(&spectrum).unwrap();
+
+        // Write chromatograms
+        let chrom1 = Chromatogram {
+            chromatogram_id: "TIC".to_string(),
+            chromatogram_type: "TIC".to_string(),
+            time_array: vec![60.0, 120.0],
+            intensity_array: vec![1000.0, 2000.0],
+        };
+        let chrom2 = Chromatogram {
+            chromatogram_id: "BPC".to_string(),
+            chromatogram_type: "BPC".to_string(),
+            time_array: vec![60.0, 120.0],
+            intensity_array: vec![1500.0, 2500.0],
+        };
+
+        dataset.write_chromatogram(&chrom1).unwrap();
+        dataset.write_chromatogram(&chrom2).unwrap();
+
+        let stats = dataset.close().unwrap();
+        assert_eq!(stats.chromatograms_written, 2);
+
+        // Open and verify ZIP structure includes chromatograms
+        let file = File::open(&dataset_path).unwrap();
+        let mut archive = zip::ZipArchive::new(file).unwrap();
+
+        // Verify mimetype
+        {
+            let mimetype_entry = archive.by_index(0).unwrap();
+            assert_eq!(mimetype_entry.name(), "mimetype");
+        }
+
+        // Verify peaks/peaks.parquet exists
+        {
+            let peaks_entry = archive.by_name("peaks/peaks.parquet").unwrap();
+            assert_eq!(peaks_entry.compression(), zip::CompressionMethod::Stored);
+        }
+
+        // Verify chromatograms/chromatograms.parquet exists and is uncompressed
+        {
+            let chrom_entry = archive.by_name("chromatograms/chromatograms.parquet").unwrap();
+            assert_eq!(chrom_entry.compression(), zip::CompressionMethod::Stored);
+            assert!(chrom_entry.size() > 0);
         }
     }
 

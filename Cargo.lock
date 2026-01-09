@@ -928,6 +928,7 @@ dependencies = [
  "arrow",
  "base64",
  "byteorder",
+ "bytes",
  "chrono",
  "clap",
  "csv",

@@ -23,7 +23,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use arrow::array::{
-    ArrayRef, Float32Builder, Float64Builder, Int16Builder, Int64Builder, Int8Builder,
+    ArrayRef, Float32Builder, Float64Builder, Int16Builder, Int32Builder, Int64Builder, Int8Builder,
 };
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
@@ -159,6 +159,10 @@ impl WriterConfig {
             columns::BASE_PEAK_MZ,
             columns::BASE_PEAK_INTENSITY,
             columns::INJECTION_TIME,
+            // MSI columns also benefit from dictionary encoding (same value per spectrum)
+            columns::PIXEL_X,
+            columns::PIXEL_Y,
+            columns::PIXEL_Z,
         ];
 
         for col in dict_columns {
@@ -254,6 +258,16 @@ pub struct Spectrum {
     /// Ion injection time in ms
     pub injection_time: Option<f32>,
 
+    // MSI (Mass Spectrometry Imaging) spatial coordinates
+    /// X coordinate for imaging data (pixels)
+    pub pixel_x: Option<i32>,
+
+    /// Y coordinate for imaging data (pixels)
+    pub pixel_y: Option<i32>,
+
+    /// Z coordinate for 3D imaging data (pixels)
+    pub pixel_z: Option<i32>,
+
     /// The actual peak data (m/z, intensity pairs)
     pub peaks: Vec<Peak>,
 }
@@ -283,6 +297,9 @@ impl Spectrum {
             base_peak_mz: None,
             base_peak_intensity: None,
             injection_time: None,
+            pixel_x: None,
+            pixel_y: None,
+            pixel_z: None,
             peaks,
         }
     }
@@ -312,6 +329,9 @@ impl Spectrum {
             base_peak_mz: None,
             base_peak_intensity: None,
             injection_time: None,
+            pixel_x: None,
+            pixel_y: None,
+            pixel_z: None,
             peaks,
         }
     }
@@ -369,6 +389,9 @@ impl SpectrumBuilder {
                 base_peak_mz: None,
                 base_peak_intensity: None,
                 injection_time: None,
+                pixel_x: None,
+                pixel_y: None,
+                pixel_z: None,
                 peaks: Vec::new(),
             },
         }
@@ -409,6 +432,21 @@ impl SpectrumBuilder {
 
     pub fn injection_time(mut self, time_ms: f32) -> Self {
         self.spectrum.injection_time = Some(time_ms);
+        self
+    }
+
+    /// Set MSI pixel coordinates (for imaging mass spectrometry)
+    pub fn pixel(mut self, x: i32, y: i32) -> Self {
+        self.spectrum.pixel_x = Some(x);
+        self.spectrum.pixel_y = Some(y);
+        self
+    }
+
+    /// Set MSI pixel coordinates including Z (for 3D imaging)
+    pub fn pixel_3d(mut self, x: i32, y: i32, z: i32) -> Self {
+        self.spectrum.pixel_x = Some(x);
+        self.spectrum.pixel_y = Some(y);
+        self.spectrum.pixel_z = Some(z);
         self
     }
 
@@ -510,6 +548,10 @@ impl<W: Write + Send> MzPeakWriter<W> {
         let mut base_peak_mz_builder = Float64Builder::with_capacity(total_peaks);
         let mut base_peak_intensity_builder = Float32Builder::with_capacity(total_peaks);
         let mut injection_time_builder = Float32Builder::with_capacity(total_peaks);
+        // MSI pixel coordinate builders
+        let mut pixel_x_builder = Int32Builder::with_capacity(total_peaks);
+        let mut pixel_y_builder = Int32Builder::with_capacity(total_peaks);
+        let mut pixel_z_builder = Int32Builder::with_capacity(total_peaks);
 
         // Expand spectra into long format
         for spectrum in spectra {
@@ -581,6 +623,22 @@ impl<W: Write + Send> MzPeakWriter<W> {
                     Some(v) => injection_time_builder.append_value(v),
                     None => injection_time_builder.append_null(),
                 }
+
+                // MSI pixel coordinates (optional)
+                match spectrum.pixel_x {
+                    Some(v) => pixel_x_builder.append_value(v),
+                    None => pixel_x_builder.append_null(),
+                }
+
+                match spectrum.pixel_y {
+                    Some(v) => pixel_y_builder.append_value(v),
+                    None => pixel_y_builder.append_null(),
+                }
+
+                match spectrum.pixel_z {
+                    Some(v) => pixel_z_builder.append_value(v),
+                    None => pixel_z_builder.append_null(),
+                }
             }
         }
 
@@ -604,6 +662,10 @@ impl<W: Write + Send> MzPeakWriter<W> {
             Arc::new(base_peak_mz_builder.finish()),
             Arc::new(base_peak_intensity_builder.finish()),
             Arc::new(injection_time_builder.finish()),
+            // MSI pixel coordinates
+            Arc::new(pixel_x_builder.finish()),
+            Arc::new(pixel_y_builder.finish()),
+            Arc::new(pixel_z_builder.finish()),
         ];
 
         // Create record batch

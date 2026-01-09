@@ -43,6 +43,9 @@ uuid = { version = "1.11", features = ["v4", "serde"] }
 log = "0.4"
 env_logger = "0.11"
 
+# Bytes for Parquet reader ChunkReader trait
+bytes = "1.9"
+
 # mzML parsing
 quick-xml = { version = "0.37", features = ["encoding"] }
 base64 = "0.22"

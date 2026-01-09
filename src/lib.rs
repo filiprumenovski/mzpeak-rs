@@ -184,6 +184,7 @@ pub mod chromatogram_writer;
 pub mod dataset;
 pub mod metadata;
 pub mod mzml;
+pub mod reader;
 pub mod schema;
 pub mod validator;
 pub mod writer;
@@ -194,16 +195,19 @@ pub mod prelude {
         Chromatogram, ChromatogramWriter, ChromatogramWriterConfig, ChromatogramWriterStats,
     };
     pub use crate::controlled_vocabulary::{ms_terms, unit_terms, CvParamList, CvTerm};
-    pub use crate::dataset::{DatasetError, DatasetStats, MzPeakDatasetWriter, OutputMode, MZPEAK_MIMETYPE};
+    pub use crate::dataset::{DatasetError, DatasetStats, MzPeakDatasetWriter, OutputMode};
     pub use crate::metadata::{
         InstrumentConfig, LcConfig, MzPeakMetadata, RunParameters, SdrfMetadata, SourceFileInfo,
     };
     pub use crate::schema::{
         chromatogram_columns, columns, create_chromatogram_schema, create_mzpeak_schema,
-        MZPEAK_FORMAT_VERSION,
+        MZPEAK_FORMAT_VERSION, MZPEAK_MIMETYPE,
     };
     pub use crate::validator::{validate_mzpeak_file, ValidationReport};
     pub use crate::writer::{
         CompressionType, MzPeakWriter, Peak, Spectrum, SpectrumBuilder, WriterConfig, WriterStats,
+    };
+    pub use crate::reader::{
+        FileSummary, FileMetadata, MzPeakReader, ReaderConfig, ReaderError, SpectrumIterator,
     };
 }

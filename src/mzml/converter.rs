@@ -14,7 +14,8 @@ use crate::metadata::{
     InstrumentConfig, MassAnalyzerConfig, MzPeakMetadata, ProcessingHistory,
     ProcessingStep, RunParameters, SdrfMetadata, SourceFileInfo,
 };
-use crate::writer::{MzPeakWriter, Peak, RollingWriter, Spectrum, SpectrumBuilder, WriterConfig, WriterError};
+use crate::dataset::MzPeakDatasetWriter;
+use crate::writer::{Peak, RollingWriter, Spectrum, SpectrumBuilder, WriterConfig, WriterError};
 
 /// Errors that can occur during conversion
 #[derive(Debug, thiserror::Error)]
@@ -24,6 +25,9 @@ pub enum ConversionError {
 
     #[error("Writer error: {0}")]
     WriterError(#[from] WriterError),
+
+    #[error("Dataset error: {0}")]
+    DatasetError(#[from] crate::dataset::DatasetError),
 
     #[error("Chromatogram writer error: {0}")]
     ChromatogramWriterError(#[from] crate::chromatogram_writer::ChromatogramWriterError),
@@ -135,9 +139,9 @@ impl MzMLConverter {
         // Convert mzML metadata to mzPeak metadata
         let mzpeak_metadata = self.convert_metadata(mzml_metadata, input_path)?;
 
-        // Create the writer
+        // Create the dataset writer (auto-detects container vs directory mode)
         let mut writer =
-            MzPeakWriter::new_file(output_path, &mzpeak_metadata, self.config.writer_config.clone())?;
+            MzPeakDatasetWriter::new(output_path, &mzpeak_metadata, self.config.writer_config.clone())?;
 
         // Process spectra in batches
         let mut stats = ConversionStats {
@@ -193,16 +197,20 @@ impl MzMLConverter {
             writer.write_spectra(&batch)?;
         }
 
-        // Finalize spectrum writer
-        let writer_stats = writer.finish()?;
-        info!("{}", writer_stats);
+        // Finalize spectrum writer first
+        info!("Finalizing peak data...");
 
-        // Process chromatograms if enabled
+        // Process chromatograms if enabled and integrate into same dataset
         if self.config.include_chromatograms {
             info!("Processing chromatograms...");
-            stats.chromatograms_converted = self.convert_chromatograms(&mut streamer, output_path, &mzpeak_metadata)?;
-            info!("  Chromatograms: {}", stats.chromatograms_converted);
+            let chrom_count = self.stream_chromatograms(&mut streamer, &mut writer)?;
+            stats.chromatograms_converted = chrom_count;
+            info!("  Chromatograms: {}", chrom_count);
         }
+
+        // Close dataset (finalizes both peaks and chromatograms)
+        let dataset_stats = writer.close()?;
+        info!("Dataset finalized: {}", dataset_stats);
 
         // Get output file size
         stats.output_file_size = std::fs::metadata(output_path)?.len();
@@ -327,7 +335,24 @@ impl MzMLConverter {
         Ok(stats)
     }
 
-    /// Convert chromatograms from mzML to mzPeak format
+    /// Stream chromatograms directly to the dataset writer
+    fn stream_chromatograms<R: std::io::BufRead>(
+        &self,
+        streamer: &mut MzMLStreamer<R>,
+        writer: &mut MzPeakDatasetWriter,
+    ) -> Result<usize, ConversionError> {
+        let mut count = 0;
+        while let Some(mzml_chrom) = streamer.next_chromatogram()? {
+            let chromatogram = self.convert_chromatogram(&mzml_chrom)?;
+            writer.write_chromatogram(&chromatogram)
+                .map_err(|e| ConversionError::WriterError(WriterError::InvalidData(e.to_string())))?;
+            count += 1;
+        }
+        Ok(count)
+    }
+
+    /// Convert chromatograms from mzML to mzPeak format (deprecated, kept for backward compatibility)
+    #[allow(dead_code)]
     fn convert_chromatograms<R: std::io::BufRead>(
         &self,
         streamer: &mut MzMLStreamer<R>,

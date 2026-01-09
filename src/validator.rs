@@ -30,15 +30,18 @@
 
 use std::collections::HashMap;
 use std::fs::File;
+use std::io::{BufReader, Read};
 use std::path::Path;
 
 use anyhow::{Context, Result};
+use bytes::Bytes;
+use zip::ZipArchive;
 use arrow::datatypes::DataType;
 use parquet::file::reader::{FileReader, SerializedFileReader};
 use parquet::record::RowAccessor;
 
 use crate::metadata::MzPeakMetadata;
-use crate::schema::{columns, create_mzpeak_schema, MZPEAK_FORMAT_VERSION};
+use crate::schema::{columns, create_mzpeak_schema, MZPEAK_FORMAT_VERSION, MZPEAK_MIMETYPE};
 
 /// Validation error types
 #[derive(Debug, thiserror::Error)]
@@ -197,22 +200,31 @@ pub fn validate_mzpeak_file(path: &Path) -> Result<ValidationReport> {
     let mut report = ValidationReport::new(path.display().to_string());
 
     // 1. Structure Check
-    let parquet_path = check_structure(path, &mut report)?;
+    let validation_target = check_structure(path, &mut report)?;
 
     // 2. Metadata Integrity Check
-    check_metadata_integrity(path, &parquet_path, &mut report)?;
+    check_metadata_integrity(path, &validation_target, &mut report)?;
 
     // 3. Schema Contract Check
-    check_schema_contract(&parquet_path, &mut report)?;
+    check_schema_contract(&validation_target, &mut report)?;
 
     // 4. Data Sanity Check
-    check_data_sanity(&parquet_path, &mut report)?;
+    check_data_sanity(&validation_target, &mut report)?;
 
     Ok(report)
 }
 
+/// Enum to represent the validation target (file path or in-memory ZIP data)
+#[derive(Debug)]
+enum ValidationTarget {
+    /// Direct Parquet file path
+    FilePath(std::path::PathBuf),
+    /// In-memory Parquet data from ZIP container
+    InMemory(Bytes),
+}
+
 /// Step 1: Structure validation
-fn check_structure(path: &Path, report: &mut ValidationReport) -> Result<std::path::PathBuf> {
+fn check_structure(path: &Path, report: &mut ValidationReport) -> Result<ValidationTarget> {
     // Check if path exists
     if !path.exists() {
         report.add_check(ValidationCheck::failed(
@@ -223,58 +235,76 @@ fn check_structure(path: &Path, report: &mut ValidationReport) -> Result<std::pa
     }
     report.add_check(ValidationCheck::ok("Path exists"));
 
-    // Determine if it's a directory bundle or single file
-    let parquet_path = if path.is_dir() {
+    // Determine if it's a directory bundle, ZIP container, or single file
+    if path.is_dir() {
         // Directory bundle format
         report.add_check(ValidationCheck::ok("Format: Directory bundle"));
-
-        // Check for metadata.json
-        let metadata_path = path.join("metadata.json");
-        if metadata_path.exists() {
-            report.add_check(ValidationCheck::ok("metadata.json exists"));
-        } else {
-            report.add_check(ValidationCheck::failed(
-                "metadata.json exists",
-                "Missing metadata.json in directory bundle",
-            ));
-        }
-
-        // Check for peaks/peaks.parquet
-        let peaks_dir = path.join("peaks");
-        if !peaks_dir.exists() {
-            report.add_check(ValidationCheck::failed(
-                "peaks/ directory exists",
-                "Missing peaks/ directory",
-            ));
-            anyhow::bail!(ValidationError::StructureError("Missing peaks/ directory".to_string()));
-        }
-        report.add_check(ValidationCheck::ok("peaks/ directory exists"));
-
-        let peaks_file = peaks_dir.join("peaks.parquet");
-        if !peaks_file.exists() {
-            report.add_check(ValidationCheck::failed(
-                "peaks/peaks.parquet exists",
-                "Missing peaks/peaks.parquet file",
-            ));
-            anyhow::bail!(ValidationError::StructureError("Missing peaks.parquet".to_string()));
-        }
-        report.add_check(ValidationCheck::ok("peaks/peaks.parquet exists"));
-
-        peaks_file
+        validate_directory_bundle(path, report)
     } else if path.is_file() {
-        // Single file format (legacy or .parquet)
-        report.add_check(ValidationCheck::ok("Format: Single file"));
-        path.to_path_buf()
+        // Check if it's a ZIP container
+        if is_zip_file(path) {
+            report.add_check(ValidationCheck::ok("Format: ZIP container (.mzpeak)"));
+            validate_zip_container(path, report)
+        } else {
+            // Single Parquet file (legacy)
+            report.add_check(ValidationCheck::ok("Format: Single Parquet file (legacy)"));
+            validate_single_parquet_file(path, report)
+        }
     } else {
         report.add_check(ValidationCheck::failed(
             "Valid file type",
             "Path is neither a file nor a directory",
         ));
         anyhow::bail!(ValidationError::StructureError("Invalid path type".to_string()));
-    };
+    }
+}
+
+/// Check if a file is a ZIP archive
+fn is_zip_file(path: &Path) -> bool {
+    if let Ok(file) = File::open(path) {
+        if let Ok(_) = ZipArchive::new(file) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Validate directory bundle structure
+fn validate_directory_bundle(path: &Path, report: &mut ValidationReport) -> Result<ValidationTarget> {
+    // Check for metadata.json
+    let metadata_path = path.join("metadata.json");
+    if metadata_path.exists() {
+        report.add_check(ValidationCheck::ok("metadata.json exists"));
+    } else {
+        report.add_check(ValidationCheck::failed(
+            "metadata.json exists",
+            "Missing metadata.json in directory bundle",
+        ));
+    }
+
+    // Check for peaks/peaks.parquet
+    let peaks_dir = path.join("peaks");
+    if !peaks_dir.exists() {
+        report.add_check(ValidationCheck::failed(
+            "peaks/ directory exists",
+            "Missing peaks/ directory",
+        ));
+        anyhow::bail!(ValidationError::StructureError("Missing peaks/ directory".to_string()));
+    }
+    report.add_check(ValidationCheck::ok("peaks/ directory exists"));
+
+    let peaks_file = peaks_dir.join("peaks.parquet");
+    if !peaks_file.exists() {
+        report.add_check(ValidationCheck::failed(
+            "peaks/peaks.parquet exists",
+            "Missing peaks/peaks.parquet file",
+        ));
+        anyhow::bail!(ValidationError::StructureError("Missing peaks.parquet".to_string()));
+    }
+    report.add_check(ValidationCheck::ok("peaks/peaks.parquet exists"));
 
     // Verify it's a valid Parquet file
-    match File::open(&parquet_path) {
+    match File::open(&peaks_file) {
         Ok(file) => match SerializedFileReader::new(file) {
             Ok(_) => {
                 report.add_check(ValidationCheck::ok("Valid Parquet file"));
@@ -296,53 +326,191 @@ fn check_structure(path: &Path, report: &mut ValidationReport) -> Result<std::pa
         }
     }
 
-    Ok(parquet_path)
+    Ok(ValidationTarget::FilePath(peaks_file))
+}
+
+/// Validate ZIP container structure with zero-extraction
+fn validate_zip_container(path: &Path, report: &mut ValidationReport) -> Result<ValidationTarget> {
+    let file = File::open(path)?;
+    let mut archive = ZipArchive::new(BufReader::new(file))?;
+
+    // Check mimetype entry (MUST be first and uncompressed)
+    if archive.len() == 0 {
+        report.add_check(ValidationCheck::failed(
+            "ZIP structure",
+            "Empty ZIP archive",
+        ));
+        anyhow::bail!(ValidationError::StructureError("Empty ZIP archive".to_string()));
+    }
+
+    // Verify mimetype is first entry
+    let first_entry = archive.by_index(0)?;
+    if first_entry.name() != "mimetype" {
+        report.add_check(ValidationCheck::failed(
+            "mimetype entry",
+            format!("First entry must be 'mimetype', found: {}", first_entry.name()),
+        ));
+    } else {
+        report.add_check(ValidationCheck::ok("mimetype is first entry"));
+    }
+
+    // Verify mimetype is uncompressed
+    if first_entry.compression() != zip::CompressionMethod::Stored {
+        report.add_check(ValidationCheck::failed(
+            "mimetype compression",
+            "mimetype entry must be uncompressed (Stored)",
+        ));
+    } else {
+        report.add_check(ValidationCheck::ok("mimetype is uncompressed"));
+    }
+    drop(first_entry);
+
+    // Read and verify mimetype content
+    let mut mimetype_entry = archive.by_name("mimetype")?;
+    let mut mimetype_content = String::new();
+    mimetype_entry.read_to_string(&mut mimetype_content)?;
+    if mimetype_content != MZPEAK_MIMETYPE {
+        report.add_check(ValidationCheck::failed(
+            "mimetype content",
+            format!("Expected '{}', found: '{}'", MZPEAK_MIMETYPE, mimetype_content),
+        ));
+    } else {
+        report.add_check(ValidationCheck::ok(format!("mimetype = {}", MZPEAK_MIMETYPE)));
+    }
+    drop(mimetype_entry);
+
+    // Check for metadata.json
+    match archive.by_name("metadata.json") {
+        Ok(entry) => {
+            report.add_check(ValidationCheck::ok("metadata.json exists"));
+            // Verify it's compressed
+            if entry.compression() != zip::CompressionMethod::Deflated {
+                report.add_check(ValidationCheck::warning(
+                    "metadata.json compression",
+                    "metadata.json should be Deflate compressed",
+                ));
+            } else {
+                report.add_check(ValidationCheck::ok("metadata.json is compressed"));
+            }
+        }
+        Err(_) => {
+            report.add_check(ValidationCheck::failed(
+                "metadata.json exists",
+                "Missing metadata.json in container",
+            ));
+        }
+    }
+
+    // Check for peaks/peaks.parquet (zero-extraction validation)
+    let mut peaks_entry = archive.by_name("peaks/peaks.parquet")
+        .context("Missing peaks/peaks.parquet in container")?;
+    report.add_check(ValidationCheck::ok("peaks/peaks.parquet exists"));
+
+    // Verify peaks.parquet is uncompressed (critical for seekability)
+    if peaks_entry.compression() != zip::CompressionMethod::Stored {
+        report.add_check(ValidationCheck::failed(
+            "peaks.parquet compression",
+            "peaks.parquet must be uncompressed (Stored) for seekability",
+        ));
+    } else {
+        report.add_check(ValidationCheck::ok("peaks.parquet is uncompressed (seekable)"));
+    }
+
+    // Read Parquet data into memory for validation (zero-extraction)
+    let mut parquet_data = Vec::new();
+    peaks_entry.read_to_end(&mut parquet_data)?;
+    let bytes = Bytes::from(parquet_data);
+
+    // Verify it's a valid Parquet file
+    match SerializedFileReader::new(bytes.clone()) {
+        Ok(_) => {
+            report.add_check(ValidationCheck::ok("Valid Parquet file"));
+        }
+        Err(e) => {
+            report.add_check(ValidationCheck::failed(
+                "Valid Parquet file",
+                format!("Not a valid Parquet file: {}", e),
+            ));
+            anyhow::bail!(ValidationError::ParquetError(e));
+        }
+    }
+
+    Ok(ValidationTarget::InMemory(bytes))
+}
+
+/// Validate single Parquet file (legacy format)
+fn validate_single_parquet_file(path: &Path, report: &mut ValidationReport) -> Result<ValidationTarget> {
+    match File::open(path) {
+        Ok(file) => match SerializedFileReader::new(file) {
+            Ok(_) => {
+                report.add_check(ValidationCheck::ok("Valid Parquet file"));
+            }
+            Err(e) => {
+                report.add_check(ValidationCheck::failed(
+                    "Valid Parquet file",
+                    format!("Not a valid Parquet file: {}", e),
+                ));
+                anyhow::bail!(ValidationError::ParquetError(e));
+            }
+        },
+        Err(e) => {
+            report.add_check(ValidationCheck::failed(
+                "Parquet file readable",
+                format!("Cannot open Parquet file: {}", e),
+            ));
+            anyhow::bail!(e);
+        }
+    }
+
+    Ok(ValidationTarget::FilePath(path.to_path_buf()))
 }
 
 /// Step 2: Metadata integrity validation
 fn check_metadata_integrity(
     base_path: &Path,
-    parquet_path: &Path,
+    validation_target: &ValidationTarget,
     report: &mut ValidationReport,
 ) -> Result<()> {
-    // Try to read metadata.json if it exists (for directory bundles)
-    let metadata_json_path = if base_path.is_dir() {
-        base_path.join("metadata.json")
-    } else {
-        // For single file, we'll check Parquet metadata only
-        std::path::PathBuf::new()
-    };
-
-    if metadata_json_path.exists() {
-        // Read and parse metadata.json
-        match std::fs::read_to_string(&metadata_json_path) {
-            Ok(json_content) => {
-                match serde_json::from_str::<MzPeakMetadata>(&json_content) {
-                    Ok(_metadata) => {
-                        report.add_check(ValidationCheck::ok("metadata.json valid JSON"));
-                        // Note: Could add more specific validation here
-                    }
-                    Err(e) => {
-                        report.add_check(ValidationCheck::failed(
-                            "metadata.json valid JSON",
-                            format!("Failed to parse metadata.json: {}", e),
-                        ));
-                    }
-                }
-            }
-            Err(e) => {
-                report.add_check(ValidationCheck::failed(
-                    "metadata.json readable",
-                    format!("Failed to read metadata.json: {}", e),
-                ));
-            }
+    // Check metadata.json from directory bundle or ZIP container
+    if base_path.is_dir() {
+        // Directory bundle
+        let metadata_json_path = base_path.join("metadata.json");
+        if metadata_json_path.exists() {
+            validate_metadata_json_file(&metadata_json_path, report)?;
+        }
+    } else if base_path.is_file() && is_zip_file(base_path) {
+        // ZIP container - read metadata.json content before archive is dropped
+        let json_content = {
+            let file = File::open(base_path)?;
+            let mut archive = ZipArchive::new(BufReader::new(file))?;
+            let result = if let Ok(mut metadata_entry) = archive.by_name("metadata.json") {
+                let mut content = String::new();
+                metadata_entry.read_to_string(&mut content)?;
+                Some(content)
+            } else {
+                None
+            };
+            result
+        };
+        
+        if let Some(content) = json_content {
+            validate_metadata_json_content(&content, report)?;
         }
     }
 
     // Check Parquet footer metadata
-    let file = File::open(parquet_path)?;
-    let reader = SerializedFileReader::new(file)?;
-    let metadata = reader.metadata();
+    let metadata = match validation_target {
+        ValidationTarget::FilePath(path) => {
+            let file = File::open(path)?;
+            let reader = SerializedFileReader::new(file)?;
+            reader.metadata().clone()
+        }
+        ValidationTarget::InMemory(bytes) => {
+            let reader = SerializedFileReader::new(bytes.clone())?;
+            reader.metadata().clone()
+        }
+    };
+
     let file_metadata = metadata.file_metadata();
 
     if let Some(kv_metadata) = file_metadata.key_value_metadata() {
@@ -394,11 +562,54 @@ fn check_metadata_integrity(
     Ok(())
 }
 
+/// Validate metadata.json from file path
+fn validate_metadata_json_file(path: &Path, report: &mut ValidationReport) -> Result<()> {
+    match std::fs::read_to_string(path) {
+        Ok(json_content) => validate_metadata_json_content(&json_content, report),
+        Err(e) => {
+            report.add_check(ValidationCheck::failed(
+                "metadata.json readable",
+                format!("Failed to read metadata.json: {}", e),
+            ));
+            Ok(())
+        }
+    }
+}
+
+/// Validate metadata.json content
+fn validate_metadata_json_content(json_content: &str, report: &mut ValidationReport) -> Result<()> {
+    match serde_json::from_str::<MzPeakMetadata>(json_content) {
+        Ok(_metadata) => {
+            report.add_check(ValidationCheck::ok("metadata.json valid JSON"));
+        }
+        Err(e) => {
+            report.add_check(ValidationCheck::failed(
+                "metadata.json valid JSON",
+                format!("Failed to parse metadata.json: {}", e),
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// Step 3: Schema contract validation
-fn check_schema_contract(parquet_path: &Path, report: &mut ValidationReport) -> Result<()> {
-    let file = File::open(parquet_path)?;
-    let reader = SerializedFileReader::new(file)?;
-    let metadata = reader.metadata();
+fn check_schema_contract(validation_target: &ValidationTarget, report: &mut ValidationReport) -> Result<()> {
+    // We need to handle schema validation differently for each target type
+    match validation_target {
+        ValidationTarget::FilePath(path) => {
+            let file = File::open(path)?;
+            let reader = SerializedFileReader::new(file)?;
+            perform_schema_validation(reader.metadata(), report)
+        }
+        ValidationTarget::InMemory(bytes) => {
+            let reader = SerializedFileReader::new(bytes.clone())?;
+            perform_schema_validation(reader.metadata(), report)
+        }
+    }
+}
+
+/// Perform schema validation on Parquet metadata
+fn perform_schema_validation(metadata: &parquet::file::metadata::ParquetMetaData, report: &mut ValidationReport) -> Result<()> {
     let file_metadata = metadata.file_metadata();
     let schema_descriptor = file_metadata.schema_descr();
 
@@ -487,9 +698,23 @@ fn check_schema_contract(parquet_path: &Path, report: &mut ValidationReport) -> 
 }
 
 /// Step 4: Data sanity validation
-fn check_data_sanity(parquet_path: &Path, report: &mut ValidationReport) -> Result<()> {
-    let file = File::open(parquet_path)?;
-    let reader = SerializedFileReader::new(file)?;
+fn check_data_sanity(validation_target: &ValidationTarget, report: &mut ValidationReport) -> Result<()> {
+    // We need to handle both reader types separately due to type constraints
+    match validation_target {
+        ValidationTarget::FilePath(path) => {
+            let file = File::open(path)?;
+            let reader = SerializedFileReader::new(file)?;
+            perform_data_sanity_checks(reader, report)
+        }
+        ValidationTarget::InMemory(bytes) => {
+            let reader = SerializedFileReader::new(bytes.clone())?;
+            perform_data_sanity_checks(reader, report)
+        }
+    }
+}
+
+/// Perform actual data sanity checks on a reader
+fn perform_data_sanity_checks<R: parquet::file::reader::ChunkReader + 'static>(reader: SerializedFileReader<R>, report: &mut ValidationReport) -> Result<()> {
     
     let metadata = reader.metadata();
     let num_rows = metadata.file_metadata().num_rows();
