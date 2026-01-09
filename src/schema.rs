@@ -103,6 +103,14 @@ pub mod columns {
     pub const INJECTION_TIME: &str = "injection_time";
 }
 
+/// Column names for chromatogram schema
+pub mod chromatogram_columns {
+    pub const CHROMATOGRAM_ID: &str = "chromatogram_id";
+    pub const CHROMATOGRAM_TYPE: &str = "chromatogram_type";
+    pub const TIME_ARRAY: &str = "time_array";
+    pub const INTENSITY_ARRAY: &str = "intensity_array";
+}
+
 /// Creates a Field with CV term metadata annotation
 fn field_with_cv(name: &str, data_type: DataType, nullable: bool, cv_accession: &str) -> Field {
     let mut metadata = std::collections::HashMap::new();
@@ -287,6 +295,87 @@ pub fn create_mzpeak_schema_arc() -> Arc<Schema> {
     Arc::new(create_mzpeak_schema())
 }
 
+/// Creates the chromatogram Arrow schema for the "Wide" format.
+///
+/// Unlike the "Long" format used for peaks, chromatograms are stored as rows of arrays
+/// (Time and Intensity vectors) to enable instant trace visualization without scanning
+/// the entire peak table.
+///
+/// # Schema Columns
+///
+/// | Column | Type | Description | CV Term |
+/// |--------|------|-------------|---------|
+/// | chromatogram_id | Utf8 | Unique chromatogram identifier | MS:1000235 |
+/// | chromatogram_type | Utf8 | Type of chromatogram (TIC, BPC, etc.) | MS:1000235 |
+/// | time_array | List<Float64> | Time values in seconds | MS:1000595 |
+/// | intensity_array | List<Float32> | Intensity values | MS:1000515 |
+///
+/// # Example
+///
+/// ```
+/// use mzpeak::schema::create_chromatogram_schema;
+///
+/// let schema = create_chromatogram_schema();
+/// assert_eq!(schema.fields().len(), 4);
+/// ```
+pub fn create_chromatogram_schema() -> Schema {
+    let mut builder = SchemaBuilder::new();
+
+    // Chromatogram ID - string identifier
+    builder.push(field_with_cv(
+        chromatogram_columns::CHROMATOGRAM_ID,
+        DataType::Utf8,
+        false,
+        "MS:1000235", // total ion current chromatogram (generic CV for chromatogram)
+    ));
+
+    // Chromatogram type - string describing the type (TIC, BPC, SRM, etc.)
+    builder.push(field_with_cv(
+        chromatogram_columns::CHROMATOGRAM_TYPE,
+        DataType::Utf8,
+        false,
+        "MS:1000235", // chromatogram type
+    ));
+
+    // Time array - List of Float64 values
+    builder.push(field_with_cv(
+        chromatogram_columns::TIME_ARRAY,
+        DataType::List(Arc::new(Field::new("item", DataType::Float64, false))),
+        false,
+        "MS:1000595", // time array
+    ));
+
+    // Intensity array - List of Float32 values
+    builder.push(field_with_cv(
+        chromatogram_columns::INTENSITY_ARRAY,
+        DataType::List(Arc::new(Field::new("item", DataType::Float32, false))),
+        false,
+        "MS:1000515", // intensity array
+    ));
+
+    let mut schema = builder.finish();
+
+    // Add schema-level metadata
+    let mut metadata = std::collections::HashMap::new();
+    metadata.insert(KEY_FORMAT_VERSION.to_string(), MZPEAK_FORMAT_VERSION.to_string());
+    metadata.insert(
+        "mzpeak:schema_description".to_string(),
+        "Wide-format chromatogram data with array storage for instant trace visualization".to_string(),
+    );
+    metadata.insert(
+        "mzpeak:cv_namespace".to_string(),
+        "https://raw.githubusercontent.com/HUPO-PSI/psi-ms-CV/master/psi-ms.obo".to_string(),
+    );
+
+    schema = schema.with_metadata(metadata);
+    schema
+}
+
+/// Returns an Arc-wrapped chromatogram schema for shared ownership
+pub fn create_chromatogram_schema_arc() -> Arc<Schema> {
+    Arc::new(create_chromatogram_schema())
+}
+
 /// Validates that a schema is compatible with the mzPeak format.
 ///
 /// Returns `Ok(())` if the schema contains all required columns with correct types,
@@ -364,5 +453,24 @@ mod tests {
         let mz_field = schema.field_with_name(columns::MZ).unwrap();
         let cv = mz_field.metadata().get("cv_accession").unwrap();
         assert_eq!(cv, "MS:1000040");
+    }
+
+    #[test]
+    fn test_chromatogram_schema_creation() {
+        let schema = create_chromatogram_schema();
+        assert_eq!(schema.fields().len(), 4);
+
+        // Check required columns exist
+        assert!(schema.field_with_name(chromatogram_columns::CHROMATOGRAM_ID).is_ok());
+        assert!(schema.field_with_name(chromatogram_columns::CHROMATOGRAM_TYPE).is_ok());
+        assert!(schema.field_with_name(chromatogram_columns::TIME_ARRAY).is_ok());
+        assert!(schema.field_with_name(chromatogram_columns::INTENSITY_ARRAY).is_ok());
+
+        // Verify list types
+        let time_field = schema.field_with_name(chromatogram_columns::TIME_ARRAY).unwrap();
+        assert!(matches!(time_field.data_type(), DataType::List(_)));
+
+        let intensity_field = schema.field_with_name(chromatogram_columns::INTENSITY_ARRAY).unwrap();
+        assert!(matches!(intensity_field.data_type(), DataType::List(_)));
     }
 }

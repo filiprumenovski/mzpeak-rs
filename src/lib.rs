@@ -180,6 +180,7 @@
 #![allow(clippy::too_many_arguments)]
 
 pub mod controlled_vocabulary;
+pub mod chromatogram_writer;
 pub mod dataset;
 pub mod metadata;
 pub mod mzml;
@@ -188,12 +189,18 @@ pub mod writer;
 
 /// Re-export commonly used types for convenience
 pub mod prelude {
+    pub use crate::chromatogram_writer::{
+        Chromatogram, ChromatogramWriter, ChromatogramWriterConfig, ChromatogramWriterStats,
+    };
     pub use crate::controlled_vocabulary::{ms_terms, unit_terms, CvParamList, CvTerm};
     pub use crate::dataset::{DatasetError, DatasetStats, MzPeakDatasetWriter};
     pub use crate::metadata::{
         InstrumentConfig, LcConfig, MzPeakMetadata, RunParameters, SdrfMetadata, SourceFileInfo,
     };
-    pub use crate::schema::{columns, create_mzpeak_schema, MZPEAK_FORMAT_VERSION};
+    pub use crate::schema::{
+        chromatogram_columns, columns, create_chromatogram_schema, create_mzpeak_schema,
+        MZPEAK_FORMAT_VERSION,
+    };
     pub use crate::writer::{
         CompressionType, MzPeakWriter, Peak, Spectrum, SpectrumBuilder, WriterConfig, WriterStats,
     };
