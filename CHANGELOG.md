@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Validation Module**: Comprehensive integrity checker for mzPeak files
+  - New `validator` module with 4-stage validation process
+  - `mzpeak validate` CLI command for file/directory validation
+  - Structure checks: validates paths, required files, and Parquet format
+  - Metadata integrity: deserializes and validates metadata.json and Parquet footer
+  - Schema contract: verifies all required columns, data types, and CV accessions
+  - Data sanity: validates m/z > 0, intensity >= 0, ms_level >= 1, RT ordering
+  - Colored output with ✓/⚠/✗ symbols for easy reading
+  - Exit code 1 on validation failure (suitable for CI/CD pipelines)
+  - Samples first 1,000 rows for efficient validation of large files
+  - Supports both single-file and directory bundle formats
+
 - **Ion Mobility Support**: Native support for ion mobility mass spectrometry (IM-MS)
   - New `ion_mobility` column in schema (Float64, nullable) with CV accession MS:1002476
   - Parser extracts ion mobility arrays from mzML (CV: MS:1002893)
