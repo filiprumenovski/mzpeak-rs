@@ -5,14 +5,17 @@
 //!
 //! ## Key Features
 //!
+//! - **Dataset Bundle Architecture**: Directory-based format with separate files for
+//!   peaks, chromatograms, and human-readable metadata.
+//!
 //! - **Efficient Storage**: Uses Apache Parquet with ZSTD compression for excellent
 //!   compression ratios while maintaining fast random access.
 //!
 //! - **Long Table Format**: Stores each peak as a separate row, enabling Parquet's
 //!   Run-Length Encoding (RLE) to efficiently compress repeated spectrum metadata.
 //!
-//! - **Self-Contained Files**: All metadata (SDRF, instrument config, LC settings,
-//!   technical parameters) is embedded in the Parquet footer.
+//! - **Human-Readable Metadata**: Standalone JSON file for quick inspection without
+//!   Parquet tools, plus embedded metadata in Parquet footer.
 //!
 //! - **Lossless Technical Metadata**: Unlike other converters, mzPeak preserves
 //!   vendor-specific technical parameters like pump pressures and diagnostic data.
@@ -20,18 +23,19 @@
 //! - **HUPO-PSI CV Integration**: Uses standardized controlled vocabulary terms
 //!   for global interoperability.
 //!
-//! ## Quick Start
+//! ## Quick Start - Dataset Bundle (Recommended)
 //!
 //! ```rust,no_run
-//! use mzpeak::writer::{MzPeakWriter, SpectrumBuilder, Peak, WriterConfig};
+//! use mzpeak::dataset::MzPeakDatasetWriter;
+//! use mzpeak::writer::{SpectrumBuilder, WriterConfig};
 //! use mzpeak::metadata::MzPeakMetadata;
 //!
 //! // Create metadata
 //! let metadata = MzPeakMetadata::new();
 //!
-//! // Create writer
-//! let mut writer = MzPeakWriter::new_file(
-//!     "output.mzpeak.parquet",
+//! // Create Dataset Bundle writer
+//! let mut dataset = MzPeakDatasetWriter::new(
+//!     "output.mzpeak",
 //!     &metadata,
 //!     WriterConfig::default()
 //! )?;
@@ -46,35 +50,68 @@
 //!     .build();
 //!
 //! // Write the spectrum
-//! writer.write_spectrum(&spectrum)?;
+//! dataset.write_spectrum(&spectrum)?;
 //!
 //! // Finalize
+//! let stats = dataset.close()?;
+//! println!("Wrote {} peaks", stats.peak_stats.peaks_written);
+//! # Ok::<(), mzpeak::dataset::DatasetError>(())
+//! ```
+//!
+//! This creates a directory structure:
+//! ```text
+//! output.mzpeak/
+//! ├── peaks/peaks.parquet      # Spectral data
+//! ├── chromatograms/            # TIC/BPC traces (future)
+//! └── metadata.json             # Human-readable metadata
+//! ```
+//!
+//! ## Legacy Single-File Format
+//!
+//! ```rust,no_run
+//! use mzpeak::writer::{MzPeakWriter, SpectrumBuilder, WriterConfig};
+//! use mzpeak::metadata::MzPeakMetadata;
+//!
+//! let metadata = MzPeakMetadata::new();
+//! let mut writer = MzPeakWriter::new_file(
+//!     "output.mzpeak.parquet",
+//!     &metadata,
+//!     WriterConfig::default()
+//! )?;
+//!
+//! let spectrum = SpectrumBuilder::new(0, 1)
+//!     .ms_level(1)
+//!     .retention_time(60.0)
+//!     .polarity(1)
+//!     .add_peak(400.0, 10000.0)
+//!     .build();
+//!
+//! writer.write_spectrum(&spectrum)?;
 //! let stats = writer.finish()?;
-//! println!("Wrote {} peaks", stats.peaks_written);
 //! # Ok::<(), mzpeak::writer::WriterError>(())
 //! ```
 //!
 //! ## Reading mzPeak Files
 //!
-//! mzPeak files are standard Parquet files and can be read with any Parquet-compatible
-//! tool:
+//! mzPeak Dataset Bundles are standard Parquet files and can be read with any
+//! Parquet-compatible tool:
 //!
 //! ```python
 //! # Python
 //! import pyarrow.parquet as pq
-//! table = pq.read_table("data.mzpeak.parquet")
+//! table = pq.read_table("data.mzpeak/peaks/peaks.parquet")
 //! df = table.to_pandas()
 //! ```
 //!
 //! ```r
 //! # R
 //! library(arrow)
-//! df <- read_parquet("data.mzpeak.parquet")
+//! df <- read_parquet("data.mzpeak/peaks/peaks.parquet")
 //! ```
 //!
 //! ```sql
 //! -- DuckDB
-//! SELECT * FROM read_parquet('data.mzpeak.parquet')
+//! SELECT * FROM read_parquet('data.mzpeak/peaks/peaks.parquet')
 //! WHERE ms_level = 2 AND precursor_mz BETWEEN 500 AND 600;
 //! ```
 //!
@@ -82,6 +119,7 @@
 //!
 //! The library is organized into the following modules:
 //!
+//! - [`dataset`]: Dataset Bundle orchestrator for multi-file output
 //! - [`schema`]: Arrow/Parquet schema definitions for the Long table format
 //! - [`metadata`]: SDRF parsing and technical metadata structures
 //! - [`writer`]: Streaming Parquet writer with RLE optimization

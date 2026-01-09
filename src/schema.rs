@@ -122,7 +122,7 @@ fn field_with_cv(name: &str, data_type: DataType, nullable: bool, cv_accession: 
 /// use mzpeak::schema::create_mzpeak_schema;
 ///
 /// let schema = create_mzpeak_schema();
-/// assert_eq!(schema.fields().len(), 17);
+/// assert_eq!(schema.fields().len(), 18);
 /// ```
 pub fn create_mzpeak_schema() -> Schema {
     let mut builder = SchemaBuilder::new();

@@ -12,16 +12,19 @@ mzPeak is a reference implementation for a next-generation mass spectrometry dat
 - **5-10x compression** over mzML files
 - **Blazing fast queries** with column pruning and predicate pushdown
 - **Universal compatibility** with any Parquet-compatible tool (Python, R, DuckDB, Spark)
-- **Self-contained files** with all metadata embedded in the Parquet footer
+- **Dataset Bundle architecture** with separate files for peaks, chromatograms, and metadata
+- **Self-contained format** with all metadata embedded and human-readable JSON
 - **Streaming processing** for arbitrarily large files with minimal memory
 
 ## Features
 
+- **Dataset Bundle architecture**: Directory-based format with separate files for peaks, chromatograms, and metadata
 - **Long table schema**: Each peak is a row, enabling efficient Run-Length Encoding (RLE) compression on spectrum metadata
 - **HUPO-PSI CV integration**: Full controlled vocabulary support for interoperability
 - **SDRF-Proteomics metadata**: Sample metadata following community standards
 - **Lossless technical metadata**: Preserves instrument settings, LC configurations, pump pressures
 - **Streaming mzML parser**: Memory-efficient conversion of large files
+- **Human-readable metadata**: Standalone JSON file for quick inspection without Parquet tools
 
 ## Installation
 
@@ -47,39 +50,82 @@ mzpeak = "0.1"
 ### Command Line
 
 ```bash
-# Convert mzML to mzPeak format
+# Convert mzML to mzPeak Dataset Bundle
+mzpeak convert input.mzML output.mzpeak
+
+# Convert to single Parquet file (legacy format)
 mzpeak convert input.mzML output.mzpeak.parquet
 
 # Generate demo data for testing
-mzpeak demo demo_run.mzpeak.parquet
+mzpeak demo demo_run.mzpeak
 
-# Display file information
-mzpeak info demo_run.mzpeak.parquet
+# Display dataset information
+mzpeak info demo_run.mzpeak
 ```
 
 ### As a Library
 
 ```rust
 use mzpeak::prelude::*;
+
+// Create a Dataset Bundle (recommended)
+let metadata = MzPeakMetadata::new();
+let config = WriterConfig::default();
+let mut dataset = MzPeakDatasetWriter::new("output.mzpeak", &metadata, config)?;
+
+// Write spectra
+let spectrum = SpectrumBuilder::new(0, 1)
+    .ms_level(1)
+    .retention_time(60.0)
+    .polarity(1)
+    .add_peak(400.0, 10000.0)
+    .add_peak(500.0, 20000.0)
+    .build();
+
+dataset.write_spectrum(&spectrum)?;
+let stats = dataset.close()?;
+
+println!("Wrote {} spectra, {} peaks", 
+    stats.peak_stats.spectra_written, 
+    stats.peak_stats.peaks_written);
+```
+
+**Or convert from mzML:**
+
+```rust
 use mzpeak::mzml::MzMLConverter;
 
-// Convert mzML to mzPeak
+// Convert mzML to Dataset Bundle
 let converter = MzMLConverter::new()
     .with_batch_size(1000);
 
-let stats = converter.convert("input.mzML", "output.mzpeak.parquet")?;
+let stats = converter.convert("input.mzML", "output.mzpeak")?;
 println!("Converted {} spectra, {} peaks", stats.spectra_count, stats.peak_count);
 ```
 
 ### Reading mzPeak Files
 
-mzPeak files are standard Parquet files and can be read with any compatible tool:
+mzPeak Dataset Bundles contain multiple files in a directory structure:
+
+```
+output.mzpeak/
+├── peaks/peaks.parquet      # Spectral data
+├── chromatograms/            # TIC/BPC traces (future)
+└── metadata.json             # Human-readable metadata
+```
+
+**Quick metadata inspection (no tools needed):**
+```bash
+cat output.mzpeak/metadata.json | jq .
+```
+
+**Read peak data with any Parquet tool:**
 
 **Python (pyarrow)**
 ```python
 import pyarrow.parquet as pq
 
-table = pq.read_table('output.mzpeak.parquet')
+table = pq.read_table('output.mzpeak/peaks/peaks.parquet')
 df = table.to_pandas()
 
 # Query MS2 spectra only
@@ -90,14 +136,14 @@ ms2 = df[df['ms_level'] == 2]
 ```r
 library(arrow)
 
-data <- read_parquet('output.mzpeak.parquet')
+data <- read_parquet('output.mzpeak/peaks/peaks.parquet')
 ms2_spectra <- data[data$ms_level == 2, ]
 ```
 
 **DuckDB**
 ```sql
 SELECT spectrum_id, mz, intensity
-FROM read_parquet('output.mzpeak.parquet')
+FROM read_parquet('output.mzpeak/peaks/peaks.parquet')
 WHERE ms_level = 2 AND precursor_mz BETWEEN 500 AND 600;
 ```
 
@@ -105,7 +151,7 @@ WHERE ms_level = 2 AND precursor_mz BETWEEN 500 AND 600;
 ```python
 import polars as pl
 
-df = pl.scan_parquet('output.mzpeak.parquet')
+df = pl.scan_parquet('output.mzpeak/peaks/peaks.parquet')
 result = df.filter(pl.col('ms_level') == 2).collect()
 ```
 
@@ -135,7 +181,35 @@ mzPeak uses a "long" table format where each peak is a row:
 
 ## Metadata
 
-All metadata is stored in the Parquet footer's key-value metadata:
+### Dataset Bundle Metadata
+
+The Dataset Bundle includes a `metadata.json` file in the root directory for quick inspection without Parquet tools:
+
+```json
+{
+  "format_version": "1.0.0",
+  "created": "2026-01-09T10:00:00Z",
+  "converter": "mzpeak-rs v0.1.0",
+  "sdrf": {
+    "source_name": "sample_01",
+    "organism": "Homo sapiens",
+    "instrument": "Orbitrap Exploris 480"
+  },
+  "instrument": {
+    "model": "Orbitrap Exploris 480",
+    "vendor": "Thermo Fisher Scientific"
+  },
+  "source_file": {
+    "name": "sample_01.raw",
+    "path": "/data/raw/sample_01.raw",
+    "format": "Thermo RAW"
+  }
+}
+```
+
+### Parquet Footer Metadata
+
+All metadata is also stored in the Parquet footer's key-value metadata:
 
 - `mzpeak:format_version` - Format version (e.g., "1.0.0")
 - `mzpeak:sdrf_metadata` - SDRF-Proteomics sample metadata (JSON)
@@ -162,10 +236,39 @@ Query performance benefits from Parquet's:
 
 ## API Documentation
 
-### Core Types
+### Dataset Bundle Writer (Recommended)
 
 ```rust
-// Create a spectrum
+use mzpeak::prelude::*;
+
+// Create a Dataset Bundle
+let metadata = MzPeakMetadata::new();
+let config = WriterConfig::default();
+let mut dataset = MzPeakDatasetWriter::new("output.mzpeak", &metadata, config)?;
+
+// Write spectra
+let spectrum = SpectrumBuilder::new(0, 1)
+    .ms_level(2)
+    .retention_time(120.5)
+    .precursor(500.25, Some(2), Some(1e6))
+    .collision_energy(30.0)
+    .add_peak(150.0, 1000.0)
+    .add_peak(250.0, 2000.0)
+    .build();
+
+dataset.write_spectrum(&spectrum)?;
+let stats = dataset.close()?;
+println!("Wrote {} spectra", stats.peak_stats.spectra_written);
+```
+
+### Legacy Single-File Writer
+
+```rust
+// Write to a single Parquet file (legacy format)
+let metadata = MzPeakMetadata::new();
+let config = WriterConfig::default();
+let mut writer = MzPeakWriter::new_file("output.parquet", &metadata, config)?;
+
 let spectrum = SpectrumBuilder::new(spectrum_id, scan_number)
     .ms_level(2)
     .retention_time(120.5)
@@ -177,10 +280,6 @@ let spectrum = SpectrumBuilder::new(spectrum_id, scan_number)
     ])
     .build();
 
-// Write spectra to file
-let metadata = MzPeakMetadata::new();
-let config = WriterConfig::default();
-let mut writer = MzPeakWriter::new_file("output.parquet", &metadata, config)?;
 writer.write_spectra(&[spectrum])?;
 let stats = writer.finish()?;
 ```

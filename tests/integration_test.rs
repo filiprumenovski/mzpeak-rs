@@ -60,7 +60,7 @@ fn test_write_read_cycle() {
     let metadata = reader.metadata();
 
     // Verify schema
-    assert_eq!(metadata.file_metadata().schema_descr().num_columns(), 17);
+    assert_eq!(metadata.file_metadata().schema_descr().num_columns(), 18);
 
     // Verify row count
     assert_eq!(metadata.file_metadata().num_rows(), 5000);
@@ -101,6 +101,7 @@ fn test_large_batch() {
                 .map(|j| Peak {
                     mz: 100.0 + (j as f64),
                     intensity: 1000.0,
+                    ion_mobility: None,
                 })
                 .collect();
 
@@ -298,7 +299,7 @@ fn test_dataset_bundle_structure() {
     assert_eq!(parquet_metadata.file_metadata().num_rows(), 100);
 
     // Verify peak file has correct schema
-    assert_eq!(parquet_metadata.file_metadata().schema_descr().num_columns(), 17);
+    assert_eq!(parquet_metadata.file_metadata().schema_descr().num_columns(), 18);
 
     // Verify peak file has metadata in footer
     let kv = parquet_metadata.file_metadata().key_value_metadata().unwrap();
