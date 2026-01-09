@@ -20,6 +20,7 @@
 //! | polarity | Int8 | 1 for positive, -1 for negative | MS:1000465/MS:1000129 |
 //! | mz | Float64 | Mass-to-charge ratio | MS:1000040 |
 //! | intensity | Float32 | Signal intensity | MS:1000042 |
+//! | ion_mobility | Float64 (nullable) | Ion mobility drift time | MS:1002476 |
 //! | precursor_mz | Float64 (nullable) | Precursor m/z for MS2+ | MS:1000744 |
 //! | precursor_charge | Int16 (nullable) | Precursor charge state | MS:1000041 |
 //! | precursor_intensity | Float32 (nullable) | Precursor intensity | MS:1000042 |
@@ -89,6 +90,7 @@ pub mod columns {
     pub const POLARITY: &str = "polarity";
     pub const MZ: &str = "mz";
     pub const INTENSITY: &str = "intensity";
+    pub const ION_MOBILITY: &str = "ion_mobility";
     pub const PRECURSOR_MZ: &str = "precursor_mz";
     pub const PRECURSOR_CHARGE: &str = "precursor_charge";
     pub const PRECURSOR_INTENSITY: &str = "precursor_intensity";
@@ -177,6 +179,14 @@ pub fn create_mzpeak_schema() -> Schema {
         DataType::Float32,
         false,
         "MS:1000042", // peak intensity
+    ));
+
+    // Ion Mobility (nullable)
+    builder.push(field_with_cv(
+        columns::ION_MOBILITY,
+        DataType::Float64,
+        true,
+        "MS:1002476", // ion mobility drift time
     ));
 
     // Precursor information (nullable - only for MS2+)
@@ -333,12 +343,13 @@ mod tests {
     #[test]
     fn test_schema_creation() {
         let schema = create_mzpeak_schema();
-        assert_eq!(schema.fields().len(), 17);
+        assert_eq!(schema.fields().len(), 18);
 
         // Check required columns exist
         assert!(schema.field_with_name(columns::SPECTRUM_ID).is_ok());
         assert!(schema.field_with_name(columns::MZ).is_ok());
         assert!(schema.field_with_name(columns::INTENSITY).is_ok());
+        assert!(schema.field_with_name(columns::ION_MOBILITY).is_ok());
     }
 
     #[test]

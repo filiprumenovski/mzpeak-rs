@@ -560,6 +560,7 @@ impl<R: BufRead> MzMLStreamer<R> {
         let mut compression = CompressionType::None;
         let mut is_mz = false;
         let mut is_intensity = false;
+        let mut is_ion_mobility = false;
 
         for cv in &ctx.cv_params {
             match cv.accession.as_str() {
@@ -569,6 +570,7 @@ impl<R: BufRead> MzMLStreamer<R> {
                 MS_CV_ACCESSIONS::NO_COMPRESSION => compression = CompressionType::None,
                 MS_CV_ACCESSIONS::MZ_ARRAY => is_mz = true,
                 MS_CV_ACCESSIONS::INTENSITY_ARRAY => is_intensity = true,
+                MS_CV_ACCESSIONS::ION_MOBILITY_ARRAY => is_ion_mobility = true,
                 _ => {}
             }
         }
@@ -590,6 +592,8 @@ impl<R: BufRead> MzMLStreamer<R> {
         } else if is_intensity {
             spectrum.intensity_array = values;
             spectrum.intensity_precision_64bit = encoding == BinaryEncoding::Float64;
+        } else if is_ion_mobility {
+            spectrum.ion_mobility_array = values;
         }
 
         Ok(())

@@ -625,6 +625,7 @@ fn generate_ms1_peaks(rt_sec: f64, total_duration: f64) -> Vec<Peak> {
         peaks.push(Peak {
             mz: mz + mz_noise,
             intensity: intensity as f32,
+            ion_mobility: None,
         });
     }
 
@@ -665,6 +666,7 @@ fn generate_ms2_peaks(precursor_mz: f64) -> Vec<Peak> {
             peaks.push(Peak {
                 mz: frag_mz,
                 intensity: intensity as f32,
+                ion_mobility: None,
             });
         }
     }
@@ -673,14 +675,17 @@ fn generate_ms2_peaks(precursor_mz: f64) -> Vec<Peak> {
     peaks.push(Peak {
         mz: 110.0712,
         intensity: 5e4,
+        ion_mobility: None,
     });
     peaks.push(Peak {
         mz: 120.0808,
         intensity: 3e4,
+        ion_mobility: None,
     });
     peaks.push(Peak {
         mz: 136.0757,
         intensity: 4e4,
+        ion_mobility: None,
     });
 
     peaks.sort_by(|a, b| a.mz.partial_cmp(&b.mz).unwrap());

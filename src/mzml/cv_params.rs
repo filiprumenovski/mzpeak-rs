@@ -111,6 +111,9 @@ pub mod MS_CV_ACCESSIONS {
     /// Scan window upper limit
     pub const SCAN_WINDOW_UPPER_LIMIT: &str = "MS:1000500";
 
+    /// Ion mobility drift time
+    pub const ION_MOBILITY_DRIFT_TIME: &str = "MS:1002476";
+
     // =========================================================================
     // Precursor/isolation
     // =========================================================================
@@ -192,6 +195,9 @@ pub mod MS_CV_ACCESSIONS {
 
     /// Intensity array
     pub const INTENSITY_ARRAY: &str = "MS:1000515";
+
+    /// Ion mobility array
+    pub const ION_MOBILITY_ARRAY: &str = "MS:1002893";
 
     /// Time array
     pub const TIME_ARRAY: &str = "MS:1000595";

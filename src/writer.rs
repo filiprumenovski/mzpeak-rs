@@ -93,6 +93,9 @@ pub struct WriterConfig {
 
     /// Dictionary encoding threshold (0.0 to disable)
     pub dictionary_page_size_limit: usize,
+
+    /// Maximum peaks per file before rotating (None = no rotation)
+    pub max_peaks_per_file: Option<usize>,
 }
 
 impl Default for WriterConfig {
@@ -106,6 +109,8 @@ impl Default for WriterConfig {
             write_statistics: true,
             // 1MB dictionary page limit
             dictionary_page_size_limit: 1024 * 1024,
+            // Default to 50M peaks per file for sharding
+            max_peaks_per_file: Some(50_000_000),
         }
     }
 }
@@ -163,7 +168,7 @@ impl WriterConfig {
             );
         }
 
-        // m/z and intensity columns: disable dictionary (high cardinality data)
+        // m/z, intensity, and ion_mobility columns: disable dictionary (high cardinality data)
         // PLAIN encoding with compression works best for these
         builder = builder.set_column_dictionary_enabled(
             parquet::schema::types::ColumnPath::new(vec![columns::MZ.to_string()]),
@@ -171,6 +176,10 @@ impl WriterConfig {
         );
         builder = builder.set_column_dictionary_enabled(
             parquet::schema::types::ColumnPath::new(vec![columns::INTENSITY.to_string()]),
+            false,
+        );
+        builder = builder.set_column_dictionary_enabled(
+            parquet::schema::types::ColumnPath::new(vec![columns::ION_MOBILITY.to_string()]),
             false,
         );
 
@@ -194,6 +203,7 @@ impl WriterConfig {
 pub struct Peak {
     pub mz: f64,
     pub intensity: f32,
+    pub ion_mobility: Option<f64>,
 }
 
 /// Represents a complete spectrum with all its metadata and peaks
@@ -408,7 +418,12 @@ impl SpectrumBuilder {
     }
 
     pub fn add_peak(mut self, mz: f64, intensity: f32) -> Self {
-        self.spectrum.peaks.push(Peak { mz, intensity });
+        self.spectrum.peaks.push(Peak { mz, intensity, ion_mobility: None });
+        self
+    }
+
+    pub fn add_peak_with_im(mut self, mz: f64, intensity: f32, ion_mobility: f64) -> Self {
+        self.spectrum.peaks.push(Peak { mz, intensity, ion_mobility: Some(ion_mobility) });
         self
     }
 
@@ -422,7 +437,6 @@ impl SpectrumBuilder {
 pub struct MzPeakWriter<W: Write + Send> {
     writer: ArrowWriter<W>,
     schema: Arc<Schema>,
-    #[allow(dead_code)]
     config: WriterConfig,
     spectra_written: usize,
     peaks_written: usize,
@@ -485,6 +499,7 @@ impl<W: Write + Send> MzPeakWriter<W> {
         let mut polarity_builder = Int8Builder::with_capacity(total_peaks);
         let mut mz_builder = Float64Builder::with_capacity(total_peaks);
         let mut intensity_builder = Float32Builder::with_capacity(total_peaks);
+        let mut ion_mobility_builder = Float64Builder::with_capacity(total_peaks);
         let mut precursor_mz_builder = Float64Builder::with_capacity(total_peaks);
         let mut precursor_charge_builder = Int16Builder::with_capacity(total_peaks);
         let mut precursor_intensity_builder = Float32Builder::with_capacity(total_peaks);
@@ -509,6 +524,12 @@ impl<W: Write + Send> MzPeakWriter<W> {
                 // Peak data (unique per peak)
                 mz_builder.append_value(peak.mz);
                 intensity_builder.append_value(peak.intensity);
+
+                // Ion mobility (optional, unique per peak)
+                match peak.ion_mobility {
+                    Some(v) => ion_mobility_builder.append_value(v),
+                    None => ion_mobility_builder.append_null(),
+                }
 
                 // Optional columns (repeated for each peak in spectrum)
                 match spectrum.precursor_mz {
@@ -572,6 +593,7 @@ impl<W: Write + Send> MzPeakWriter<W> {
             Arc::new(polarity_builder.finish()),
             Arc::new(mz_builder.finish()),
             Arc::new(intensity_builder.finish()),
+            Arc::new(ion_mobility_builder.finish()),
             Arc::new(precursor_mz_builder.finish()),
             Arc::new(precursor_charge_builder.finish()),
             Arc::new(precursor_intensity_builder.finish()),
@@ -643,6 +665,164 @@ impl std::fmt::Display for WriterStats {
             f,
             "Wrote {} spectra ({} peaks) in {} row groups",
             self.spectra_written, self.peaks_written, self.row_groups_written
+        )
+    }
+}
+
+/// Rolling writer that automatically shards output into multiple files
+pub struct RollingWriter {
+    base_path: std::path::PathBuf,
+    metadata: MzPeakMetadata,
+    config: WriterConfig,
+    current_writer: Option<MzPeakWriter<File>>,
+    current_part: usize,
+    total_spectra_written: usize,
+    total_peaks_written: usize,
+    part_stats: Vec<WriterStats>,
+}
+
+impl RollingWriter {
+    /// Create a new rolling writer
+    pub fn new<P: AsRef<Path>>(
+        base_path: P,
+        metadata: MzPeakMetadata,
+        config: WriterConfig,
+    ) -> Result<Self, WriterError> {
+        let base_path = base_path.as_ref().to_path_buf();
+        
+        Ok(Self {
+            base_path,
+            metadata,
+            config,
+            current_writer: None,
+            current_part: 0,
+            total_spectra_written: 0,
+            total_peaks_written: 0,
+            part_stats: Vec::new(),
+        })
+    }
+
+    /// Get the path for a specific part number
+    fn part_path(&self, part: usize) -> std::path::PathBuf {
+        if part == 0 {
+            self.base_path.clone()
+        } else {
+            let stem = self.base_path.file_stem().unwrap_or_default().to_string_lossy();
+            let extension = self.base_path.extension().unwrap_or_default().to_string_lossy();
+            let parent = self.base_path.parent().unwrap_or_else(|| Path::new("."));
+            
+            if extension.is_empty() {
+                parent.join(format!("{}-part-{:04}", stem, part))
+            } else {
+                parent.join(format!("{}-part-{:04}.{}", stem, part, extension))
+            }
+        }
+    }
+
+    /// Rotate to a new file
+    fn rotate_file(&mut self) -> Result<(), WriterError> {
+        // Finish current writer if exists
+        if let Some(writer) = self.current_writer.take() {
+            let stats = writer.finish()?;
+            self.part_stats.push(stats);
+        }
+
+        // Create new writer for next part
+        self.current_part += 1;
+        let part_path = self.part_path(self.current_part - 1);
+        
+        let writer = MzPeakWriter::new_file(part_path, &self.metadata, self.config.clone())?;
+        self.current_writer = Some(writer);
+        
+        Ok(())
+    }
+
+    /// Write a batch of spectra, automatically rotating files if needed
+    pub fn write_spectra(&mut self, spectra: &[Spectrum]) -> Result<(), WriterError> {
+        if spectra.is_empty() {
+            return Ok(());
+        }
+
+        // Initialize first writer if needed
+        if self.current_writer.is_none() {
+            self.rotate_file()?;
+        }
+
+        let writer = self.current_writer.as_mut().unwrap();
+        
+        // Check if we need to rotate based on config
+        if let Some(max_peaks) = self.config.max_peaks_per_file {
+            let peaks_in_batch: usize = spectra.iter().map(|s| s.peaks.len()).sum();
+            
+            // If adding this batch would exceed limit, rotate first
+            if writer.peaks_written > 0 && writer.peaks_written + peaks_in_batch > max_peaks {
+                self.rotate_file()?;
+                let writer = self.current_writer.as_mut().unwrap();
+                writer.write_spectra(spectra)?;
+            } else {
+                writer.write_spectra(spectra)?;
+            }
+        } else {
+            writer.write_spectra(spectra)?;
+        }
+
+        self.total_spectra_written += spectra.len();
+        self.total_peaks_written += spectra.iter().map(|s| s.peaks.len()).sum::<usize>();
+
+        Ok(())
+    }
+
+    /// Write a single spectrum
+    pub fn write_spectrum(&mut self, spectrum: &Spectrum) -> Result<(), WriterError> {
+        self.write_spectra(&[spectrum.clone()])
+    }
+
+    /// Finish writing and return combined statistics
+    pub fn finish(mut self) -> Result<RollingWriterStats, WriterError> {
+        // Finish current writer if exists
+        if let Some(writer) = self.current_writer.take() {
+            let stats = writer.finish()?;
+            self.part_stats.push(stats);
+        }
+
+        Ok(RollingWriterStats {
+            total_spectra_written: self.total_spectra_written,
+            total_peaks_written: self.total_peaks_written,
+            files_written: self.part_stats.len(),
+            part_stats: self.part_stats,
+        })
+    }
+
+    /// Get current statistics
+    pub fn stats(&self) -> RollingWriterStats {
+        RollingWriterStats {
+            total_spectra_written: self.total_spectra_written,
+            total_peaks_written: self.total_peaks_written,
+            files_written: self.part_stats.len() + if self.current_writer.is_some() { 1 } else { 0 },
+            part_stats: self.part_stats.clone(),
+        }
+    }
+}
+
+/// Statistics from a rolling writer operation
+#[derive(Debug, Clone)]
+pub struct RollingWriterStats {
+    /// Total number of spectra written across all files
+    pub total_spectra_written: usize,
+    /// Total number of peaks written across all files
+    pub total_peaks_written: usize,
+    /// Number of output files created
+    pub files_written: usize,
+    /// Statistics for each individual file part
+    pub part_stats: Vec<WriterStats>,
+}
+
+impl std::fmt::Display for RollingWriterStats {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Wrote {} spectra ({} peaks) across {} file(s)",
+            self.total_spectra_written, self.total_peaks_written, self.files_written
         )
     }
 }
