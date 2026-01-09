@@ -11,7 +11,9 @@ fn main() {
     println!("\n📊 File Summary:");
     let summary = reader.summary().unwrap();
     println!("  Total spectra: {}", summary.num_spectra);
-    println!("  RT range: {:.2} - {:.2} seconds", summary.min_rt, summary.max_rt);
+    if let Some((min_rt, max_rt)) = summary.rt_range {
+        println!("  RT range: {:.2} - {:.2} seconds", min_rt, max_rt);
+    }
     
     println!("\n🔬 Reading chromatograms...");
     let chromatograms = reader.read_chromatograms().unwrap();

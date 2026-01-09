@@ -14,9 +14,14 @@ keywords = ["mass-spectrometry", "proteomics", "metabolomics", "parquet", "bioin
 categories = ["science", "encoding", "parser-implementations"]
 exclude = ["*.mzML", "*.raw", "*.parquet", "mzPeak_preprint_v02.pdf"]
 
+[features]
+default = []
+# Python bindings via PyO3
+python = ["pyo3", "pyo3-log"]
+
 [dependencies]
 # Apache Arrow and Parquet for columnar storage
-arrow = { version = "54", features = ["prettyprint"] }
+arrow = { version = "54", features = ["prettyprint", "ffi"] }
 parquet = { version = "54", features = ["arrow", "zstd", "snap"] }
 
 # Serialization
@@ -55,12 +60,17 @@ byteorder = "1.5"
 # CLI argument parsing
 clap = { version = "4.5", features = ["derive"] }
 
+# Python bindings (optional)
+pyo3 = { version = "0.23", features = ["extension-module", "abi3-py38"], optional = true }
+pyo3-log = { version = "0.12", optional = true }
+
 [dev-dependencies]
 tempfile = "3.14"
 
 [lib]
 name = "mzpeak"
 path = "src/lib.rs"
+crate-type = ["lib", "cdylib"]
 
 [[bin]]
 name = "mzpeak-convert"

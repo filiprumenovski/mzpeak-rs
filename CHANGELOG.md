@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Enhanced Compression Options**: Multiple compression configurations for different use cases
+  - **Default compression upgraded to ZSTD level 9** (from level 3) for better file size
+  - `WriterConfig::max_compression()` - ZSTD level 22 for maximum compression (2-3x better)
+  - `WriterConfig::fast_write()` - Snappy compression for faster writing
+  - `WriterConfig::balanced()` - ZSTD level 9 (new default)
+  - `ConversionConfig::max_compression()` - Optimized for smallest file size
+  - `ConversionConfig::fast_write()` - Optimized for fastest conversion
+  - Expected compression gains: 1.5-3x better than previous default
+  - New example `compare_compression.rs` to benchmark different configurations
+
 - **Container Format (`.mzpeak`)**: Single-file ZIP archive format for distribution
   - New default output mode for paths ending in `.mzpeak`
   - ZIP structure: `mimetype` (first, uncompressed), `metadata.json` (Deflate), `peaks/peaks.parquet` (Stored), `chromatograms/chromatograms.parquet` (Stored, if present), `mobilograms/mobilograms.parquet` (Stored, if present)

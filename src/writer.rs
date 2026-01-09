@@ -71,7 +71,25 @@ pub enum CompressionType {
 impl Default for CompressionType {
     fn default() -> Self {
         // ZSTD level 3 is a good balance of speed and compression
+        // For maximum compression, use Zstd(9) or higher
         Self::Zstd(3)
+    }
+}
+
+impl CompressionType {
+    /// Maximum compression (slower write, smallest files)
+    pub fn max_compression() -> Self {
+        Self::Zstd(22)
+    }
+
+    /// Balanced compression (recommended default)
+    pub fn balanced() -> Self {
+        Self::Zstd(3)
+    }
+
+    /// Fast compression (faster write, larger files)
+    pub fn fast() -> Self {
+        Self::Snappy
     }
 }
 
@@ -101,7 +119,10 @@ pub struct WriterConfig {
 impl Default for WriterConfig {
     fn default() -> Self {
         Self {
-            compression: CompressionType::default(),
+            // ZSTD level 9 for better compression (was level 3)
+            // This is a good balance for archival storage
+            // Use Zstd(3) or Snappy for faster writing if needed
+            compression: CompressionType::Zstd(9),
             // 100k peaks per row group is a good balance
             row_group_size: 100_000,
             // 1MB data pages
@@ -116,6 +137,35 @@ impl Default for WriterConfig {
 }
 
 impl WriterConfig {
+    /// Configuration optimized for maximum compression (slower write)
+    pub fn max_compression() -> Self {
+        Self {
+            compression: CompressionType::Zstd(22),
+            row_group_size: 500_000, // Larger row groups = better compression
+            data_page_size: 2 * 1024 * 1024, // 2MB pages
+            write_statistics: true,
+            dictionary_page_size_limit: 2 * 1024 * 1024,
+            max_peaks_per_file: Some(100_000_000),
+        }
+    }
+
+    /// Configuration optimized for fast writing (larger files)
+    pub fn fast_write() -> Self {
+        Self {
+            compression: CompressionType::Snappy,
+            row_group_size: 50_000,
+            data_page_size: 512 * 1024,
+            write_statistics: true,
+            dictionary_page_size_limit: 512 * 1024,
+            max_peaks_per_file: Some(50_000_000),
+        }
+    }
+
+    /// Balanced configuration (default)
+    pub fn balanced() -> Self {
+        Self::default()
+    }
+
     /// Create writer properties from this configuration
     fn to_writer_properties(&self, metadata: &HashMap<String, String>) -> WriterProperties {
         let compression = match self.compression {

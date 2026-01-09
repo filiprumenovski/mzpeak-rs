@@ -1,5 +1,8 @@
 # Build artifacts
 /target/
+/dist/
+*.whl
+*.tar.gz
 **/*.rs.bk
 
 # IDE
@@ -8,6 +11,11 @@
 *.swp
 *.swo
 *~
+
+# Python
+__pycache__/
+*.pyc
+.venv/
 
 # macOS
 .DS_Store

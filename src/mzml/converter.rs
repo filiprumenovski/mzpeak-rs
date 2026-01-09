@@ -75,6 +75,41 @@ impl Default for ConversionConfig {
     }
 }
 
+impl ConversionConfig {
+    /// Configuration optimized for maximum compression (slower conversion)
+    /// Best for archival storage or when file size is critical
+    /// Expected: 2-3x better compression than default
+    pub fn max_compression() -> Self {
+        Self {
+            writer_config: WriterConfig::max_compression(),
+            batch_size: 500, // Larger batches for better compression
+            preserve_precision: true,
+            include_chromatograms: true,
+            sdrf_path: None,
+            progress_interval: 1000,
+        }
+    }
+
+    /// Configuration optimized for fast conversion (larger files)
+    /// Best for quick prototyping or when write speed is critical
+    pub fn fast_write() -> Self {
+        Self {
+            writer_config: WriterConfig::fast_write(),
+            batch_size: 50, // Smaller batches for faster throughput
+            preserve_precision: true,
+            include_chromatograms: true,
+            sdrf_path: None,
+            progress_interval: 1000,
+        }
+    }
+
+    /// Balanced configuration (default)
+    /// Good balance between compression ratio and conversion speed
+    pub fn balanced() -> Self {
+        Self::default()
+    }
+}
+
 /// Statistics from a conversion
 #[derive(Debug, Clone, Default)]
 pub struct ConversionStats {

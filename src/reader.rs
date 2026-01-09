@@ -282,12 +282,15 @@ impl MzPeakReader {
     }
 
     /// Get the Arrow schema
-    pub fn schema(&self) -> &Arc<Schema> {
-        &self.file_metadata.schema
+    pub fn schema(&self) -> Arc<Schema> {
+        Arc::clone(&self.file_metadata.schema)
     }
 
     /// Read all record batches from the file
-    fn read_all_batches(&self) -> Result<Vec<RecordBatch>, ReaderError> {
+    /// 
+    /// Returns the raw Arrow record batches for efficient data access.
+    /// Useful for zero-copy integration with data processing libraries.
+    pub fn read_all_batches(&self) -> Result<Vec<RecordBatch>, ReaderError> {
         let mut batches = Vec::new();
 
         match &self.source {

@@ -190,6 +190,10 @@ pub mod schema;
 pub mod validator;
 pub mod writer;
 
+// Python bindings module (only compiled with the "python" feature)
+#[cfg(feature = "python")]
+mod python;
+
 /// Re-export commonly used types for convenience
 pub mod prelude {
     pub use crate::chromatogram_writer::{
