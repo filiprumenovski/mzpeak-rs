@@ -12,13 +12,14 @@ mzPeak is a reference implementation for a next-generation mass spectrometry dat
 - **5-10x compression** over mzML files
 - **Blazing fast queries** with column pruning and predicate pushdown
 - **Universal compatibility** with any Parquet-compatible tool (Python, R, DuckDB, Spark)
-- **Dataset Bundle architecture** with separate files for peaks, chromatograms, and metadata
+- **Single-file container format** (`.mzpeak`) - ZIP archive for easy distribution
+- **Dataset Bundle architecture** (legacy) - directory-based structure for development
 - **Self-contained format** with all metadata embedded and human-readable JSON
 - **Streaming processing** for arbitrarily large files with minimal memory
 
 ## Features
 
-- **Dataset Bundle architecture**: Directory-based format with separate files for peaks, chromatograms, and metadata
+- **Container format**: Single `.mzpeak` file (ZIP archive) with embedded Parquet and metadata
 - **Long table schema**: Each peak is a row, enabling efficient Run-Length Encoding (RLE) compression on spectrum metadata
 - **Ion Mobility support**: Native IM dimension for timsTOF and other IM-MS instruments
 - **Rolling Writer (sharding)**: Automatic file partitioning for terabyte-scale datasets
@@ -107,8 +108,17 @@ println!("Converted {} spectra, {} peaks", stats.spectra_count, stats.peak_count
 
 ### Reading mzPeak Files
 
-mzPeak Dataset Bundles contain multiple files in a directory structure:
+mzPeak supports two output formats:
 
+**Container Format (`.mzpeak`)** - Single ZIP archive (default, recommended for distribution):
+```
+output.mzpeak (ZIP archive)
+├── mimetype                  # "application/vnd.mzpeak" (uncompressed)
+├── metadata.json             # Human-readable metadata (compressed)
+└── peaks/peaks.parquet       # Spectral data (uncompressed for seekability)
+```
+
+**Directory Bundle** (legacy, for development):
 ```
 output.mzpeak/
 ├── peaks/peaks.parquet      # Spectral data
@@ -116,8 +126,12 @@ output.mzpeak/
 └── metadata.json             # Human-readable metadata
 ```
 
-**Quick metadata inspection (no tools needed):**
+**Quick metadata inspection:**
 ```bash
+# Container format
+unzip -p output.mzpeak metadata.json | jq .
+
+# Directory format
 cat output.mzpeak/metadata.json | jq .
 ```
 
@@ -283,15 +297,21 @@ mzPeak is designed for modern large-scale datasets:
 
 ## API Documentation
 
-### Dataset Bundle Writer (Recommended)
+### Dataset Writer (Recommended)
 
 ```rust
 use mzpeak::prelude::*;
 
-// Create a Dataset Bundle
+// Create a container file (.mzpeak) - default when path ends with .mzpeak
 let metadata = MzPeakMetadata::new();
 let config = WriterConfig::default();
 let mut dataset = MzPeakDatasetWriter::new("output.mzpeak", &metadata, config)?;
+
+// Or explicitly choose the output mode:
+// Container mode (single ZIP file):
+let mut dataset = MzPeakDatasetWriter::new_container("output.mzpeak", &metadata, config)?;
+// Directory mode (legacy bundle):
+let mut dataset = MzPeakDatasetWriter::new_directory("output_dir", &metadata, config)?;
 
 // Write spectra
 let spectrum = SpectrumBuilder::new(0, 1)
@@ -307,6 +327,12 @@ dataset.write_spectrum(&spectrum)?;
 let stats = dataset.close()?;
 println!("Wrote {} spectra", stats.peak_stats.spectra_written);
 ```
+
+**Container Format Notes:**
+- The `.mzpeak` container is a ZIP archive
+- `mimetype` file is first entry, uncompressed (like `.docx`, `.jar`)
+- `metadata.json` is Deflate compressed
+- `peaks/peaks.parquet` is stored **uncompressed** within the ZIP for direct seek access
 
 ### Legacy Single-File Writer
 

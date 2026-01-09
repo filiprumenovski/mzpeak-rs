@@ -639,6 +639,15 @@ impl<W: Write + Send> MzPeakWriter<W> {
         })
     }
 
+    /// Flush any buffered data, finalize the file, and return the underlying writer
+    ///
+    /// This is useful when the writer is backed by an in-memory buffer and you need
+    /// to access the written data.
+    pub fn finish_into_inner(self) -> Result<W, WriterError> {
+        let inner = self.writer.into_inner()?;
+        Ok(inner)
+    }
+
     /// Get current statistics
     pub fn stats(&self) -> WriterStats {
         WriterStats {
