@@ -142,6 +142,7 @@
 #![allow(clippy::too_many_arguments)]
 
 pub mod controlled_vocabulary;
+pub mod dataset;
 pub mod metadata;
 pub mod mzml;
 pub mod schema;
@@ -150,6 +151,7 @@ pub mod writer;
 /// Re-export commonly used types for convenience
 pub mod prelude {
     pub use crate::controlled_vocabulary::{ms_terms, unit_terms, CvParamList, CvTerm};
+    pub use crate::dataset::{DatasetError, DatasetStats, MzPeakDatasetWriter};
     pub use crate::metadata::{
         InstrumentConfig, LcConfig, MzPeakMetadata, RunParameters, SdrfMetadata, SourceFileInfo,
     };
