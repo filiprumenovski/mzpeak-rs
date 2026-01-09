@@ -25,6 +25,9 @@ pub enum ConversionError {
     #[error("Writer error: {0}")]
     WriterError(#[from] WriterError),
 
+    #[error("Chromatogram writer error: {0}")]
+    ChromatogramWriterError(#[from] crate::chromatogram_writer::ChromatogramWriterError),
+
     #[error("I/O error: {0}")]
     IoError(#[from] std::io::Error),
 
@@ -61,7 +64,7 @@ impl Default for ConversionConfig {
             writer_config: WriterConfig::default(),
             batch_size: 100,
             preserve_precision: true,
-            include_chromatograms: false, // Excluded per requirements
+            include_chromatograms: true, // Enable chromatograms for wide-schema
             sdrf_path: None,
             progress_interval: 1000,
         }
@@ -190,9 +193,16 @@ impl MzMLConverter {
             writer.write_spectra(&batch)?;
         }
 
-        // Finalize
+        // Finalize spectrum writer
         let writer_stats = writer.finish()?;
         info!("{}", writer_stats);
+
+        // Process chromatograms if enabled
+        if self.config.include_chromatograms {
+            info!("Processing chromatograms...");
+            stats.chromatograms_converted = self.convert_chromatograms(&mut streamer, output_path, &mzpeak_metadata)?;
+            info!("  Chromatograms: {}", stats.chromatograms_converted);
+        }
 
         // Get output file size
         stats.output_file_size = std::fs::metadata(output_path)?.len();
@@ -315,6 +325,69 @@ impl MzMLConverter {
         info!("  Compression ratio: {:.2}x", stats.compression_ratio);
 
         Ok(stats)
+    }
+
+    /// Convert chromatograms from mzML to mzPeak format
+    fn convert_chromatograms<R: std::io::BufRead>(
+        &self,
+        streamer: &mut MzMLStreamer<R>,
+        output_path: &Path,
+        metadata: &MzPeakMetadata,
+    ) -> Result<usize, ConversionError> {
+        use crate::chromatogram_writer::{ChromatogramWriter, ChromatogramWriterConfig};
+
+        // Create output path for chromatograms subdirectory
+        let chromatogram_dir = output_path.parent().unwrap_or(Path::new(".")).join("chromatograms");
+        std::fs::create_dir_all(&chromatogram_dir)?;
+
+        let chromatogram_file = chromatogram_dir.join(
+            output_path
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("chromatograms")
+        ).with_extension("chromatograms.parquet");
+
+        let config = ChromatogramWriterConfig::default();
+        let mut writer = ChromatogramWriter::new_file(&chromatogram_file, metadata, config)?;
+
+        let mut count = 0;
+        while let Some(mzml_chrom) = streamer.next_chromatogram()? {
+            let chromatogram = self.convert_chromatogram(&mzml_chrom)?;
+            writer.write_chromatogram(&chromatogram)?;
+            count += 1;
+        }
+
+        let stats = writer.finish()?;
+        info!("Wrote {} chromatograms to {}", stats.chromatograms_written, chromatogram_file.display());
+
+        Ok(count)
+    }
+
+    /// Convert a single mzML chromatogram to mzPeak format
+    fn convert_chromatogram(&self, mzml_chrom: &MzMLChromatogram) -> Result<crate::chromatogram_writer::Chromatogram, ConversionError> {
+        use crate::chromatogram_writer::Chromatogram;
+
+        // Convert chromatogram type to string
+        let chrom_type = match mzml_chrom.chromatogram_type {
+            ChromatogramType::TIC => "TIC",
+            ChromatogramType::BPC => "BPC",
+            ChromatogramType::SIM => "SIM",
+            ChromatogramType::SRM => "SRM",
+            ChromatogramType::XIC => "XIC",
+            ChromatogramType::Absorption => "Absorption",
+            ChromatogramType::Emission => "Emission",
+            ChromatogramType::Unknown => "Unknown",
+        };
+
+        // Convert intensity array from f64 to f32
+        let intensity_array: Vec<f32> = mzml_chrom.intensity_array.iter().map(|&x| x as f32).collect();
+
+        Chromatogram::new(
+            mzml_chrom.id.clone(),
+            chrom_type.to_string(),
+            mzml_chrom.time_array.clone(),
+            intensity_array,
+        ).map_err(|e| ConversionError::WriterError(crate::writer::WriterError::InvalidData(e.to_string())))
     }
 
     /// Convert mzML file metadata to mzPeak metadata
