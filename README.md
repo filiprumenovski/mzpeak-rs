@@ -35,8 +35,8 @@ mzPeak is a reference implementation for a next-generation mass spectrometry dat
 ### From Source
 
 ```bash
-git clone https://github.com/your-org/mzpeak.git
-cd mzpeak
+git clone https://github.com/filiprumenovski/mzpeak-rs.git
+cd mzpeak-rs
 cargo build --release
 ```
 
@@ -48,6 +48,49 @@ Add to your `Cargo.toml`:
 [dependencies]
 mzpeak = "0.1"
 ```
+
+### Python (Extension Module)
+
+This repository also ships optional Python bindings (PyO3 + maturin) under the Cargo feature `python`.
+
+**Requirements**
+
+- Rust toolchain (same as building from source)
+- Python 3.8+
+
+**Build + install into a virtualenv (recommended)**
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+
+python -m pip install -U pip
+python -m pip install maturin
+
+# Builds and installs the local extension module into the active venv
+maturin develop --release
+
+python -c "import mzpeak; print(mzpeak.__version__)"
+```
+
+**Quick Python usage**
+
+```python
+import mzpeak
+
+# Convert mzML -> mzPeak
+mzpeak.convert("input.mzML", "output.mzpeak")
+
+# Read + zero-copy Arrow access
+with mzpeak.MzPeakReader("output.mzpeak") as reader:
+    summary = reader.summary()
+    table = reader.to_arrow()  # pyarrow.Table (zero-copy)
+```
+
+Notes:
+
+- `to_arrow()` uses the Arrow C Stream interface and is compatible with PyArrow 22.
+- On macOS, `cargo test --features python` can fail to link due to Python symbol resolution; building the extension via `maturin` is the supported workflow.
 
 ## Quick Start
 
@@ -543,6 +586,12 @@ cargo test -- --nocapture
 
 # Run specific test
 cargo test test_spectrum_conversion
+
+# Python smoke tests (after `maturin develop`)
+python -m unittest -v
+
+# Include the slow mzML conversion smoke test
+MZPEAK_RUN_SLOW=1 python -m unittest -v
 ```
 
 ## Contributing
