@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Python bindings (PyO3 + maturin)**: Feature-gated Python extension module with a high-level API
+  - Build/install via `maturin` (`pyproject.toml` added)
+  - Core bindings: `MzPeakReader`, `MzPeakWriter`, `MzPeakDatasetWriter`, `MzMLConverter`, `SpectrumBuilder`, and value types
+  - Zero-copy Arrow handoff to PyArrow via the Arrow C Stream interface (`__arrow_c_stream__` protocol; compatible with PyArrow 22)
+  - Python smoke tests added (fast `unittest`; slow mzML conversion test gated behind `MZPEAK_RUN_SLOW=1`)
+  - Type hints shipped via `python/mzpeak.pyi`
+  - Note: On macOS, `cargo test --features python` may fail to link due to Python symbol resolution; the supported workflow is building the extension via `maturin`.
+
 - **Enhanced Compression Options**: Multiple compression configurations for different use cases
   - **Default compression upgraded to ZSTD level 9** (from level 3) for better file size
   - `WriterConfig::max_compression()` - ZSTD level 22 for maximum compression (2-3x better)
@@ -193,6 +201,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Schema design based on mzPeak whitepaper
 - Proof of concept Parquet writer
 
-[Unreleased]: https://github.com/your-org/mzpeak/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/your-org/mzpeak/releases/tag/v0.1.0
-[0.0.1]: https://github.com/your-org/mzpeak/releases/tag/v0.0.1
+[Unreleased]: https://github.com/filiprumenovski/mzpeak-rs/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/filiprumenovski/mzpeak-rs/releases/tag/v0.1.0
+[0.0.1]: https://github.com/filiprumenovski/mzpeak-rs/releases/tag/v0.0.1
