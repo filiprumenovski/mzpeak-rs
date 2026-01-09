@@ -27,6 +27,7 @@ mzPeak is a reference implementation for a next-generation mass spectrometry dat
 - **Lossless technical metadata**: Preserves instrument settings, LC configurations, pump pressures
 - **Streaming mzML parser**: Memory-efficient conversion of large files
 - **Human-readable metadata**: Standalone JSON file for quick inspection without Parquet tools
+- **Built-in validator**: Comprehensive integrity checks to ensure format compliance and avoid fragmented implementations
 
 ## Installation
 
@@ -63,6 +64,9 @@ mzpeak demo demo_run.mzpeak
 
 # Display dataset information
 mzpeak info demo_run.mzpeak
+
+# Validate file integrity and compliance
+mzpeak validate demo_run.mzpeak
 ```
 
 ### As a Library
@@ -181,6 +185,64 @@ import polars as pl
 df = pl.scan_parquet('output.mzpeak/peaks/peaks.parquet')
 result = df.filter(pl.col('ms_level') == 2).collect()
 ```
+
+## Validation
+
+mzPeak includes a comprehensive validator to ensure file integrity and compliance with the format specification. This helps prevent the "fragmented implementation" issues seen in mzML.
+
+### Validation Checks
+
+The validator performs 4 categories of checks:
+
+1. **Structure Check**
+   - Validates file/directory structure
+   - Checks for required files (`metadata.json`, `peaks/peaks.parquet`)
+   - Verifies valid Parquet format
+
+2. **Metadata Integrity**
+   - Deserializes and validates `metadata.json`
+   - Verifies Parquet footer metadata
+   - Checks format version matches specification
+
+3. **Schema Contract**
+   - Validates all required columns exist with correct data types
+   - Verifies HUPO-PSI CV accessions (e.g., MS:1000040 for m/z)
+   - Checks column names match specification
+
+4. **Data Sanity** (samples first 1,000 rows)
+   - Asserts m/z > 0
+   - Asserts intensity >= 0
+   - Asserts ms_level >= 1
+   - Verifies retention_time is non-decreasing
+
+### Usage
+
+```bash
+# Validate a file
+mzpeak validate data.mzpeak.parquet
+
+# Validate a directory bundle
+mzpeak validate data.mzpeak/
+
+# Example output
+# mzPeak Validation Report
+# ========================
+# File: data.mzpeak.parquet
+#
+# [✓] Path exists
+# [✓] Format: Single file
+# [✓] Valid Parquet file
+# [✓] Format version matches (1.0.0)
+# [✓] Column: mz
+# [✓] CV accession for mz: MS:1000040
+# [✓] m/z values positive (sampled 1000 rows)
+# ...
+# Summary: 21 passed, 0 warnings, 0 failed
+#
+# Validation PASSED
+```
+
+The validator exits with code 0 on success, or 1 if validation fails. This makes it suitable for use in CI/CD pipelines and automated workflows.
 
 ## Schema
 

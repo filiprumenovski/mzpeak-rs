@@ -185,6 +185,7 @@ pub mod dataset;
 pub mod metadata;
 pub mod mzml;
 pub mod schema;
+pub mod validator;
 pub mod writer;
 
 /// Re-export commonly used types for convenience
@@ -201,6 +202,7 @@ pub mod prelude {
         chromatogram_columns, columns, create_chromatogram_schema, create_mzpeak_schema,
         MZPEAK_FORMAT_VERSION,
     };
+    pub use crate::validator::{validate_mzpeak_file, ValidationReport};
     pub use crate::writer::{
         CompressionType, MzPeakWriter, Peak, Spectrum, SpectrumBuilder, WriterConfig, WriterStats,
     };

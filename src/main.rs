@@ -86,6 +86,13 @@ enum Commands {
         #[arg(value_name = "FILE")]
         file: PathBuf,
     },
+
+    /// Validate mzPeak file integrity and compliance
+    Validate {
+        /// Input mzPeak file or directory path
+        #[arg(value_name = "FILE")]
+        file: PathBuf,
+    },
 }
 
 fn main() -> Result<()> {
@@ -114,6 +121,7 @@ fn main() -> Result<()> {
             compression_level,
         } => run_demo(output, compression_level),
         Commands::Info { file } => run_info(file),
+        Commands::Validate { file } => run_validate(file),
     }
 }
 
@@ -691,4 +699,32 @@ fn generate_ms2_peaks(precursor_mz: f64) -> Vec<Peak> {
     peaks.sort_by(|a, b| a.mz.partial_cmp(&b.mz).unwrap());
 
     peaks
+}
+
+/// Validate mzPeak file integrity
+fn run_validate(file: PathBuf) -> Result<()> {
+    use mzpeak::validator::validate_mzpeak_file;
+
+    info!("mzPeak Validator");
+    info!("================");
+    info!("File: {}", file.display());
+    info!("");
+
+    // Run validation
+    match validate_mzpeak_file(&file) {
+        Ok(report) => {
+            println!("{}", report);
+            
+            // Exit with error code if validation failed
+            if report.has_failures() {
+                std::process::exit(1);
+            }
+            
+            Ok(())
+        }
+        Err(e) => {
+            eprintln!("Validation error: {}", e);
+            std::process::exit(1);
+        }
+    }
 }
