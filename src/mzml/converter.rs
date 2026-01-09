@@ -14,7 +14,7 @@ use crate::metadata::{
     InstrumentConfig, MassAnalyzerConfig, MzPeakMetadata, ProcessingHistory,
     ProcessingStep, RunParameters, SdrfMetadata, SourceFileInfo,
 };
-use crate::writer::{MzPeakWriter, Peak, Spectrum, SpectrumBuilder, WriterConfig, WriterError};
+use crate::writer::{MzPeakWriter, Peak, RollingWriter, Spectrum, SpectrumBuilder, WriterConfig, WriterError};
 
 /// Errors that can occur during conversion
 #[derive(Debug, thiserror::Error)]
@@ -206,6 +206,112 @@ impl MzMLConverter {
         info!("  Peaks: {}", stats.peak_count);
         info!("  Input size: {} bytes", stats.source_file_size);
         info!("  Output size: {} bytes", stats.output_file_size);
+        info!("  Compression ratio: {:.2}x", stats.compression_ratio);
+
+        Ok(stats)
+    }
+
+    /// Convert an mzML file to mzPeak format using rolling writer (for large datasets)
+    pub fn convert_with_sharding<P: AsRef<Path>, Q: AsRef<Path>>(
+        &self,
+        input_path: P,
+        output_path: Q,
+    ) -> Result<ConversionStats, ConversionError> {
+        let input_path = input_path.as_ref();
+        let output_path = output_path.as_ref();
+
+        info!("Converting {} to {} (with sharding)", input_path.display(), output_path.display());
+
+        // Get source file size
+        let source_file_size = std::fs::metadata(input_path)?.len();
+
+        // Open the mzML file
+        let mut streamer = MzMLStreamer::open(input_path)?;
+
+        // Read metadata first
+        let mzml_metadata = streamer.read_metadata()?;
+        info!("mzML version: {:?}", mzml_metadata.version);
+
+        // Convert mzML metadata to mzPeak metadata
+        let mzpeak_metadata = self.convert_metadata(mzml_metadata, input_path)?;
+
+        // Create the rolling writer
+        let mut writer =
+            RollingWriter::new(output_path, mzpeak_metadata, self.config.writer_config.clone())?;
+
+        // Process spectra in batches
+        let mut stats = ConversionStats {
+            source_file_size,
+            ..Default::default()
+        };
+
+        let mut batch: Vec<Spectrum> = Vec::with_capacity(self.config.batch_size);
+        let expected_count = streamer.spectrum_count();
+
+        info!(
+            "Converting {} spectra...",
+            expected_count.map(|c| c.to_string()).unwrap_or_else(|| "unknown".to_string())
+        );
+
+        while let Some(mzml_spectrum) = streamer.next_spectrum()? {
+            let spectrum = self.convert_spectrum(&mzml_spectrum);
+
+            // Update statistics
+            stats.spectra_count += 1;
+            stats.peak_count += spectrum.peak_count();
+
+            match mzml_spectrum.ms_level {
+                1 => stats.ms1_spectra += 1,
+                2 => stats.ms2_spectra += 1,
+                _ => stats.msn_spectra += 1,
+            }
+
+            batch.push(spectrum);
+
+            // Write batch if full
+            if batch.len() >= self.config.batch_size {
+                writer.write_spectra(&batch)?;
+                batch.clear();
+
+                // Progress update
+                if stats.spectra_count % self.config.progress_interval == 0 {
+                    if let Some(total) = expected_count {
+                        let pct = (stats.spectra_count as f64 / total as f64) * 100.0;
+                        info!(
+                            "Progress: {}/{} spectra ({:.1}%)",
+                            stats.spectra_count, total, pct
+                        );
+                    } else {
+                        info!("Progress: {} spectra", stats.spectra_count);
+                    }
+                }
+            }
+        }
+
+        // Write remaining spectra
+        if !batch.is_empty() {
+            writer.write_spectra(&batch)?;
+        }
+
+        // Finalize
+        let writer_stats = writer.finish()?;
+        info!("{}", writer_stats);
+
+        // Calculate total output size from all parts
+        stats.output_file_size = writer_stats.part_stats.iter()
+            .map(|s| s.file_size_bytes)
+            .sum();
+        
+        if stats.output_file_size > 0 {
+            stats.compression_ratio = stats.source_file_size as f64 / stats.output_file_size as f64;
+        }
+
+        info!("Conversion complete:");
+        info!("  Spectra: {} (MS1: {}, MS2: {}, MSn: {})",
+            stats.spectra_count, stats.ms1_spectra, stats.ms2_spectra, stats.msn_spectra);
+        info!("  Peaks: {}", stats.peak_count);
+        info!("  Input size: {} bytes", stats.source_file_size);
+        info!("  Output size: {} bytes ({} files)", stats.output_file_size, writer_stats.files_written);
         info!("  Compression ratio: {:.2}x", stats.compression_ratio);
 
         Ok(stats)
@@ -427,16 +533,32 @@ impl MzMLConverter {
             }
         }
 
-        // Convert peaks
-        let peaks: Vec<Peak> = mzml
-            .mz_array
-            .iter()
-            .zip(mzml.intensity_array.iter())
-            .map(|(&mz, &intensity)| Peak {
-                mz,
-                intensity: intensity as f32,
-            })
-            .collect();
+        // Convert peaks with ion mobility if available
+        let peaks: Vec<Peak> = if !mzml.ion_mobility_array.is_empty() 
+            && mzml.ion_mobility_array.len() == mzml.mz_array.len() {
+            // With ion mobility data
+            mzml.mz_array
+                .iter()
+                .zip(mzml.intensity_array.iter())
+                .zip(mzml.ion_mobility_array.iter())
+                .map(|((&mz, &intensity), &ion_mobility)| Peak {
+                    mz,
+                    intensity: intensity as f32,
+                    ion_mobility: Some(ion_mobility),
+                })
+                .collect()
+        } else {
+            // Without ion mobility data
+            mzml.mz_array
+                .iter()
+                .zip(mzml.intensity_array.iter())
+                .map(|(&mz, &intensity)| Peak {
+                    mz,
+                    intensity: intensity as f32,
+                    ion_mobility: None,
+                })
+                .collect()
+        };
 
         builder = builder.peaks(peaks);
 

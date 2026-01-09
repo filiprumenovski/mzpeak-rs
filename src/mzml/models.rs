@@ -71,6 +71,9 @@ pub struct MzMLSpectrum {
     /// Intensity array (decoded)
     pub intensity_array: Vec<f64>,
 
+    /// Ion mobility array (decoded, optional)
+    pub ion_mobility_array: Vec<f64>,
+
     /// Whether m/z was stored as 64-bit in source
     pub mz_precision_64bit: bool,
 
