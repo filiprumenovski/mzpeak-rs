@@ -76,6 +76,7 @@ use zip::CompressionMethod;
 use zip::ZipWriter;
 
 use crate::chromatogram_writer::{Chromatogram, ChromatogramWriter, ChromatogramWriterConfig, ChromatogramWriterStats};
+use crate::mobilogram_writer::{Mobilogram, MobilogramWriter, MobilogramWriterConfig, MobilogramWriterStats};
 use crate::metadata::MzPeakMetadata;
 use crate::schema::MZPEAK_MIMETYPE;
 use crate::writer::{MzPeakWriter, Spectrum, WriterConfig, WriterError, WriterStats};
@@ -101,6 +102,9 @@ pub enum DatasetError {
     #[error("Chromatogram writer error: {0}")]
     ChromatogramWriterError(String),
 
+    #[error("Mobilogram writer error: {0}")]
+    MobilogramWriterError(String),
+
     #[error("Invalid dataset path: {0}")]
     InvalidPath(String),
 
@@ -123,6 +127,12 @@ pub struct DatasetStats {
     /// Number of chromatograms written
     pub chromatograms_written: usize,
 
+    /// Statistics from the mobilogram writer
+    pub mobilogram_stats: Option<MobilogramWriterStats>,
+
+    /// Number of mobilograms written
+    pub mobilograms_written: usize,
+
     /// Total dataset size in bytes
     pub total_size_bytes: u64,
 }
@@ -131,10 +141,11 @@ impl std::fmt::Display for DatasetStats {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Dataset: {} spectra, {} peaks, {} chromatograms, {} bytes",
+            "Dataset: {} spectra, {} peaks, {} chromatograms, {} mobilograms, {} bytes",
             self.peak_stats.spectra_written,
             self.peak_stats.peaks_written,
             self.chromatograms_written,
+            self.mobilograms_written,
             self.total_size_bytes
         )
     }
@@ -191,6 +202,7 @@ enum DatasetSink {
         root_path: PathBuf,
         peak_writer: Option<MzPeakWriter<File>>,
         chromatogram_writer: Option<ChromatogramWriter<File>>,
+        mobilogram_writer: Option<MobilogramWriter<File>>,
     },
     /// Container mode: writes to a ZIP archive
     Container {
@@ -198,6 +210,7 @@ enum DatasetSink {
         zip_writer: ZipWriter<BufWriter<File>>,
         peak_writer: Option<MzPeakWriter<ParquetBuffer>>,
         chromatogram_writer: Option<ChromatogramWriter<ParquetBuffer>>,
+        mobilogram_writer: Option<MobilogramWriter<ParquetBuffer>>,
     },
 }
 
@@ -311,12 +324,19 @@ impl MzPeakDatasetWriter {
         let chrom_writer = ChromatogramWriter::new(chrom_buffer, metadata, chrom_config)
             .map_err(|e| DatasetError::ChromatogramWriterError(e.to_string()))?;
 
+        // Initialize mobilogram writer to buffer
+        let mob_buffer = ParquetBuffer::new();
+        let mob_config = MobilogramWriterConfig::default();
+        let mob_writer = MobilogramWriter::new(mob_buffer, metadata, mob_config)
+            .map_err(|e| DatasetError::MobilogramWriterError(e.to_string()))?;
+
         Ok(Self {
             sink: DatasetSink::Container {
                 output_path,
                 zip_writer,
                 peak_writer: Some(peak_writer),
                 chromatogram_writer: Some(chrom_writer),
+                mobilogram_writer: Some(mob_writer),
             },
             mode: OutputMode::Container,
             metadata: metadata.clone(),
@@ -351,9 +371,11 @@ impl MzPeakDatasetWriter {
         // Create subdirectories
         let peaks_dir = root_path.join("peaks");
         let chromatograms_dir = root_path.join("chromatograms");
+        let mobilograms_dir = root_path.join("mobilograms");
 
         fs::create_dir(&peaks_dir)?;
         fs::create_dir(&chromatograms_dir)?;
+        fs::create_dir(&mobilograms_dir)?;
 
         // Initialize peak writer
         let peak_file_path = peaks_dir.join("peaks.parquet");
@@ -365,11 +387,18 @@ impl MzPeakDatasetWriter {
         let chrom_writer = ChromatogramWriter::new_file(&chrom_file_path, metadata, chrom_config)
             .map_err(|e| DatasetError::ChromatogramWriterError(e.to_string()))?;
 
+        // Initialize mobilogram writer
+        let mob_file_path = mobilograms_dir.join("mobilograms.parquet");
+        let mob_config = MobilogramWriterConfig::default();
+        let mob_writer = MobilogramWriter::new_file(&mob_file_path, metadata, mob_config)
+            .map_err(|e| DatasetError::MobilogramWriterError(e.to_string()))?;
+
         Ok(Self {
             sink: DatasetSink::Directory {
                 root_path,
                 peak_writer: Some(peak_writer),
                 chromatogram_writer: Some(chrom_writer),
+                mobilogram_writer: Some(mob_writer),
             },
             mode: OutputMode::Directory,
             metadata: metadata.clone(),
@@ -467,6 +496,48 @@ impl MzPeakDatasetWriter {
         Ok(())
     }
 
+    /// Write a single mobilogram to the dataset
+    pub fn write_mobilogram(&mut self, mobilogram: &Mobilogram) -> Result<(), DatasetError> {
+        if self.finalized {
+            return Err(DatasetError::NotInitialized);
+        }
+
+        match &mut self.sink {
+            DatasetSink::Directory { mobilogram_writer, .. } => {
+                let writer = mobilogram_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
+                writer.write_mobilogram(mobilogram)
+                    .map_err(|e| DatasetError::MobilogramWriterError(e.to_string()))?;
+            }
+            DatasetSink::Container { mobilogram_writer, .. } => {
+                let writer = mobilogram_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
+                writer.write_mobilogram(mobilogram)
+                    .map_err(|e| DatasetError::MobilogramWriterError(e.to_string()))?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Write multiple mobilograms to the dataset
+    pub fn write_mobilograms(&mut self, mobilograms: &[Mobilogram]) -> Result<(), DatasetError> {
+        if self.finalized {
+            return Err(DatasetError::NotInitialized);
+        }
+
+        match &mut self.sink {
+            DatasetSink::Directory { mobilogram_writer, .. } => {
+                let writer = mobilogram_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
+                writer.write_mobilograms(mobilograms)
+                    .map_err(|e| DatasetError::MobilogramWriterError(e.to_string()))?;
+            }
+            DatasetSink::Container { mobilogram_writer, .. } => {
+                let writer = mobilogram_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
+                writer.write_mobilograms(mobilograms)
+                    .map_err(|e| DatasetError::MobilogramWriterError(e.to_string()))?;
+            }
+        }
+        Ok(())
+    }
+
     /// Get current statistics from the peak writer
     pub fn stats(&self) -> Option<WriterStats> {
         match &self.sink {
@@ -550,8 +621,8 @@ impl MzPeakDatasetWriter {
         // Build metadata JSON before consuming sink (to avoid borrow issues)
         let json_string = self.build_metadata_json()?;
 
-        let (peak_stats, chromatogram_stats, total_size) = match self.sink {
-            DatasetSink::Directory { root_path, mut peak_writer, mut chromatogram_writer } => {
+        let (peak_stats, chromatogram_stats, mobilogram_stats, total_size) = match self.sink {
+            DatasetSink::Directory { root_path, mut peak_writer, mut chromatogram_writer, mut mobilogram_writer } => {
                 // Finalize peak writer
                 let peak_stats = if let Some(writer) = peak_writer.take() {
                     writer.finish()?
@@ -567,6 +638,14 @@ impl MzPeakDatasetWriter {
                     None
                 };
 
+                // Finalize mobilogram writer
+                let mobilogram_stats = if let Some(writer) = mobilogram_writer.take() {
+                    Some(writer.finish()
+                        .map_err(|e| DatasetError::MobilogramWriterError(e.to_string()))?)
+                } else {
+                    None
+                };
+
                 // Write metadata.json to root directory
                 let metadata_path = root_path.join("metadata.json");
                 let mut file = File::create(metadata_path)?;
@@ -576,13 +655,14 @@ impl MzPeakDatasetWriter {
                 // Calculate total dataset size
                 let total_size = calculate_directory_size(&root_path)?;
 
-                (peak_stats, chromatogram_stats, total_size)
+                (peak_stats, chromatogram_stats, mobilogram_stats, total_size)
             }
             DatasetSink::Container {
                 output_path,
                 mut zip_writer,
                 mut peak_writer,
                 mut chromatogram_writer,
+                mut mobilogram_writer,
             } => {
                 // Finalize peak writer and get the buffer
                 let (peak_stats, parquet_data) = if let Some(writer) = peak_writer.take() {
@@ -629,6 +709,36 @@ impl MzPeakDatasetWriter {
                     (None, None)
                 };
 
+                // Finalize mobilogram writer and get the buffer
+                let (mobilogram_stats, mob_data_opt) = if let Some(writer) = mobilogram_writer.take() {
+                    // Check if any mobilograms were written
+                    let stats = writer.stats();
+                    if stats.mobilograms_written > 0 {
+                        // Extract the buffer
+                        match writer.finish_into_inner() {
+                            Ok(buffer) => {
+                                let data = buffer.into_inner();
+                                let final_stats = MobilogramWriterStats {
+                                    mobilograms_written: stats.mobilograms_written,
+                                    data_points_written: stats.data_points_written,
+                                    row_groups_written: 0, // Estimated
+                                    file_size_bytes: data.len() as u64,
+                                };
+                                (Some(final_stats), Some(data))
+                            }
+                            Err(e) => {
+                                log::warn!("Failed to finalize mobilogram writer: {}", e);
+                                (None, None)
+                            }
+                        }
+                    } else {
+                        // No mobilograms written, don't include in ZIP
+                        (None, None)
+                    }
+                } else {
+                    (None, None)
+                };
+
                 // Write metadata.json (Deflate compressed)
                 let options = SimpleFileOptions::default()
                     .compression_method(CompressionMethod::Deflated)
@@ -652,6 +762,15 @@ impl MzPeakDatasetWriter {
                     zip_writer.write_all(&chrom_data)?;
                 }
 
+                // Write mobilograms/mobilograms.parquet if available (MUST be uncompressed/Stored for seekability)
+                if let Some(mob_data) = mob_data_opt {
+                    let options = SimpleFileOptions::default()
+                        .compression_method(CompressionMethod::Stored)
+                        .unix_permissions(0o644);
+                    zip_writer.start_file("mobilograms/mobilograms.parquet", options)?;
+                    zip_writer.write_all(&mob_data)?;
+                }
+
                 // Finalize the ZIP archive
                 let inner = zip_writer.finish()?;
                 inner.into_inner().map_err(|e| {
@@ -664,18 +783,21 @@ impl MzPeakDatasetWriter {
                 // Get final file size
                 let total_size = fs::metadata(&output_path)?.len();
 
-                (peak_stats, chromatogram_stats, total_size)
+                (peak_stats, chromatogram_stats, mobilogram_stats, total_size)
             }
         };
 
         self.finalized = true;
 
         let chromatograms_written = chromatogram_stats.as_ref().map(|s| s.chromatograms_written).unwrap_or(0);
+        let mobilograms_written = mobilogram_stats.as_ref().map(|s| s.mobilograms_written).unwrap_or(0);
 
         Ok(DatasetStats {
             peak_stats,
             chromatogram_stats,
             chromatograms_written,
+            mobilogram_stats,
+            mobilograms_written,
             total_size_bytes: total_size,
         })
     }
@@ -706,6 +828,14 @@ impl MzPeakDatasetWriter {
     pub fn chromatograms_dir(&self) -> Option<PathBuf> {
         match &self.sink {
             DatasetSink::Directory { root_path, .. } => Some(root_path.join("chromatograms")),
+            DatasetSink::Container { .. } => None,
+        }
+    }
+
+    /// Get the mobilograms directory path (only valid in Directory mode)
+    pub fn mobilograms_dir(&self) -> Option<PathBuf> {
+        match &self.sink {
+            DatasetSink::Directory { root_path, .. } => Some(root_path.join("mobilograms")),
             DatasetSink::Container { .. } => None,
         }
     }

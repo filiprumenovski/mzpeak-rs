@@ -59,8 +59,8 @@ fn test_write_read_cycle() {
     let reader = SerializedFileReader::new(file).unwrap();
     let metadata = reader.metadata();
 
-    // Verify schema
-    assert_eq!(metadata.file_metadata().schema_descr().num_columns(), 18);
+    // Verify schema (18 original columns + 3 MSI spatial columns = 21)
+    assert_eq!(metadata.file_metadata().schema_descr().num_columns(), 21);
 
     // Verify row count
     assert_eq!(metadata.file_metadata().num_rows(), 5000);
@@ -298,8 +298,8 @@ fn test_dataset_bundle_structure() {
     // Verify peak file has correct number of rows
     assert_eq!(parquet_metadata.file_metadata().num_rows(), 100);
 
-    // Verify peak file has correct schema
-    assert_eq!(parquet_metadata.file_metadata().schema_descr().num_columns(), 18);
+    // Verify peak file has correct schema (18 original + 3 MSI = 21)
+    assert_eq!(parquet_metadata.file_metadata().schema_descr().num_columns(), 21);
 
     // Verify peak file has metadata in footer
     let kv = parquet_metadata.file_metadata().key_value_metadata().unwrap();
@@ -406,4 +406,292 @@ fn test_dataset_bundle_already_exists() {
     // Try to create second dataset at same location - should fail
     let result = MzPeakDatasetWriter::new(&dataset_path, &metadata, config);
     assert!(result.is_err());
+}
+
+/// Test reading chromatograms from dataset bundle (directory mode)
+#[test]
+fn test_read_chromatograms_directory() {
+    use mzpeak::chromatogram_writer::{Chromatogram, ChromatogramWriter, ChromatogramWriterConfig};
+    use mzpeak::reader::MzPeakReader;
+
+    let dir = tempdir().unwrap();
+    let dataset_path = dir.path().join("test_chrom.mzpeak");
+
+    let metadata = MzPeakMetadata::new();
+    let config = WriterConfig::default();
+    let mut dataset = MzPeakDatasetWriter::new_directory(&dataset_path, &metadata, config).unwrap();
+
+    // Write a spectrum
+    let spectrum = SpectrumBuilder::new(0, 1)
+        .ms_level(1)
+        .retention_time(60.0)
+        .polarity(1)
+        .add_peak(400.0, 10000.0)
+        .build();
+    dataset.write_spectrum(&spectrum).unwrap();
+    dataset.close().unwrap();
+
+    // Write chromatograms
+    let chrom_dir = dataset_path.join("chromatograms");
+    fs::create_dir_all(&chrom_dir).unwrap();
+    let chrom_path = chrom_dir.join("chromatograms.parquet");
+
+    let chrom_config = ChromatogramWriterConfig::default();
+    let mut chrom_writer = ChromatogramWriter::new_file(&chrom_path, &metadata, chrom_config).unwrap();
+
+    let tic = Chromatogram::new(
+        "TIC".to_string(),
+        "total ion current chromatogram".to_string(),
+        vec![10.0, 20.0, 30.0, 40.0],
+        vec![1000.0, 2000.0, 1500.0, 1200.0],
+    ).unwrap();
+
+    let bpc = Chromatogram::new(
+        "BPC".to_string(),
+        "base peak chromatogram".to_string(),
+        vec![10.0, 20.0, 30.0, 40.0],
+        vec![800.0, 1800.0, 1400.0, 1000.0],
+    ).unwrap();
+
+    chrom_writer.write_chromatogram(&tic).unwrap();
+    chrom_writer.write_chromatogram(&bpc).unwrap();
+    chrom_writer.finish().unwrap();
+
+    // Read back using MzPeakReader
+    let reader = MzPeakReader::open(&dataset_path).unwrap();
+    let chromatograms = reader.read_chromatograms().unwrap();
+
+    assert_eq!(chromatograms.len(), 2);
+
+    // Verify TIC
+    assert_eq!(chromatograms[0].chromatogram_id, "TIC");
+    assert_eq!(chromatograms[0].chromatogram_type, "total ion current chromatogram");
+    assert_eq!(chromatograms[0].time_array.len(), 4);
+    assert_eq!(chromatograms[0].time_array[0], 10.0);
+    assert_eq!(chromatograms[0].intensity_array[1], 2000.0);
+
+    // Verify BPC
+    assert_eq!(chromatograms[1].chromatogram_id, "BPC");
+    assert_eq!(chromatograms[1].time_array.len(), 4);
+}
+
+/// Test reading mobilograms from dataset bundle (directory mode)
+#[test]
+fn test_read_mobilograms_directory() {
+    use mzpeak::mobilogram_writer::{Mobilogram, MobilogramWriter, MobilogramWriterConfig};
+    use mzpeak::reader::MzPeakReader;
+
+    let dir = tempdir().unwrap();
+    let dataset_path = dir.path().join("test_mob.mzpeak");
+
+    let metadata = MzPeakMetadata::new();
+    let config = WriterConfig::default();
+    let mut dataset = MzPeakDatasetWriter::new_directory(&dataset_path, &metadata, config).unwrap();
+
+    // Write a spectrum
+    let spectrum = SpectrumBuilder::new(0, 1)
+        .ms_level(1)
+        .retention_time(60.0)
+        .polarity(1)
+        .add_peak(400.0, 10000.0)
+        .build();
+    dataset.write_spectrum(&spectrum).unwrap();
+    dataset.close().unwrap();
+
+    // Write mobilograms
+    let mob_dir = dataset_path.join("mobilograms");
+    fs::create_dir_all(&mob_dir).unwrap();
+    let mob_path = mob_dir.join("mobilograms.parquet");
+
+    let mob_config = MobilogramWriterConfig::default();
+    let mut mob_writer = MobilogramWriter::new_file(&mob_path, &metadata, mob_config).unwrap();
+
+    let eim1 = Mobilogram::new(
+        "EIM_500.25".to_string(),
+        "extracted ion mobilogram".to_string(),
+        vec![0.5, 0.6, 0.7, 0.8, 0.9],
+        vec![1000.0, 2000.0, 3000.0, 2500.0, 1500.0],
+    ).unwrap();
+
+    let eim2 = Mobilogram::new(
+        "EIM_600.30".to_string(),
+        "extracted ion mobilogram".to_string(),
+        vec![0.5, 0.6, 0.7, 0.8, 0.9],
+        vec![500.0, 800.0, 1200.0, 900.0, 600.0],
+    ).unwrap();
+
+    mob_writer.write_mobilogram(&eim1).unwrap();
+    mob_writer.write_mobilogram(&eim2).unwrap();
+    mob_writer.finish().unwrap();
+
+    // Read back using MzPeakReader
+    let reader = MzPeakReader::open(&dataset_path).unwrap();
+    let mobilograms = reader.read_mobilograms().unwrap();
+
+    assert_eq!(mobilograms.len(), 2);
+
+    // Verify EIM1
+    assert_eq!(mobilograms[0].mobilogram_id, "EIM_500.25");
+    assert_eq!(mobilograms[0].mobilogram_type, "extracted ion mobilogram");
+    assert_eq!(mobilograms[0].mobility_array.len(), 5);
+    assert_eq!(mobilograms[0].mobility_array[0], 0.5);
+    assert_eq!(mobilograms[0].intensity_array[2], 3000.0);
+
+    // Verify EIM2
+    assert_eq!(mobilograms[1].mobilogram_id, "EIM_600.30");
+    assert_eq!(mobilograms[1].mobility_array.len(), 5);
+}
+
+/// Test reading when chromatogram file doesn't exist (should return empty)
+#[test]
+fn test_read_chromatograms_missing_file() {
+    use mzpeak::reader::MzPeakReader;
+
+    let dir = tempdir().unwrap();
+    let dataset_path = dir.path().join("no_chrom.mzpeak");
+
+    let metadata = MzPeakMetadata::new();
+    let config = WriterConfig::default();
+    let mut dataset = MzPeakDatasetWriter::new_directory(&dataset_path, &metadata, config).unwrap();
+
+    // Write only a spectrum, no chromatograms
+    let spectrum = SpectrumBuilder::new(0, 1)
+        .ms_level(1)
+        .retention_time(60.0)
+        .polarity(1)
+        .add_peak(400.0, 10000.0)
+        .build();
+    dataset.write_spectrum(&spectrum).unwrap();
+    dataset.close().unwrap();
+
+    // Read back - should get empty chromatograms
+    let reader = MzPeakReader::open(&dataset_path).unwrap();
+    let chromatograms = reader.read_chromatograms().unwrap();
+    assert_eq!(chromatograms.len(), 0);
+}
+
+/// Test reading when mobilogram file doesn't exist (should return empty)
+#[test]
+fn test_read_mobilograms_missing_file() {
+    use mzpeak::reader::MzPeakReader;
+
+    let dir = tempdir().unwrap();
+    let dataset_path = dir.path().join("no_mob.mzpeak");
+
+    let metadata = MzPeakMetadata::new();
+    let config = WriterConfig::default();
+    let mut dataset = MzPeakDatasetWriter::new_directory(&dataset_path, &metadata, config).unwrap();
+
+    // Write only a spectrum, no mobilograms
+    let spectrum = SpectrumBuilder::new(0, 1)
+        .ms_level(1)
+        .retention_time(60.0)
+        .polarity(1)
+        .add_peak(400.0, 10000.0)
+        .build();
+    dataset.write_spectrum(&spectrum).unwrap();
+    dataset.close().unwrap();
+
+    // Read back - should get empty mobilograms
+    let reader = MzPeakReader::open(&dataset_path).unwrap();
+    let mobilograms = reader.read_mobilograms().unwrap();
+    assert_eq!(mobilograms.len(), 0);
+}
+
+/// Test reading chromatograms from ZIP container
+#[test]
+fn test_read_chromatograms_zip_container() {
+    use mzpeak::chromatogram_writer::{Chromatogram, ChromatogramWriter, ChromatogramWriterConfig};
+    use mzpeak::reader::MzPeakReader;
+    use mzpeak::dataset::OutputMode;
+
+    let dir = tempdir().unwrap();
+    let container_path = dir.path().join("test_with_chrom.mzpeak");
+
+    let metadata = MzPeakMetadata::new();
+    let config = WriterConfig::default();
+    
+    // Create container with chromatograms
+    let mut dataset = MzPeakDatasetWriter::new(&container_path, &metadata, config).unwrap();
+
+    // Write a spectrum
+    let spectrum = SpectrumBuilder::new(0, 1)
+        .ms_level(1)
+        .retention_time(60.0)
+        .polarity(1)
+        .add_peak(400.0, 10000.0)
+        .build();
+    dataset.write_spectrum(&spectrum).unwrap();
+
+    // Write chromatograms
+    let tic = Chromatogram::new(
+        "TIC".to_string(),
+        "total ion current chromatogram".to_string(),
+        vec![10.0, 20.0, 30.0],
+        vec![1000.0, 2000.0, 1500.0],
+    ).unwrap();
+
+    let bpc = Chromatogram::new(
+        "BPC".to_string(),
+        "base peak chromatogram".to_string(),
+        vec![10.0, 20.0, 30.0],
+        vec![800.0, 1800.0, 1400.0],
+    ).unwrap();
+
+    dataset.write_chromatogram(&tic).unwrap();
+    dataset.write_chromatogram(&bpc).unwrap();
+    dataset.close().unwrap();
+
+    // Read back from ZIP container
+    let reader = MzPeakReader::open(&container_path).unwrap();
+    let chromatograms = reader.read_chromatograms().unwrap();
+
+    assert_eq!(chromatograms.len(), 2);
+    assert_eq!(chromatograms[0].chromatogram_id, "TIC");
+    assert_eq!(chromatograms[0].time_array.len(), 3);
+    assert_eq!(chromatograms[1].chromatogram_id, "BPC");
+}
+
+/// Test reading mobilograms from ZIP container
+#[test]
+fn test_read_mobilograms_zip_container() {
+    use mzpeak::mobilogram_writer::{Mobilogram, MobilogramWriter, MobilogramWriterConfig};
+    use mzpeak::reader::MzPeakReader;
+
+    let dir = tempdir().unwrap();
+    let container_path = dir.path().join("test_with_mob.mzpeak");
+
+    let metadata = MzPeakMetadata::new();
+    let config = WriterConfig::default();
+    
+    // Create container with mobilograms
+    let mut dataset = MzPeakDatasetWriter::new(&container_path, &metadata, config).unwrap();
+
+    // Write a spectrum
+    let spectrum = SpectrumBuilder::new(0, 1)
+        .ms_level(1)
+        .retention_time(60.0)
+        .polarity(1)
+        .add_peak(400.0, 10000.0)
+        .build();
+    dataset.write_spectrum(&spectrum).unwrap();
+
+    // Write mobilograms
+    let eim1 = Mobilogram::new(
+        "EIM_500.25".to_string(),
+        "extracted ion mobilogram".to_string(),
+        vec![0.5, 0.6, 0.7, 0.8],
+        vec![1000.0, 2000.0, 3000.0, 2500.0],
+    ).unwrap();
+
+    dataset.write_mobilogram(&eim1).unwrap();
+    dataset.close().unwrap();
+
+    // Read back from ZIP container
+    let reader = MzPeakReader::open(&container_path).unwrap();
+    let mobilograms = reader.read_mobilograms().unwrap();
+
+    assert_eq!(mobilograms.len(), 1);
+    assert_eq!(mobilograms[0].mobilogram_id, "EIM_500.25");
+    assert_eq!(mobilograms[0].mobility_array.len(), 4);
 }

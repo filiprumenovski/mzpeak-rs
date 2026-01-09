@@ -11,8 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Container Format (`.mzpeak`)**: Single-file ZIP archive format for distribution
   - New default output mode for paths ending in `.mzpeak`
-  - ZIP structure: `mimetype` (first, uncompressed), `metadata.json` (Deflate), `peaks/peaks.parquet` (Stored)
-  - Parquet file stored **uncompressed** within ZIP for direct byte-offset seeking
+  - ZIP structure: `mimetype` (first, uncompressed), `metadata.json` (Deflate), `peaks/peaks.parquet` (Stored), `chromatograms/chromatograms.parquet` (Stored, if present), `mobilograms/mobilograms.parquet` (Stored, if present)
+  - Parquet files stored **uncompressed** within ZIP for direct byte-offset seeking
   - MIME type: `application/vnd.mzpeak`
   - Similar to `.docx`, `.jar`, `.epub` container formats
 
@@ -38,6 +38,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Exit code 1 on validation failure (suitable for CI/CD pipelines)
   - Samples first 1,000 rows for efficient validation of large files
   - Supports both single-file and directory bundle formats
+
+- **Reader API**: Full read support for mzPeak files (complements write-only architecture)
+  - New `reader` module with `MzPeakReader` struct
+  - Supports ZIP container (`.mzpeak`), directory bundles, and single Parquet files
+  - `iter_spectra()` returns reconstructed `Spectrum` objects from long-format data
+  - `get_spectrum(id)` for single spectrum lookup by ID
+  - `spectra_by_rt_range(start, end)` for retention time queries
+  - `spectra_by_ms_level(level)` for MS1/MS2 filtering
+  - `summary()` returns `FileSummary` with statistics (num_spectra, RT range, m/z range)
+  - `metadata()` exposes `FileMetadata` including format version and parsed `MzPeakMetadata`
+  - **`read_chromatograms()`** reads all chromatograms from dataset (TIC, BPC, etc.)
+  - **`read_mobilograms()`** reads all mobilograms from dataset (EIM, TIM, etc.)
+  - Full support for reading chromatograms/mobilograms from ZIP containers, directory bundles, and single Parquet files
+  - Gracefully handles missing chromatogram/mobilogram files (returns empty vector)
+  - Configurable batch size via `ReaderConfig`
+  - Comprehensive test suite with roundtrip verification
+
+- **Mass Spectrometry Imaging (MSI) Support**: Spatial coordinate columns for imaging data
+  - New `pixel_x`, `pixel_y`, `pixel_z` columns in schema (Int32, nullable)
+  - CV accessions from imzML: IMS:1000050, IMS:1000051, IMS:1000052
+  - `Spectrum` struct includes `pixel_x`, `pixel_y`, `pixel_z` fields
+  - `SpectrumBuilder::pixel(x, y)` and `pixel_3d(x, y, z)` methods
+  - Dictionary encoding enabled for MSI columns (same value per spectrum)
+  - Schema expanded from 18 to 21 columns
+  - NOTE: Future versions will store MSI data in separate `imaging/` Parquet file within ZIP container
+
+- **Mobilogram Writer**: Ion mobility trace storage for IM-MS data
+  - New `mobilogram_writer` module with `MobilogramWriter` struct
+  - Wide-schema format with List arrays for mobility and intensity
+  - Schema: `mobilogram_id`, `mobilogram_type`, `mobility_array`, `intensity_array`
+  - `Mobilogram` struct with `new_tim()` (Total Ion Mobilogram) and `new_xim()` (Extracted Ion Mobilogram) constructors
+  - Array length validation ensures mobility and intensity arrays match
+  - CV terms: MS:1003006 (mobilogram), MS:1002476 (ion mobility)
+  - Configurable compression and row group size via `MobilogramWriterConfig`
+  - Full integration with `MzPeakDatasetWriter`: `write_mobilogram()` and `write_mobilograms()` methods
+  - Container mode writes `mobilograms/mobilograms.parquet` (Stored compression)
+  - Directory mode creates `mobilograms/` subdirectory
+  - `DatasetStats` tracks mobilogram counts and statistics
 
 - **Ion Mobility Support**: Native support for ion mobility mass spectrometry (IM-MS)
   - New `ion_mobility` column in schema (Float64, nullable) with CV accession MS:1002476
@@ -71,11 +109,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `MzPeakDatasetWriter` now defaults to Container mode for `.mzpeak` paths
 - `peaks_dir()` and `chromatograms_dir()` now return `Option<PathBuf>` (None in container mode)
 - `root_path()` deprecated in favor of `output_path()`
-- Schema expanded from 17 to 18 columns (added `ion_mobility`)
+- Schema expanded from 17 to 21 columns (added `ion_mobility` + 3 MSI spatial columns)
 - Peak struct now includes optional `ion_mobility: Option<f64>` field
-- All Peak instantiations updated for new struct signature
-- Test suite expanded to 43 tests (from 28)
-- Added `zip` crate dependency for container format support
+- Spectrum struct now includes optional `pixel_x`, `pixel_y`, `pixel_z` fields
+- All Peak and Spectrum instantiations updated for new struct signature
+- Test suite expanded to 48+ tests
+- Added `zip` and `bytes` crate dependencies
 
 ### Performance
 

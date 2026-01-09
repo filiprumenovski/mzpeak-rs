@@ -183,6 +183,7 @@ pub mod controlled_vocabulary;
 pub mod chromatogram_writer;
 pub mod dataset;
 pub mod metadata;
+pub mod mobilogram_writer;
 pub mod mzml;
 pub mod reader;
 pub mod schema;
@@ -193,6 +194,9 @@ pub mod writer;
 pub mod prelude {
     pub use crate::chromatogram_writer::{
         Chromatogram, ChromatogramWriter, ChromatogramWriterConfig, ChromatogramWriterStats,
+    };
+    pub use crate::mobilogram_writer::{
+        Mobilogram, MobilogramWriter, MobilogramWriterConfig, MobilogramWriterStats,
     };
     pub use crate::controlled_vocabulary::{ms_terms, unit_terms, CvParamList, CvTerm};
     pub use crate::dataset::{DatasetError, DatasetStats, MzPeakDatasetWriter, OutputMode};

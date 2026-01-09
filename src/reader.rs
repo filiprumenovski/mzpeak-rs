@@ -41,6 +41,7 @@ use std::sync::Arc;
 
 use arrow::array::{
     Array, Float32Array, Float64Array, Int16Array, Int64Array, Int8Array,
+    ListArray, StringArray,
 };
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
@@ -125,8 +126,11 @@ impl Default for ReaderConfig {
 enum ReaderSource {
     /// File path for file-based reading
     FilePath(std::path::PathBuf),
-    /// Bytes for in-memory reading (ZIP containers)
-    Bytes(Bytes),
+    /// Bytes for in-memory reading (ZIP containers), with original path for re-opening
+    ZipContainer {
+        peaks_bytes: Bytes,
+        zip_path: std::path::PathBuf,
+    },
 }
 
 /// Reader for mzPeak files
@@ -173,7 +177,8 @@ impl MzPeakReader {
 
     /// Open a ZIP container format file
     fn open_container<P: AsRef<Path>>(path: P, config: ReaderConfig) -> Result<Self, ReaderError> {
-        let file = File::open(path.as_ref())?;
+        let zip_path = path.as_ref().to_path_buf();
+        let file = File::open(&zip_path)?;
         let mut archive = ZipArchive::new(BufReader::new(file))?;
 
         // Find the peaks parquet file
@@ -187,11 +192,14 @@ impl MzPeakReader {
         peaks_file.read_to_end(&mut parquet_bytes)?;
 
         // Convert to Bytes (implements ChunkReader)
-        let bytes = Bytes::from(parquet_bytes);
-        let file_metadata = Self::extract_file_metadata_from_bytes(&bytes)?;
+        let peaks_bytes = Bytes::from(parquet_bytes);
+        let file_metadata = Self::extract_file_metadata_from_bytes(&peaks_bytes)?;
 
         Ok(Self {
-            source: ReaderSource::Bytes(bytes),
+            source: ReaderSource::ZipContainer {
+                peaks_bytes,
+                zip_path,
+            },
             config,
             file_metadata,
         })
@@ -292,8 +300,8 @@ impl MzPeakReader {
                     batches.push(batch_result?);
                 }
             }
-            ReaderSource::Bytes(bytes) => {
-                let builder = ParquetRecordBatchReaderBuilder::try_new(bytes.clone())?
+            ReaderSource::ZipContainer { peaks_bytes, .. } => {
+                let builder = ParquetRecordBatchReaderBuilder::try_new(peaks_bytes.clone())?
                     .with_batch_size(self.config.batch_size);
                 let reader = builder.build()?;
                 for batch_result in reader {
@@ -575,6 +583,208 @@ impl MzPeakReader {
                 Some(arr.value(idx))
             }
         })
+    }
+
+    fn get_string_column<'a>(batch: &'a RecordBatch, name: &str) -> Result<&'a StringArray, ReaderError> {
+        batch
+            .column_by_name(name)
+            .ok_or_else(|| ReaderError::ColumnNotFound(name.to_string()))?
+            .as_any()
+            .downcast_ref::<StringArray>()
+            .ok_or_else(|| ReaderError::InvalidFormat(format!("{} is not String", name)))
+    }
+
+    fn get_list_column<'a>(batch: &'a RecordBatch, name: &str) -> Result<&'a ListArray, ReaderError> {
+        batch
+            .column_by_name(name)
+            .ok_or_else(|| ReaderError::ColumnNotFound(name.to_string()))?
+            .as_any()
+            .downcast_ref::<ListArray>()
+            .ok_or_else(|| ReaderError::InvalidFormat(format!("{} is not List", name)))
+    }
+
+    fn extract_f64_list(list_array: &ListArray, idx: usize) -> Vec<f64> {
+        let values = list_array.values();
+        let float_array = values.as_any().downcast_ref::<Float64Array>().unwrap();
+        let start = list_array.value_offsets()[idx] as usize;
+        let end = list_array.value_offsets()[idx + 1] as usize;
+        (start..end).map(|i| float_array.value(i)).collect()
+    }
+
+    fn extract_f32_list(list_array: &ListArray, idx: usize) -> Vec<f32> {
+        let values = list_array.values();
+        let float_array = values.as_any().downcast_ref::<Float32Array>().unwrap();
+        let start = list_array.value_offsets()[idx] as usize;
+        let end = list_array.value_offsets()[idx + 1] as usize;
+        (start..end).map(|i| float_array.value(i)).collect()
+    }
+
+    /// Open a sub-parquet file (chromatograms or mobilograms) from the dataset
+    fn open_sub_parquet(&self, subpath: &str) -> Result<Option<Vec<RecordBatch>>, ReaderError> {
+        match &self.source {
+            ReaderSource::FilePath(path) => {
+                let sub_file_path = if path.is_dir() {
+                    // Directory bundle
+                    path.join(subpath)
+                } else if path.extension().map(|e| e == "parquet").unwrap_or(false) {
+                    // Single parquet file - could be peaks/peaks.parquet from a directory dataset
+                    // Check if parent is peaks/ directory
+                    if let Some(parent) = path.parent() {
+                        if parent.file_name().and_then(|n| n.to_str()) == Some("peaks") {
+                            // This is a directory dataset, go up to dataset root
+                            if let Some(dataset_root) = parent.parent() {
+                                dataset_root.join(subpath)
+                            } else {
+                                return Ok(None);
+                            }
+                        } else {
+                            // Single file mode - no chromatograms/mobilograms
+                            return Ok(None);
+                        }
+                    } else {
+                        return Ok(None);
+                    }
+                } else {
+                    return Err(ReaderError::InvalidFormat(
+                        format!("Cannot determine sub-file location for {:?}", path)
+                    ));
+                };
+
+                // If the file doesn't exist, return None (chromatograms/mobilograms are optional)
+                if !sub_file_path.exists() {
+                    return Ok(None);
+                }
+
+                // Read the sub-parquet file
+                let file = File::open(&sub_file_path)?;
+                let builder = ParquetRecordBatchReaderBuilder::try_new(file)?
+                    .with_batch_size(self.config.batch_size);
+                let reader = builder.build()?;
+                let mut batches = Vec::new();
+                for batch_result in reader {
+                    batches.push(batch_result?);
+                }
+                Ok(Some(batches))
+            }
+            ReaderSource::ZipContainer { zip_path, .. } => {
+                // ZIP container - re-open and extract the sub-file
+                let file = File::open(zip_path)?;
+                let mut archive = ZipArchive::new(BufReader::new(file))?;
+
+                // Try to find the sub-file in the ZIP
+                let mut sub_file = match archive.by_name(subpath) {
+                    Ok(f) => f,
+                    Err(_) => return Ok(None), // File doesn't exist in ZIP, return None
+                };
+
+                // Read the parquet file into memory
+                let mut parquet_bytes = Vec::new();
+                sub_file.read_to_end(&mut parquet_bytes)?;
+
+                // Parse as Parquet
+                let bytes = Bytes::from(parquet_bytes);
+                let builder = ParquetRecordBatchReaderBuilder::try_new(bytes)?
+                    .with_batch_size(self.config.batch_size);
+                let reader = builder.build()?;
+                let mut batches = Vec::new();
+                for batch_result in reader {
+                    batches.push(batch_result?);
+                }
+                Ok(Some(batches))
+            }
+        }
+    }
+
+    /// Read all chromatograms from the dataset
+    ///
+    /// Returns an empty vector if no chromatogram file exists (chromatograms are optional).
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use mzpeak::reader::MzPeakReader;
+    ///
+    /// let reader = MzPeakReader::open("data.mzpeak")?;
+    /// let chromatograms = reader.read_chromatograms()?;
+    /// for chrom in chromatograms {
+    ///     println!("Chromatogram {}: {} points", chrom.chromatogram_id, chrom.time_array.len());
+    /// }
+    /// # Ok::<(), mzpeak::reader::ReaderError>(())
+    /// ```
+    pub fn read_chromatograms(&self) -> Result<Vec<crate::chromatogram_writer::Chromatogram>, ReaderError> {
+        use crate::schema::chromatogram_columns;
+
+        let batches = match self.open_sub_parquet("chromatograms/chromatograms.parquet")? {
+            Some(b) => b,
+            None => return Ok(Vec::new()), // No chromatograms file, return empty
+        };
+
+        let mut chromatograms = Vec::new();
+
+        for batch in &batches {
+            let ids = Self::get_string_column(batch, chromatogram_columns::CHROMATOGRAM_ID)?;
+            let types = Self::get_string_column(batch, chromatogram_columns::CHROMATOGRAM_TYPE)?;
+            let time_arrays = Self::get_list_column(batch, chromatogram_columns::TIME_ARRAY)?;
+            let intensity_arrays = Self::get_list_column(batch, chromatogram_columns::INTENSITY_ARRAY)?;
+
+            for i in 0..batch.num_rows() {
+                let chromatogram = crate::chromatogram_writer::Chromatogram {
+                    chromatogram_id: ids.value(i).to_string(),
+                    chromatogram_type: types.value(i).to_string(),
+                    time_array: Self::extract_f64_list(time_arrays, i),
+                    intensity_array: Self::extract_f32_list(intensity_arrays, i),
+                };
+                chromatograms.push(chromatogram);
+            }
+        }
+
+        Ok(chromatograms)
+    }
+
+    /// Read all mobilograms from the dataset
+    ///
+    /// Returns an empty vector if no mobilogram file exists (mobilograms are optional).
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use mzpeak::reader::MzPeakReader;
+    ///
+    /// let reader = MzPeakReader::open("data.mzpeak")?;
+    /// let mobilograms = reader.read_mobilograms()?;
+    /// for mob in mobilograms {
+    ///     println!("Mobilogram {}: {} points", mob.mobilogram_id, mob.mobility_array.len());
+    /// }
+    /// # Ok::<(), mzpeak::reader::ReaderError>(())
+    /// ```
+    pub fn read_mobilograms(&self) -> Result<Vec<crate::mobilogram_writer::Mobilogram>, ReaderError> {
+        use crate::mobilogram_writer::mobilogram_columns;
+
+        let batches = match self.open_sub_parquet("mobilograms/mobilograms.parquet")? {
+            Some(b) => b,
+            None => return Ok(Vec::new()), // No mobilograms file, return empty
+        };
+
+        let mut mobilograms = Vec::new();
+
+        for batch in &batches {
+            let ids = Self::get_string_column(batch, mobilogram_columns::MOBILOGRAM_ID)?;
+            let types = Self::get_string_column(batch, mobilogram_columns::MOBILOGRAM_TYPE)?;
+            let mobility_arrays = Self::get_list_column(batch, mobilogram_columns::MOBILITY_ARRAY)?;
+            let intensity_arrays = Self::get_list_column(batch, mobilogram_columns::INTENSITY_ARRAY)?;
+
+            for i in 0..batch.num_rows() {
+                let mobilogram = crate::mobilogram_writer::Mobilogram {
+                    mobilogram_id: ids.value(i).to_string(),
+                    mobilogram_type: types.value(i).to_string(),
+                    mobility_array: Self::extract_f64_list(mobility_arrays, i),
+                    intensity_array: Self::extract_f32_list(intensity_arrays, i),
+                };
+                mobilograms.push(mobilogram);
+            }
+        }
+
+        Ok(mobilograms)
     }
 }
 
