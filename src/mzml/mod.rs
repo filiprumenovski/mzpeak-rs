@@ -39,10 +39,10 @@ mod binary;
 mod cv_params;
 mod models;
 mod streamer;
-mod converter;
+pub mod converter;
 
 pub use binary::{BinaryDecoder, BinaryEncoding, CompressionType as BinaryCompression};
 pub use cv_params::{CvParam, extract_cv_value, MS_CV_ACCESSIONS};
 pub use models::*;
 pub use streamer::{MzMLStreamer, MzMLError};
-pub use converter::MzMLConverter;
+pub use converter::{MzMLConverter, ConversionConfig, ConversionStats};

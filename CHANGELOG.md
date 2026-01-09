@@ -55,6 +55,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Configurable batch size via `ReaderConfig`
   - Comprehensive test suite with roundtrip verification
 
+- **mzML Converter**: Full mzML to mzPeak conversion with chromatogram support
+  - **`MzMLConverter`** with streaming parser for memory-efficient conversion of arbitrarily large files
+  - **Full chromatogram support**: Extracts TIC, BPC, SIM, SRM, XIC chromatograms from `<chromatogramList>` elements
+  - **Automatic metadata conversion**: Instruments, software, processing history from mzML to mzPeak format
+  - **`ConversionConfig`** with options for batch size, precision preservation, chromatogram inclusion
+  - **`ConversionStats`** tracks spectra count, chromatograms count, peaks, and compression ratio
+  - Integrated test suite validates full mzML → mzPeak → read cycle with synthetic mzML files
+  - Public `converter` module exports `MzMLConverter`, `ConversionConfig`, and `ConversionStats`
+
 - **Mass Spectrometry Imaging (MSI) Support**: Spatial coordinate columns for imaging data
   - New `pixel_x`, `pixel_y`, `pixel_z` columns in schema (Int32, nullable)
   - CV accessions from imzML: IMS:1000050, IMS:1000051, IMS:1000052

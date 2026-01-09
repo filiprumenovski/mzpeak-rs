@@ -695,3 +695,178 @@ fn test_read_mobilograms_zip_container() {
     assert_eq!(mobilograms[0].mobilogram_id, "EIM_500.25");
     assert_eq!(mobilograms[0].mobility_array.len(), 4);
 }
+
+/// Test mzML conversion with chromatograms
+#[test]
+fn test_mzml_conversion_with_chromatograms() {
+    use mzpeak::mzml::converter::{ConversionConfig, MzMLConverter};
+    use mzpeak::reader::MzPeakReader;
+    use std::io::Write;
+
+    let dir = tempdir().unwrap();
+    let mzml_path = dir.path().join("test_with_chromatograms.mzML");
+    let output_path = dir.path().join("output.mzpeak");
+
+    // Create a minimal valid mzML file with chromatograms
+    let mzml_content = r#"<?xml version="1.0" encoding="utf-8"?>
+<mzML xmlns="http://psi.hupo.org/ms/mzml" version="1.1.0">
+  <cvList count="1">
+    <cv id="MS" fullName="Proteomics Standards Initiative Mass Spectrometry Ontology" version="4.1.0" URI="https://raw.githubusercontent.com/HUPO-PSI/psi-ms-CV/master/psi-ms.obo"/>
+  </cvList>
+  <fileDescription>
+    <fileContent>
+      <cvParam cvRef="MS" accession="MS:1000579" name="MS1 spectrum"/>
+    </fileContent>
+  </fileDescription>
+  <softwareList count="1">
+    <software id="mzpeak-test" version="1.0.0">
+      <cvParam cvRef="MS" accession="MS:1000799" name="custom unreleased software tool"/>
+    </software>
+  </softwareList>
+  <instrumentConfigurationList count="1">
+    <instrumentConfiguration id="IC1">
+      <cvParam cvRef="MS" accession="MS:1000031" name="instrument model"/>
+    </instrumentConfiguration>
+  </instrumentConfigurationList>
+  <dataProcessingList count="1">
+    <dataProcessing id="DP1">
+      <processingMethod order="1" softwareRef="mzpeak-test">
+        <cvParam cvRef="MS" accession="MS:1000035" name="peak picking"/>
+      </processingMethod>
+    </dataProcessing>
+  </dataProcessingList>
+  <run id="test_run" defaultInstrumentConfigurationRef="IC1">
+    <spectrumList count="2" defaultDataProcessingRef="DP1">
+      <spectrum index="0" id="scan=1" defaultArrayLength="3">
+        <cvParam cvRef="MS" accession="MS:1000579" name="MS1 spectrum"/>
+        <cvParam cvRef="MS" accession="MS:1000511" name="ms level" value="1"/>
+        <cvParam cvRef="MS" accession="MS:1000127" name="centroid spectrum"/>
+        <cvParam cvRef="MS" accession="MS:1000504" name="base peak m/z" value="445.34"/>
+        <cvParam cvRef="MS" accession="MS:1000505" name="base peak intensity" value="120000"/>
+        <cvParam cvRef="MS" accession="MS:1000285" name="total ion current" value="200000"/>
+        <scanList count="1">
+          <cvParam cvRef="MS" accession="MS:1000795" name="no combination"/>
+          <scan>
+            <cvParam cvRef="MS" accession="MS:1000016" name="scan start time" value="30.0" unitCvRef="UO" unitAccession="UO:0000010" unitName="second"/>
+          </scan>
+        </scanList>
+        <binaryDataArrayList count="2">
+          <binaryDataArray encodedLength="32">
+            <cvParam cvRef="MS" accession="MS:1000514" name="m/z array" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+            <cvParam cvRef="MS" accession="MS:1000523" name="64-bit float"/>
+            <cvParam cvRef="MS" accession="MS:1000576" name="no compression"/>
+            <binary>AAAAAAAA2kAAAAAAAADsQAAAAAAAAPRA</binary>
+          </binaryDataArray>
+          <binaryDataArray encodedLength="32">
+            <cvParam cvRef="MS" accession="MS:1000515" name="intensity array" unitCvRef="MS" unitAccession="MS:1000131" unitName="number of detector counts"/>
+            <cvParam cvRef="MS" accession="MS:1000523" name="64-bit float"/>
+            <cvParam cvRef="MS" accession="MS:1000576" name="no compression"/>
+            <binary>AAAAAAAA8kAAAAAAAAD0QAAAAAAAAN5A</binary>
+          </binaryDataArray>
+        </binaryDataArrayList>
+      </spectrum>
+      <spectrum index="1" id="scan=2" defaultArrayLength="2">
+        <cvParam cvRef="MS" accession="MS:1000579" name="MS1 spectrum"/>
+        <cvParam cvRef="MS" accession="MS:1000511" name="ms level" value="1"/>
+        <cvParam cvRef="MS" accession="MS:1000127" name="centroid spectrum"/>
+        <scanList count="1">
+          <cvParam cvRef="MS" accession="MS:1000795" name="no combination"/>
+          <scan>
+            <cvParam cvRef="MS" accession="MS:1000016" name="scan start time" value="31.0" unitCvRef="UO" unitAccession="UO:0000010" unitName="second"/>
+          </scan>
+        </scanList>
+        <binaryDataArrayList count="2">
+          <binaryDataArray encodedLength="24">
+            <cvParam cvRef="MS" accession="MS:1000514" name="m/z array" unitCvRef="MS" unitAccession="MS:1000040" unitName="m/z"/>
+            <cvParam cvRef="MS" accession="MS:1000523" name="64-bit float"/>
+            <cvParam cvRef="MS" accession="MS:1000576" name="no compression"/>
+            <binary>AAAAAAAAPkAAAAAAAABAQA==</binary>
+          </binaryDataArray>
+          <binaryDataArray encodedLength="24">
+            <cvParam cvRef="MS" accession="MS:1000515" name="intensity array" unitCvRef="MS" unitAccession="MS:1000131" unitName="number of detector counts"/>
+            <cvParam cvRef="MS" accession="MS:1000523" name="64-bit float"/>
+            <cvParam cvRef="MS" accession="MS:1000576" name="no compression"/>
+            <binary>AAAAAAAA8kAAAAAAAADwQA==</binary>
+          </binaryDataArray>
+        </binaryDataArrayList>
+      </spectrum>
+    </spectrumList>
+    <chromatogramList count="2" defaultDataProcessingRef="DP1">
+      <chromatogram index="0" id="TIC" defaultArrayLength="3">
+        <cvParam cvRef="MS" accession="MS:1000235" name="total ion current chromatogram"/>
+        <binaryDataArrayList count="2">
+          <binaryDataArray encodedLength="32">
+            <cvParam cvRef="MS" accession="MS:1000595" name="time array" unitCvRef="UO" unitAccession="UO:0000010" unitName="second"/>
+            <cvParam cvRef="MS" accession="MS:1000523" name="64-bit float"/>
+            <cvParam cvRef="MS" accession="MS:1000576" name="no compression"/>
+            <binary>AAAAAAAA3kAAAAAAAADgQAAAAAAAAOFA</binary>
+          </binaryDataArray>
+          <binaryDataArray encodedLength="32">
+            <cvParam cvRef="MS" accession="MS:1000515" name="intensity array" unitCvRef="MS" unitAccession="MS:1000131" unitName="number of detector counts"/>
+            <cvParam cvRef="MS" accession="MS:1000523" name="64-bit float"/>
+            <cvParam cvRef="MS" accession="MS:1000576" name="no compression"/>
+            <binary>AAAAAAAACEEAAAAAAAAIQQAAAAAAAAhB</binary>
+          </binaryDataArray>
+        </binaryDataArrayList>
+      </chromatogram>
+      <chromatogram index="1" id="BPC" defaultArrayLength="3">
+        <cvParam cvRef="MS" accession="MS:1000628" name="basepeak chromatogram"/>
+        <binaryDataArrayList count="2">
+          <binaryDataArray encodedLength="32">
+            <cvParam cvRef="MS" accession="MS:1000595" name="time array" unitCvRef="UO" unitAccession="UO:0000010" unitName="second"/>
+            <cvParam cvRef="MS" accession="MS:1000523" name="64-bit float"/>
+            <cvParam cvRef="MS" accession="MS:1000576" name="no compression"/>
+            <binary>AAAAAAAA3kAAAAAAAADgQAAAAAAAAOFA</binary>
+          </binaryDataArray>
+          <binaryDataArray encodedLength="32">
+            <cvParam cvRef="MS" accession="MS:1000515" name="intensity array" unitCvRef="MS" unitAccession="MS:1000131" unitName="number of detector counts"/>
+            <cvParam cvRef="MS" accession="MS:1000523" name="64-bit float"/>
+            <cvParam cvRef="MS" accession="MS:1000576" name="no compression"/>
+            <binary>AAAAAAAACEEAAAAAAAAIQQAAAAAAAAhB</binary>
+          </binaryDataArray>
+        </binaryDataArrayList>
+      </chromatogram>
+    </chromatogramList>
+  </run>
+</mzML>"#;
+
+    // Write mzML file
+    let mut file = File::create(&mzml_path).unwrap();
+    file.write_all(mzml_content.as_bytes()).unwrap();
+    drop(file);
+
+    // Convert mzML to mzPeak
+    let config = ConversionConfig {
+        include_chromatograms: true,
+        ..Default::default()
+    };
+    let converter = MzMLConverter::with_config(config);
+    let stats = converter.convert(&mzml_path, &output_path).unwrap();
+
+    // Verify statistics
+    assert_eq!(stats.spectra_count, 2, "Should have converted 2 spectra");
+    assert_eq!(stats.chromatograms_converted, 2, "Should have converted 2 chromatograms");
+
+    // Read back and verify chromatograms
+    let reader = MzPeakReader::open(&output_path).unwrap();
+    let chromatograms = reader.read_chromatograms().unwrap();
+
+    assert_eq!(chromatograms.len(), 2, "Should have 2 chromatograms");
+    
+    // Verify TIC chromatogram
+    let tic = chromatograms.iter().find(|c| c.chromatogram_id == "TIC").unwrap();
+    assert_eq!(tic.chromatogram_type, "TIC");
+    assert_eq!(tic.time_array.len(), 3);
+    assert_eq!(tic.intensity_array.len(), 3);
+    
+    // Verify BPC chromatogram
+    let bpc = chromatograms.iter().find(|c| c.chromatogram_id == "BPC").unwrap();
+    assert_eq!(bpc.chromatogram_type, "BPC");
+    assert_eq!(bpc.time_array.len(), 3);
+    assert_eq!(bpc.intensity_array.len(), 3);
+
+    // Verify spectrum reading still works
+    let reader = MzPeakReader::open(&output_path).unwrap();
+    let spectra = reader.iter_spectra().unwrap();
+    assert_eq!(spectra.len(), 2, "Should have 2 spectra");
+}
