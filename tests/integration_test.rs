@@ -228,18 +228,18 @@ fn test_metadata_roundtrip() {
     assert!(lc_json.contains("Dionex UltiMate 3000"));
 }
 
-/// Test Dataset Bundle creation and structure
+/// Test Dataset Bundle creation and structure (directory mode)
 #[test]
 fn test_dataset_bundle_structure() {
     let dir = tempdir().unwrap();
-    let dataset_path = dir.path().join("test_bundle.mzpeak");
+    let dataset_path = dir.path().join("test_bundle");
 
     let mut metadata = MzPeakMetadata::new();
     metadata.sdrf = Some(SdrfMetadata::new("bundle_test"));
     metadata.source_file = Some(SourceFileInfo::new("test.raw"));
 
     let config = WriterConfig::default();
-    let mut dataset = MzPeakDatasetWriter::new(&dataset_path, &metadata, config).unwrap();
+    let mut dataset = MzPeakDatasetWriter::new_directory(&dataset_path, &metadata, config).unwrap();
 
     // Write test data
     let spectra: Vec<_> = (0..50)
@@ -307,13 +307,13 @@ fn test_dataset_bundle_structure() {
     assert!(format_version.is_some());
 }
 
-/// Test Dataset Bundle with comprehensive metadata
+/// Test Dataset Bundle with comprehensive metadata (directory mode)
 #[test]
 fn test_dataset_bundle_full_metadata() {
     use mzpeak::metadata::{InstrumentConfig, LcConfig};
 
     let dir = tempdir().unwrap();
-    let dataset_path = dir.path().join("full_metadata.mzpeak");
+    let dataset_path = dir.path().join("full_metadata");
 
     // Create comprehensive metadata
     let mut metadata = MzPeakMetadata::new();
@@ -344,7 +344,7 @@ fn test_dataset_bundle_full_metadata() {
     metadata.source_file = Some(source);
 
     let config = WriterConfig::default();
-    let mut dataset = MzPeakDatasetWriter::new(&dataset_path, &metadata, config).unwrap();
+    let mut dataset = MzPeakDatasetWriter::new_directory(&dataset_path, &metadata, config).unwrap();
 
     // Write minimal data
     let spectrum = SpectrumBuilder::new(0, 1)

@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Container Format (`.mzpeak`)**: Single-file ZIP archive format for distribution
+  - New default output mode for paths ending in `.mzpeak`
+  - ZIP structure: `mimetype` (first, uncompressed), `metadata.json` (Deflate), `peaks/peaks.parquet` (Stored)
+  - Parquet file stored **uncompressed** within ZIP for direct byte-offset seeking
+  - MIME type: `application/vnd.mzpeak`
+  - Similar to `.docx`, `.jar`, `.epub` container formats
+
+- **Dual Output Mode Support**:
+  - `MzPeakDatasetWriter::new()` auto-detects mode from path extension
+  - `new_container()` explicitly creates ZIP archive format
+  - `new_directory()` explicitly creates legacy directory bundle
+  - `OutputMode` enum: `Container` (default) and `Directory`
+  - `mode()` method to query current output mode
+
+- **Writer Enhancements**:
+  - `MzPeakWriter::finish_into_inner()` to retrieve underlying writer after completion
+  - `MZPEAK_MIMETYPE` constant exported in prelude
+
 - **Validation Module**: Comprehensive integrity checker for mzPeak files
   - New `validator` module with 4-stage validation process
   - `mzpeak validate` CLI command for file/directory validation
@@ -50,10 +68,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `MzPeakDatasetWriter` now defaults to Container mode for `.mzpeak` paths
+- `peaks_dir()` and `chromatograms_dir()` now return `Option<PathBuf>` (None in container mode)
+- `root_path()` deprecated in favor of `output_path()`
 - Schema expanded from 17 to 18 columns (added `ion_mobility`)
 - Peak struct now includes optional `ion_mobility: Option<f64>` field
 - All Peak instantiations updated for new struct signature
-- Test suite expanded to 28 tests (from 22)
+- Test suite expanded to 43 tests (from 28)
+- Added `zip` crate dependency for container format support
 
 ### Performance
 

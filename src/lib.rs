@@ -194,7 +194,7 @@ pub mod prelude {
         Chromatogram, ChromatogramWriter, ChromatogramWriterConfig, ChromatogramWriterStats,
     };
     pub use crate::controlled_vocabulary::{ms_terms, unit_terms, CvParamList, CvTerm};
-    pub use crate::dataset::{DatasetError, DatasetStats, MzPeakDatasetWriter};
+    pub use crate::dataset::{DatasetError, DatasetStats, MzPeakDatasetWriter, OutputMode, MZPEAK_MIMETYPE};
     pub use crate::metadata::{
         InstrumentConfig, LcConfig, MzPeakMetadata, RunParameters, SdrfMetadata, SourceFileInfo,
     };
