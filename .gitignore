@@ -37,6 +37,9 @@ coverage/
 *.raw
 *.RAW
 *.mzpeak.parquet
+*.mzpeak
+data/*.mzML
+data/*.mzpeak
 
 # Keep Cargo.lock for reproducible builds (binary)
 # !Cargo.lock
