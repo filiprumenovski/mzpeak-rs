@@ -51,14 +51,26 @@ mzpeak = "0.1"
 
 ### Python (Extension Module)
 
-This repository also ships optional Python bindings (PyO3 + maturin) under the Cargo feature `python`.
+This repository ships Python bindings (PyO3 + maturin) under the Cargo feature `python`.
 
-**Requirements**
+**Installation from PyPI** (when available)
 
-- Rust toolchain (same as building from source)
+```bash
+pip install mzpeak
+```
+
+Pre-built wheels are available for:
+- **Linux** (x86_64, aarch64) - manylinux2014
+- **macOS** (x86_64, arm64) - macOS 11+
+- **Windows** (x86_64)
+
+Supports Python 3.8 through 3.12+ via the stable ABI (abi3).
+
+**Building from source**
+
+Requirements:
+- Rust toolchain 1.70+
 - Python 3.8+
-
-**Build + install into a virtualenv (recommended)**
 
 ```bash
 python -m venv .venv
@@ -81,11 +93,43 @@ import mzpeak
 # Convert mzML -> mzPeak
 mzpeak.convert("input.mzML", "output.mzpeak")
 
-# Read + zero-copy Arrow access
+# Read + zero-copy Arrow/pandas/polars access
 with mzpeak.MzPeakReader("output.mzpeak") as reader:
     summary = reader.summary()
+    
+    # Zero-copy Arrow Table
     table = reader.to_arrow()  # pyarrow.Table (zero-copy)
+    
+    # Convert to pandas DataFrame (via Arrow, zero-copy)
+    df = reader.to_pandas()
+    print(df.groupby('ms_level')['intensity'].sum())
+    
+    # Convert to polars DataFrame (via Arrow, zero-copy)
+    df = reader.to_polars()
+    print(df.group_by('spectrum_id').agg(pl.col('intensity').sum()))
 ```
+
+**DataFrames Integration**
+
+All data conversions use the Arrow C Data Interface for zero-copy memory sharing:
+
+```python
+# After pip install mzpeak pandas polars
+import mzpeak
+
+with mzpeak.MzPeakReader("data.mzpeak") as reader:
+    # Get pandas DataFrame - zero-copy via Arrow
+    df = reader.to_pandas()
+    ms1_df = df[df['ms_level'] == 1]
+    total_intensity = df.groupby('spectrum_id')['intensity'].sum()
+    
+    # Get polars DataFrame - zero-copy via Arrow
+    df = reader.to_polars()
+    import polars as pl
+    result = df.filter(pl.col('ms_level') == 1).select(['mz', 'intensity'])
+```
+
+See [`examples/dataframe_integration.py`](examples/dataframe_integration.py) for a complete example.
 
 Notes:
 
