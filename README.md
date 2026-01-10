@@ -22,6 +22,8 @@ mzPeak is a reference implementation for a next-generation mass spectrometry dat
 - **Container format**: Single `.mzpeak` file (ZIP archive) with embedded Parquet and metadata
 - **Long table schema**: Each peak is a row, enabling efficient Run-Length Encoding (RLE) compression on spectrum metadata
 - **Ion Mobility support**: Native IM dimension for timsTOF and other IM-MS instruments
+- **Automatic TIC/BPC generation**: Total Ion Current and Base Peak Chromatograms automatically generated during mzML conversion
+- **Chromatogram storage**: Wide-format storage for instant trace visualization without peak table scanning
 - **Rolling Writer (sharding)**: Automatic file partitioning for terabyte-scale datasets
 - **HUPO-PSI CV integration**: Full controlled vocabulary support for interoperability
 - **SDRF-Proteomics metadata**: Sample metadata following community standards
@@ -168,9 +170,9 @@ output.mzpeak (ZIP archive)
 **Directory Bundle** (legacy, for development):
 ```
 output.mzpeak/
-├── peaks/peaks.parquet      # Spectral data
-├── chromatograms/            # TIC/BPC traces (future)
-└── metadata.json             # Human-readable metadata
+├── peaks/peaks.parquet           # Spectral data
+├── chromatograms/chromatograms.parquet  # TIC/BPC traces
+└── metadata.json                  # Human-readable metadata
 ```
 
 **Quick metadata inspection:**
@@ -202,12 +204,42 @@ im_filtered = im_data[
 ]
 ```
 
+**Read chromatograms:**
+
+**Python (pyarrow)**
+```python
+import pyarrow.parquet as pq
+
+# Read chromatograms (TIC/BPC)
+chrom_table = pq.read_table('output.mzpeak/chromatograms/chromatograms.parquet')
+df = chrom_table.to_pandas()
+
+# Extract TIC
+tic = df[df['chromatogram_id'] == 'TIC'].iloc[0]
+time_array = tic['time_array']
+intensity_array = tic['intensity_array']
+
+# Plot chromatogram
+import matplotlib.pyplot as plt
+plt.plot(time_array, intensity_array)
+plt.xlabel('Retention Time (s)')
+plt.ylabel('Intensity')
+plt.title('Total Ion Current')
+plt.show()
+```
+
 **R (arrow)**
 ```r
 library(arrow)
 
 data <- read_parquet('output.mzpeak/peaks/peaks.parquet')
 ms2_spectra <- data[data$ms_level == 2, ]
+
+# Read chromatograms
+chromatograms <- read_parquet('output.mzpeak/chromatograms/chromatograms.parquet')
+tic <- chromatograms[chromatograms$chromatogram_id == 'TIC', ]
+plot(tic$time_array[[1]], tic$intensity_array[[1]], type='l',
+     xlab='Retention Time (s)', ylab='Intensity', main='TIC')
 ```
 
 **DuckDB**
@@ -216,6 +248,11 @@ ms2_spectra <- data[data$ms_level == 2, ]
 SELECT spectrum_id, mz, intensity
 FROM read_parquet('output.mzpeak/peaks/peaks.parquet')
 WHERE ms_level = 2 AND precursor_mz BETWEEN 500 AND 600;
+
+-- Query TIC chromatogram
+SELECT chromatogram_id, unnest(time_array) as time, unnest(intensity_array) as intensity
+FROM read_parquet('output.mzpeak/chromatograms/chromatograms.parquet')
+WHERE chromatogram_id = 'TIC';
 
 -- Query ion mobility dimension (timsTOF data)
 SELECT spectrum_id, mz, intensity, ion_mobility
@@ -241,6 +278,46 @@ import polars as pl
 
 df = pl.scan_parquet('output.mzpeak/peaks/peaks.parquet')
 result = df.filter(pl.col('ms_level') == 2).collect()
+
+# Read chromatograms
+chroms = pl.read_parquet('output.mzpeak/chromatograms/chromatograms.parquet')
+tic = chroms.filter(pl.col('chromatogram_id') == 'TIC')
+```
+
+## Chromatogram Support
+
+mzPeak automatically generates Total Ion Current (TIC) and Base Peak Chromatogram (BPC) during mzML conversion:
+
+- **Automatic Generation**: When converting mzML files without embedded chromatograms, TIC and BPC are automatically calculated from MS1 spectra during the streaming process
+- **Preservation**: If the mzML file already contains chromatograms, they are preserved as-is
+- **Wide Format**: Chromatograms are stored in "wide" format (arrays of time and intensity values) for instant visualization without scanning the peak table
+- **MS1 Only**: Only MS1 spectra contribute to TIC/BPC calculation; MS2+ spectra are ignored
+
+### Example
+
+```rust
+use mzpeak::mzml::MzMLConverter;
+use mzpeak::reader::MzPeakReader;
+
+// Convert mzML with automatic TIC/BPC generation
+let converter = MzMLConverter::new();
+let stats = converter.convert("input.mzML", "output.mzpeak")?;
+
+println!("Converted {} spectra", stats.spectra_count);
+println!("Generated {} chromatograms", stats.chromatograms_converted);
+
+// Read back chromatograms
+let reader = MzPeakReader::open("output.mzpeak")?;
+let chromatograms = reader.read_chromatograms()?;
+
+for chrom in chromatograms {
+    println!("{}: {} points", chrom.chromatogram_id, chrom.time_array.len());
+}
+```
+
+Run the demo:
+```bash
+cargo run --example chromatogram_generation_demo
 ```
 
 ## Validation
