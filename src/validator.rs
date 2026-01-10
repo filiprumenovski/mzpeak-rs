@@ -741,6 +741,17 @@ fn perform_schema_validation(metadata: &parquet::file::metadata::ParquetMetaData
         (columns::INTENSITY, "MS:1000042"),
         (columns::MS_LEVEL, "MS:1000511"),
         (columns::RETENTION_TIME, "MS:1000016"),
+        (columns::POLARITY, "MS:1000465"),
+        (columns::PRECURSOR_MZ, "MS:1000744"),
+        (columns::PRECURSOR_CHARGE, "MS:1000041"),
+        (columns::COLLISION_ENERGY, "MS:1000045"),
+        (columns::TOTAL_ION_CURRENT, "MS:1000285"),
+        (columns::BASE_PEAK_MZ, "MS:1000504"),
+        (columns::BASE_PEAK_INTENSITY, "MS:1000505"),
+        (columns::INJECTION_TIME, "MS:1000927"),
+        (columns::ION_MOBILITY, "MS:1002476"),
+        (columns::ISOLATION_WINDOW_LOWER, "MS:1000828"),
+        (columns::ISOLATION_WINDOW_UPPER, "MS:1000829"),
     ];
 
     for (col_name, expected_cv) in expected_cv_accessions {
@@ -754,6 +765,30 @@ fn perform_schema_validation(metadata: &parquet::file::metadata::ParquetMetaData
                     report.add_check(ValidationCheck::warning(
                         format!("CV accession for {}", col_name),
                         format!("Expected {}, would be {} in recreated schema", expected_cv, cv_accession),
+                    ));
+                }
+            } else {
+                report.add_check(ValidationCheck::warning(
+                    format!("CV accession for {}", col_name),
+                    format!("Missing CV accession {} in column metadata", expected_cv),
+                ));
+            }
+        }
+    }
+    
+    // Check for MSI CV accessions
+    let msi_cv_accessions = vec![
+        (columns::PIXEL_X, "IMS:1000050"),
+        (columns::PIXEL_Y, "IMS:1000051"),
+        (columns::PIXEL_Z, "IMS:1000052"),
+    ];
+    
+    for (col_name, expected_cv) in msi_cv_accessions {
+        if let Ok(field) = expected_schema.field_with_name(col_name) {
+            if let Some(cv_accession) = field.metadata().get("cv_accession") {
+                if cv_accession == expected_cv {
+                    report.add_check(ValidationCheck::ok(
+                        format!("MSI CV accession for {}: {}", col_name, expected_cv),
                     ));
                 }
             }

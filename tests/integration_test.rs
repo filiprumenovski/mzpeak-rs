@@ -870,3 +870,135 @@ fn test_mzml_conversion_with_chromatograms() {
     let spectra = reader.iter_spectra().unwrap();
     assert_eq!(spectra.len(), 2, "Should have 2 spectra");
 }
+
+// ==================== Property Testing ====================
+
+use proptest::prelude::*;
+
+/// Generate arbitrary Peak data
+fn arb_peak() -> impl Strategy<Value = Peak> {
+    (
+        100.0..3000.0_f64,           // mz range
+        0.0..1_000_000.0_f32,        // intensity range
+        prop::option::of(0.0..2.0_f64), // optional ion mobility
+    )
+        .prop_map(|(mz, intensity, ion_mobility)| Peak {
+            mz,
+            intensity,
+            ion_mobility,
+        })
+}
+
+/// Generate arbitrary Spectrum data - split into nested tuples to avoid 12-element limit
+fn arb_spectrum() -> impl Strategy<Value = mzpeak::writer::Spectrum> {
+    // Core fields (under 12 elements)
+    let core_fields = (
+        0..1_000_000_i64,                          // spectrum_id
+        1..1_000_000_i64,                          // scan_number
+        1..11_i16,                                 // ms_level (1-10)
+        0.0..10_000.0_f32,                         // retention_time
+        prop::bool::ANY.prop_map(|b| if b { 1 } else { -1 }), // polarity
+        prop::collection::vec(arb_peak(), 1..50),  // peaks (1-50 per spectrum)
+    );
+    
+    // Optional precursor fields (under 12 elements)
+    let precursor_fields = (
+        prop::option::of(200.0..2000.0_f64),       // precursor_mz
+        prop::option::of(1..10_i16),               // precursor_charge
+        prop::option::of(0.0..1_000_000.0_f32),    // precursor_intensity
+        prop::option::of(0.0..10.0_f32),           // isolation_window_lower
+        prop::option::of(0.0..10.0_f32),           // isolation_window_upper
+        prop::option::of(0.0..100.0_f32),          // collision_energy
+        prop::option::of(0.0..1000.0_f32),         // injection_time
+    );
+    
+    (core_fields, precursor_fields)
+        .prop_map(|(core, precursor)| {
+            let (spectrum_id, scan_number, ms_level, retention_time, polarity, peaks) = core;
+            let (precursor_mz, precursor_charge, precursor_intensity, 
+                 isolation_window_lower, isolation_window_upper, 
+                 collision_energy, injection_time) = precursor;
+            
+            mzpeak::writer::Spectrum {
+                spectrum_id,
+                scan_number,
+                ms_level,
+                retention_time,
+                polarity,
+                precursor_mz,
+                precursor_charge,
+                precursor_intensity,
+                isolation_window_lower,
+                isolation_window_upper,
+                collision_energy,
+                total_ion_current: None,
+                base_peak_mz: None,
+                base_peak_intensity: None,
+                injection_time,
+                pixel_x: None,
+                pixel_y: None,
+                pixel_z: None,
+                peaks,
+            }
+        })
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(10_000))]
+    
+    /// Property test: Round-trip data integrity
+    /// Tests that any generated spectrum can be written and read back with exact equality
+    #[test]
+    fn property_roundtrip_spectrum(spectra in prop::collection::vec(arb_spectrum(), 1..10)) {
+        use mzpeak::reader::MzPeakReader;
+        
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("proptest.mzpeak.parquet");
+        
+        // Write spectra
+        let metadata = MzPeakMetadata::new();
+        let config = WriterConfig::default();
+        let mut writer = MzPeakWriter::new_file(&path, &metadata, config).unwrap();
+        
+        writer.write_spectra(&spectra).unwrap();
+        let write_stats = writer.finish().unwrap();
+        
+        // Calculate expected totals
+        let expected_spectra = spectra.len();
+        let expected_peaks: usize = spectra.iter().map(|s| s.peaks.len()).sum();
+        
+        prop_assert_eq!(write_stats.spectra_written, expected_spectra, "Spectra count mismatch");
+        prop_assert_eq!(write_stats.peaks_written, expected_peaks, "Peak count mismatch");
+        
+        // Read back
+        let reader = MzPeakReader::open(&path).unwrap();
+        let read_spectra = reader.iter_spectra().unwrap();
+        
+        prop_assert_eq!(read_spectra.len(), spectra.len(), "Read spectrum count mismatch");
+        
+        // Verify each spectrum
+        for (original, read_back) in spectra.iter().zip(read_spectra.iter()) {
+            prop_assert_eq!(read_back.spectrum_id, original.spectrum_id, "spectrum_id mismatch");
+            prop_assert_eq!(read_back.scan_number, original.scan_number, "scan_number mismatch");
+            prop_assert_eq!(read_back.ms_level, original.ms_level, "ms_level mismatch");
+            prop_assert_eq!(read_back.retention_time, original.retention_time, "retention_time mismatch");
+            prop_assert_eq!(read_back.polarity, original.polarity, "polarity mismatch");
+            prop_assert_eq!(read_back.precursor_mz, original.precursor_mz, "precursor_mz mismatch");
+            prop_assert_eq!(read_back.precursor_charge, original.precursor_charge, "precursor_charge mismatch");
+            prop_assert_eq!(read_back.precursor_intensity, original.precursor_intensity, "precursor_intensity mismatch");
+            prop_assert_eq!(read_back.isolation_window_lower, original.isolation_window_lower, "isolation_window_lower mismatch");
+            prop_assert_eq!(read_back.isolation_window_upper, original.isolation_window_upper, "isolation_window_upper mismatch");
+            prop_assert_eq!(read_back.collision_energy, original.collision_energy, "collision_energy mismatch");
+            prop_assert_eq!(read_back.injection_time, original.injection_time, "injection_time mismatch");
+            
+            prop_assert_eq!(read_back.peaks.len(), original.peaks.len(), "peak count mismatch");
+            
+            // Verify each peak
+            for (orig_peak, read_peak) in original.peaks.iter().zip(read_back.peaks.iter()) {
+                prop_assert_eq!(read_peak.mz, orig_peak.mz, "peak mz mismatch");
+                prop_assert_eq!(read_peak.intensity, orig_peak.intensity, "peak intensity mismatch");
+                prop_assert_eq!(read_peak.ion_mobility, orig_peak.ion_mobility, "peak ion_mobility mismatch");
+            }
+        }
+    }
+}

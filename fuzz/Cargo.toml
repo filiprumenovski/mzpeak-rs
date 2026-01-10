@@ -1,0 +1,21 @@
+[package]
+name = "mzpeak-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.mzpeak]
+path = ".."
+
+[[bin]]
+name = "fuzz_mzml_streamer"
+path = "fuzz_targets/fuzz_mzml_streamer.rs"
+test = false
+doc = false
+bench = false
