@@ -43,6 +43,9 @@ use parquet::record::RowAccessor;
 use crate::metadata::MzPeakMetadata;
 use crate::schema::{columns, create_mzpeak_schema, MZPEAK_FORMAT_VERSION, MZPEAK_MIMETYPE};
 
+#[cfg(feature = "colorized_output")]
+use console::{style, Emoji};
+
 /// Validation error types
 #[derive(Debug, thiserror::Error)]
 pub enum ValidationError {
@@ -150,6 +153,69 @@ impl ValidationReport {
 
     pub fn failure_count(&self) -> usize {
         self.checks.iter().filter(|c| c.status.is_failed()).count()
+    }
+
+    /// Format the report with colors (requires console feature)
+    pub fn format_colored(&self) -> String {
+        #[cfg(feature = "colorized_output")]
+        {
+            use console::{style, Emoji};
+            
+            static OK: Emoji<'_, '_> = Emoji("✓", "[OK]");
+            static WARN: Emoji<'_, '_> = Emoji("⚠", "[WARN]");
+            static FAIL: Emoji<'_, '_> = Emoji("✗", "[FAIL]");
+            
+            let mut output = String::new();
+            
+            output.push_str(&format!("{}\n", style("mzPeak Validation Report").bold().cyan()));
+            output.push_str(&format!("{}\n", style("========================").cyan()));
+            output.push_str(&format!("{}: {}\n\n", style("File").bold(), self.file_path));
+            
+            for check in &self.checks {
+                let (symbol, color_fn): (_, fn(&str) -> console::StyledObject<&str>) = match &check.status {
+                    CheckStatus::Ok => (OK, |s| style(s).green()),
+                    CheckStatus::Warning(_) => (WARN, |s| style(s).yellow()),
+                    CheckStatus::Failed(_) => (FAIL, |s| style(s).red()),
+                };
+                
+                output.push_str(&format!("[{}] {}", symbol, color_fn(&check.name)));
+                
+                match &check.status {
+                    CheckStatus::Ok => output.push('\n'),
+                    CheckStatus::Warning(msg) => {
+                        output.push_str(&format!(" - {}: {}\n", style("WARNING").yellow().bold(), msg));
+                    }
+                    CheckStatus::Failed(msg) => {
+                        output.push_str(&format!(" - {}: {}\n", style("FAILED").red().bold(), msg));
+                    }
+                }
+            }
+            
+            output.push('\n');
+            output.push_str(&format!(
+                "{}: {} passed, {} warnings, {} failed\n",
+                style("Summary").bold(),
+                style(self.success_count()).green(),
+                style(self.warning_count()).yellow(),
+                style(self.failure_count()).red()
+            ));
+            
+            output.push('\n');
+            if self.has_failures() {
+                output.push_str(&format!("{}\n", style("Validation FAILED").red().bold()));
+            } else if self.has_warnings() {
+                output.push_str(&format!("{}\n", style("Validation PASSED with warnings").yellow().bold()));
+            } else {
+                output.push_str(&format!("{}\n", style("Validation PASSED").green().bold()));
+            }
+            
+            output
+        }
+        
+        #[cfg(not(feature = "colorized_output"))]
+        {
+            format!("{}", self)
+        }
     }
 }
 
