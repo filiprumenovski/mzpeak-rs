@@ -94,6 +94,23 @@ Notes:
 
 ## Quick Start
 
+### Tutorial Notebook
+
+The fastest way to get started is with our interactive Jupyter notebook:
+
+```bash
+# Launch the quickstart tutorial
+jupyter notebook notebooks/quickstart.ipynb
+```
+
+The notebook covers:
+- Converting mzML to mzPeak
+- Reading and exploring data with PyArrow/Pandas
+- Creating visualizations (BPC, XIC, mirror plots)
+- Querying with DuckDB
+
+⏱️ **Complete the tutorial in < 5 minutes**
+
 ### Command Line
 
 ```bash
@@ -210,30 +227,43 @@ data <- read_parquet('output.mzpeak/peaks/peaks.parquet')
 ms2_spectra <- data[data$ms_level == 2, ]
 ```
 
-**DuckDB**
+**DuckDB (SQL)**
+
+DuckDB provides blazing-fast SQL queries directly on mzPeak files with zero preprocessing. See `examples/duckdb_queries.sql` for comprehensive examples.
+
 ```sql
--- Query MS2 spectra
-SELECT spectrum_id, mz, intensity
+-- Query MS2 spectra with predicate pushdown
+SELECT spectrum_id, mz, intensity, precursor_mz
 FROM read_parquet('output.mzpeak/peaks/peaks.parquet')
 WHERE ms_level = 2 AND precursor_mz BETWEEN 500 AND 600;
 
--- Query ion mobility dimension (timsTOF data)
+-- Extracted Ion Chromatogram (XIC)
+SELECT 
+    retention_time,
+    AVG(mz) as avg_mz,
+    SUM(intensity) as total_intensity
+FROM read_parquet('output.mzpeak/peaks/peaks.parquet')
+WHERE ms_level = 1
+  AND mz BETWEEN 500.25 * (1 - 10e-6) AND 500.25 * (1 + 10e-6)
+GROUP BY retention_time
+ORDER BY retention_time;
+
+-- Ion mobility queries (timsTOF data)
 SELECT spectrum_id, mz, intensity, ion_mobility
 FROM read_parquet('output.mzpeak/peaks/peaks.parquet')
 WHERE ion_mobility IS NOT NULL 
   AND ion_mobility BETWEEN 20 AND 30
   AND mz BETWEEN 400 AND 800;
-
--- Aggregate statistics by IM bin
-SELECT 
-  FLOOR(ion_mobility / 5) * 5 AS im_bin,
-  COUNT(*) as peak_count,
-  AVG(intensity) as avg_intensity
-FROM read_parquet('output.mzpeak/peaks/peaks.parquet')
-WHERE ion_mobility IS NOT NULL
-GROUP BY im_bin
-ORDER BY im_bin;
 ```
+
+📄 **See `examples/duckdb_queries.sql` for 30+ production-ready SQL queries including:**
+- Extracted Ion Chromatograms (XIC)
+- Base Peak Chromatograms (BPC)
+- MS/MS fragment analysis
+- Ion mobility heatmaps
+- Isotope pattern detection
+- Quality control checks
+- Data export workflows
 
 **Polars (Python)**
 ```python
@@ -281,7 +311,7 @@ mzpeak validate data.mzpeak.parquet
 # Validate a directory bundle
 mzpeak validate data.mzpeak/
 
-# Example output
+# Example colorized output
 # mzPeak Validation Report
 # ========================
 # File: data.mzpeak.parquet

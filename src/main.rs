@@ -728,7 +728,16 @@ fn run_validate(file: PathBuf) -> Result<()> {
     // Run validation
     match validate_mzpeak_file(&file) {
         Ok(report) => {
-            println!("{}", report);
+            // Use colorized output if available
+            #[cfg(feature = "colorized_output")]
+            {
+                println!("{}", report.format_colored());
+            }
+            
+            #[cfg(not(feature = "colorized_output"))]
+            {
+                println!("{}", report);
+            }
             
             // Exit with error code if validation failed
             if report.has_failures() {

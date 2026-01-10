@@ -15,9 +15,11 @@ categories = ["science", "encoding", "parser-implementations"]
 exclude = ["*.mzML", "*.raw", "*.parquet", "mzPeak_preprint_v02.pdf"]
 
 [features]
-default = []
+default = ["colorized_output"]
 # Python bindings via PyO3
 python = ["pyo3", "pyo3-log"]
+# Colorized CLI output
+colorized_output = ["console"]
 
 [dependencies]
 # Apache Arrow and Parquet for columnar storage
@@ -59,6 +61,10 @@ byteorder = "1.5"
 
 # CLI argument parsing
 clap = { version = "4.5", features = ["derive"] }
+
+# Progress bars and colorized output
+indicatif = "0.17"
+console = { version = "0.15", optional = true }
 
 # Python bindings (optional)
 pyo3 = { version = "0.23", features = ["extension-module", "abi3-py38"], optional = true }
