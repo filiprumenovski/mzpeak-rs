@@ -187,6 +187,12 @@ impl MzMLConverter {
         let mut batch: Vec<Spectrum> = Vec::with_capacity(self.config.batch_size);
         let expected_count = streamer.spectrum_count();
 
+        // Accumulate TIC and BPC data during spectrum processing
+        let mut tic_times: Vec<f64> = Vec::new();
+        let mut tic_intensities: Vec<f32> = Vec::new();
+        let mut bpc_times: Vec<f64> = Vec::new();
+        let mut bpc_intensities: Vec<f32> = Vec::new();
+
         info!(
             "Converting {} spectra...",
             expected_count.map(|c| c.to_string()).unwrap_or_else(|| "unknown".to_string())
@@ -203,6 +209,35 @@ impl MzMLConverter {
                 1 => stats.ms1_spectra += 1,
                 2 => stats.ms2_spectra += 1,
                 _ => stats.msn_spectra += 1,
+            }
+
+            // Accumulate TIC and BPC for MS1 spectra only
+            if mzml_spectrum.ms_level == 1 {
+                let rt = mzml_spectrum.retention_time.unwrap_or(0.0);
+                
+                // Calculate TIC from spectrum
+                let tic = if let Some(tic_from_spectrum) = mzml_spectrum.total_ion_current {
+                    tic_from_spectrum as f32
+                } else {
+                    // Calculate from peaks
+                    mzml_spectrum.intensity_array.iter().map(|&i| i as f32).sum()
+                };
+                
+                // Calculate BPC from spectrum
+                let bpc = if let Some(bp_intensity) = mzml_spectrum.base_peak_intensity {
+                    bp_intensity as f32
+                } else {
+                    // Find max intensity
+                    mzml_spectrum.intensity_array.iter()
+                        .map(|&i| i as f32)
+                        .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+                        .unwrap_or(0.0)
+                };
+                
+                tic_times.push(rt);
+                tic_intensities.push(tic);
+                bpc_times.push(rt);
+                bpc_intensities.push(bpc);
             }
 
             batch.push(spectrum);
@@ -235,12 +270,46 @@ impl MzMLConverter {
         // Finalize spectrum writer first
         info!("Finalizing peak data...");
 
-        // Process chromatograms if enabled and integrate into same dataset
+        // Process chromatograms if enabled
         if self.config.include_chromatograms {
             info!("Processing chromatograms...");
+            
+            // First, try to read chromatograms from mzML
             let chrom_count = self.stream_chromatograms(&mut streamer, &mut writer)?;
             stats.chromatograms_converted = chrom_count;
-            info!("  Chromatograms: {}", chrom_count);
+            
+            // If no chromatograms were found in mzML and we have MS1 spectra, generate TIC/BPC
+            if chrom_count == 0 && !tic_times.is_empty() {
+                info!("Generating TIC and BPC from MS1 spectra...");
+                
+                // Create TIC chromatogram
+                if let Ok(tic_chrom) = crate::chromatogram_writer::Chromatogram::new(
+                    "TIC".to_string(),
+                    "TIC".to_string(),
+                    tic_times,
+                    tic_intensities,
+                ) {
+                    writer.write_chromatogram(&tic_chrom)
+                        .map_err(|e| ConversionError::WriterError(WriterError::InvalidData(e.to_string())))?;
+                    stats.chromatograms_converted += 1;
+                }
+                
+                // Create BPC chromatogram
+                if let Ok(bpc_chrom) = crate::chromatogram_writer::Chromatogram::new(
+                    "BPC".to_string(),
+                    "BPC".to_string(),
+                    bpc_times,
+                    bpc_intensities,
+                ) {
+                    writer.write_chromatogram(&bpc_chrom)
+                        .map_err(|e| ConversionError::WriterError(WriterError::InvalidData(e.to_string())))?;
+                    stats.chromatograms_converted += 1;
+                }
+                
+                info!("Generated TIC and BPC chromatograms");
+            }
+            
+            info!("  Chromatograms: {}", stats.chromatograms_converted);
         }
 
         // Close dataset (finalizes both peaks and chromatograms)
@@ -760,5 +829,29 @@ mod tests {
         assert_eq!(spectrum.precursor_mz, Some(500.25));
         assert_eq!(spectrum.precursor_charge, Some(2));
         assert_eq!(spectrum.collision_energy, Some(30.0));
+    }
+
+    #[test]
+    fn test_chromatogram_conversion() {
+        let mzml_chrom = MzMLChromatogram {
+            index: 0,
+            id: "TIC".to_string(),
+            default_array_length: 3,
+            chromatogram_type: ChromatogramType::TIC,
+            time_array: vec![0.0, 1.0, 2.0],
+            intensity_array: vec![100.0, 200.0, 150.0],
+            precursor_mz: None,
+            product_mz: None,
+            cv_params: vec![],
+        };
+
+        let converter = MzMLConverter::new();
+        let chrom = converter.convert_chromatogram(&mzml_chrom).unwrap();
+
+        assert_eq!(chrom.chromatogram_id, "TIC");
+        assert_eq!(chrom.chromatogram_type, "TIC");
+        assert_eq!(chrom.time_array.len(), 3);
+        assert_eq!(chrom.intensity_array.len(), 3);
+        assert_eq!(chrom.time_array, vec![0.0, 1.0, 2.0]);
     }
 }

@@ -3,42 +3,7 @@
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](#license)
 
-**A modern, scalable, and interoperable mass spectrometry data format based on Apache Parquet.**
-
-## 🎯 Quick Start: The Container Format
-
-mzPeak uses a **single-file ZIP container** (`.mzpeak`) as the standard format:
-
-```rust
-use mzpeak::prelude::*;
-
-// Write: Create a .mzpeak container (single file)
-let metadata = MzPeakMetadata::new();
-let mut dataset = MzPeakDatasetWriter::new("data.mzpeak", &metadata, WriterConfig::default())?;
-
-let spectrum = SpectrumBuilder::new(0, 1)
-    .ms_level(1).retention_time(60.0).polarity(1)
-    .add_peak(400.5, 10000.0)
-    .build();
-dataset.write_spectrum(&spectrum)?;
-dataset.close()?;
-
-// Read: Zero-extraction reading (no temp files)
-let reader = MzPeakReader::open("data.mzpeak")?;
-for spectrum in reader.iter_spectra()? {
-    println!("Spectrum {}: {} peaks", spectrum.spectrum_id, spectrum.peaks.len());
-}
-```
-
-**Why Container Format?**
-- ✅ **Single file** for easy distribution and archival
-- ✅ **Zero-extraction reading** - reads Parquet directly from ZIP (no temp files)
-- ✅ **Seekable** - Parquet stored uncompressed in ZIP for byte-range access
-- ✅ **70% smaller** than gzipped mzML
-- ✅ **10-100x faster** random access
-- ✅ **Same size** as directory format (Parquet already compressed)
-
-📖 See [CONTAINER_FORMAT.md](CONTAINER_FORMAT.md) for detailed specification.
+A modern, scalable, and interoperable mass spectrometry data format based on Apache Parquet.
 
 ## Overview
 
@@ -57,6 +22,8 @@ mzPeak is a reference implementation for a next-generation mass spectrometry dat
 - **Container format**: Single `.mzpeak` file (ZIP archive) with embedded Parquet and metadata
 - **Long table schema**: Each peak is a row, enabling efficient Run-Length Encoding (RLE) compression on spectrum metadata
 - **Ion Mobility support**: Native IM dimension for timsTOF and other IM-MS instruments
+- **Automatic TIC/BPC generation**: Total Ion Current and Base Peak Chromatograms automatically generated during mzML conversion
+- **Chromatogram storage**: Wide-format storage for instant trace visualization without peak table scanning
 - **Rolling Writer (sharding)**: Automatic file partitioning for terabyte-scale datasets
 - **HUPO-PSI CV integration**: Full controlled vocabulary support for interoperability
 - **SDRF-Proteomics metadata**: Sample metadata following community standards
@@ -86,26 +53,14 @@ mzpeak = "0.1"
 
 ### Python (Extension Module)
 
-This repository ships Python bindings (PyO3 + maturin) under the Cargo feature `python`.
+This repository also ships optional Python bindings (PyO3 + maturin) under the Cargo feature `python`.
 
-**Installation from PyPI** (when available)
+**Requirements**
 
-```bash
-pip install mzpeak
-```
-
-Pre-built wheels are available for:
-- **Linux** (x86_64, aarch64) - manylinux2014
-- **macOS** (x86_64, arm64) - macOS 11+
-- **Windows** (x86_64)
-
-Supports Python 3.8 through 3.12+ via the stable ABI (abi3).
-
-**Building from source**
-
-Requirements:
-- Rust toolchain 1.70+
+- Rust toolchain (same as building from source)
 - Python 3.8+
+
+**Build + install into a virtualenv (recommended)**
 
 ```bash
 python -m venv .venv
@@ -128,43 +83,11 @@ import mzpeak
 # Convert mzML -> mzPeak
 mzpeak.convert("input.mzML", "output.mzpeak")
 
-# Read + zero-copy Arrow/pandas/polars access
+# Read + zero-copy Arrow access
 with mzpeak.MzPeakReader("output.mzpeak") as reader:
     summary = reader.summary()
-    
-    # Zero-copy Arrow Table
     table = reader.to_arrow()  # pyarrow.Table (zero-copy)
-    
-    # Convert to pandas DataFrame (via Arrow, zero-copy)
-    df = reader.to_pandas()
-    print(df.groupby('ms_level')['intensity'].sum())
-    
-    # Convert to polars DataFrame (via Arrow, zero-copy)
-    df = reader.to_polars()
-    print(df.group_by('spectrum_id').agg(pl.col('intensity').sum()))
 ```
-
-**DataFrames Integration**
-
-All data conversions use the Arrow C Data Interface for zero-copy memory sharing:
-
-```python
-# After pip install mzpeak pandas polars
-import mzpeak
-
-with mzpeak.MzPeakReader("data.mzpeak") as reader:
-    # Get pandas DataFrame - zero-copy via Arrow
-    df = reader.to_pandas()
-    ms1_df = df[df['ms_level'] == 1]
-    total_intensity = df.groupby('spectrum_id')['intensity'].sum()
-    
-    # Get polars DataFrame - zero-copy via Arrow
-    df = reader.to_polars()
-    import polars as pl
-    result = df.filter(pl.col('ms_level') == 1).select(['mz', 'intensity'])
-```
-
-See [`examples/dataframe_integration.py`](examples/dataframe_integration.py) for a complete example.
 
 Notes:
 
@@ -172,23 +95,6 @@ Notes:
 - On macOS, `cargo test --features python` can fail to link due to Python symbol resolution; building the extension via `maturin` is the supported workflow.
 
 ## Quick Start
-
-### Tutorial Notebook
-
-The fastest way to get started is with our interactive Jupyter notebook:
-
-```bash
-# Launch the quickstart tutorial
-jupyter notebook notebooks/quickstart.ipynb
-```
-
-The notebook covers:
-- Converting mzML to mzPeak
-- Reading and exploring data with PyArrow/Pandas
-- Creating visualizations (BPC, XIC, mirror plots)
-- Querying with DuckDB
-
-⏱️ **Complete the tutorial in < 5 minutes**
 
 ### Command Line
 
@@ -264,9 +170,9 @@ output.mzpeak (ZIP archive)
 **Directory Bundle** (legacy, for development):
 ```
 output.mzpeak/
-├── peaks/peaks.parquet      # Spectral data
-├── chromatograms/            # TIC/BPC traces (future)
-└── metadata.json             # Human-readable metadata
+├── peaks/peaks.parquet           # Spectral data
+├── chromatograms/chromatograms.parquet  # TIC/BPC traces
+└── metadata.json                  # Human-readable metadata
 ```
 
 **Quick metadata inspection:**
@@ -298,51 +204,73 @@ im_filtered = im_data[
 ]
 ```
 
+**Read chromatograms:**
+
+**Python (pyarrow)**
+```python
+import pyarrow.parquet as pq
+
+# Read chromatograms (TIC/BPC)
+chrom_table = pq.read_table('output.mzpeak/chromatograms/chromatograms.parquet')
+df = chrom_table.to_pandas()
+
+# Extract TIC
+tic = df[df['chromatogram_id'] == 'TIC'].iloc[0]
+time_array = tic['time_array']
+intensity_array = tic['intensity_array']
+
+# Plot chromatogram
+import matplotlib.pyplot as plt
+plt.plot(time_array, intensity_array)
+plt.xlabel('Retention Time (s)')
+plt.ylabel('Intensity')
+plt.title('Total Ion Current')
+plt.show()
+```
+
 **R (arrow)**
 ```r
 library(arrow)
 
 data <- read_parquet('output.mzpeak/peaks/peaks.parquet')
 ms2_spectra <- data[data$ms_level == 2, ]
+
+# Read chromatograms
+chromatograms <- read_parquet('output.mzpeak/chromatograms/chromatograms.parquet')
+tic <- chromatograms[chromatograms$chromatogram_id == 'TIC', ]
+plot(tic$time_array[[1]], tic$intensity_array[[1]], type='l',
+     xlab='Retention Time (s)', ylab='Intensity', main='TIC')
 ```
 
-**DuckDB (SQL)**
-
-DuckDB provides blazing-fast SQL queries directly on mzPeak files with zero preprocessing. See `examples/duckdb_queries.sql` for comprehensive examples.
-
+**DuckDB**
 ```sql
--- Query MS2 spectra with predicate pushdown
-SELECT spectrum_id, mz, intensity, precursor_mz
+-- Query MS2 spectra
+SELECT spectrum_id, mz, intensity
 FROM read_parquet('output.mzpeak/peaks/peaks.parquet')
 WHERE ms_level = 2 AND precursor_mz BETWEEN 500 AND 600;
 
--- Extracted Ion Chromatogram (XIC)
-SELECT 
-    retention_time,
-    AVG(mz) as avg_mz,
-    SUM(intensity) as total_intensity
-FROM read_parquet('output.mzpeak/peaks/peaks.parquet')
-WHERE ms_level = 1
-  AND mz BETWEEN 500.25 * (1 - 10e-6) AND 500.25 * (1 + 10e-6)
-GROUP BY retention_time
-ORDER BY retention_time;
+-- Query TIC chromatogram
+SELECT chromatogram_id, unnest(time_array) as time, unnest(intensity_array) as intensity
+FROM read_parquet('output.mzpeak/chromatograms/chromatograms.parquet')
+WHERE chromatogram_id = 'TIC';
 
--- Ion mobility queries (timsTOF data)
+-- Query ion mobility dimension (timsTOF data)
 SELECT spectrum_id, mz, intensity, ion_mobility
 FROM read_parquet('output.mzpeak/peaks/peaks.parquet')
 WHERE ion_mobility IS NOT NULL 
   AND ion_mobility BETWEEN 20 AND 30
   AND mz BETWEEN 400 AND 800;
-```
 
-📄 **See `examples/duckdb_queries.sql` for 30+ production-ready SQL queries including:**
-- Extracted Ion Chromatograms (XIC)
-- Base Peak Chromatograms (BPC)
-- MS/MS fragment analysis
-- Ion mobility heatmaps
-- Isotope pattern detection
-- Quality control checks
-- Data export workflows
+-- Aggregate statistics by IM bin
+SELECT 
+  FLOOR(ion_mobility / 5) * 5 AS im_bin,
+  COUNT(*) as peak_count,
+  AVG(intensity) as avg_intensity
+FROM read_parquet('output.mzpeak/peaks/peaks.parquet')
+WHERE ion_mobility IS NOT NULL
+GROUP BY im_bin
+ORDER BY im_bin;
+```
 
 **Polars (Python)**
 ```python
@@ -350,6 +278,46 @@ import polars as pl
 
 df = pl.scan_parquet('output.mzpeak/peaks/peaks.parquet')
 result = df.filter(pl.col('ms_level') == 2).collect()
+
+# Read chromatograms
+chroms = pl.read_parquet('output.mzpeak/chromatograms/chromatograms.parquet')
+tic = chroms.filter(pl.col('chromatogram_id') == 'TIC')
+```
+
+## Chromatogram Support
+
+mzPeak automatically generates Total Ion Current (TIC) and Base Peak Chromatogram (BPC) during mzML conversion:
+
+- **Automatic Generation**: When converting mzML files without embedded chromatograms, TIC and BPC are automatically calculated from MS1 spectra during the streaming process
+- **Preservation**: If the mzML file already contains chromatograms, they are preserved as-is
+- **Wide Format**: Chromatograms are stored in "wide" format (arrays of time and intensity values) for instant visualization without scanning the peak table
+- **MS1 Only**: Only MS1 spectra contribute to TIC/BPC calculation; MS2+ spectra are ignored
+
+### Example
+
+```rust
+use mzpeak::mzml::MzMLConverter;
+use mzpeak::reader::MzPeakReader;
+
+// Convert mzML with automatic TIC/BPC generation
+let converter = MzMLConverter::new();
+let stats = converter.convert("input.mzML", "output.mzpeak")?;
+
+println!("Converted {} spectra", stats.spectra_count);
+println!("Generated {} chromatograms", stats.chromatograms_converted);
+
+// Read back chromatograms
+let reader = MzPeakReader::open("output.mzpeak")?;
+let chromatograms = reader.read_chromatograms()?;
+
+for chrom in chromatograms {
+    println!("{}: {} points", chrom.chromatogram_id, chrom.time_array.len());
+}
+```
+
+Run the demo:
+```bash
+cargo run --example chromatogram_generation_demo
 ```
 
 ## Validation
@@ -390,7 +358,7 @@ mzpeak validate data.mzpeak.parquet
 # Validate a directory bundle
 mzpeak validate data.mzpeak/
 
-# Example colorized output
+# Example output
 # mzPeak Validation Report
 # ========================
 # File: data.mzpeak.parquet
