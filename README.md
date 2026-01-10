@@ -3,7 +3,42 @@
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](#license)
 
-A modern, scalable, and interoperable mass spectrometry data format based on Apache Parquet.
+**A modern, scalable, and interoperable mass spectrometry data format based on Apache Parquet.**
+
+## 🎯 Quick Start: The Container Format
+
+mzPeak uses a **single-file ZIP container** (`.mzpeak`) as the standard format:
+
+```rust
+use mzpeak::prelude::*;
+
+// Write: Create a .mzpeak container (single file)
+let metadata = MzPeakMetadata::new();
+let mut dataset = MzPeakDatasetWriter::new("data.mzpeak", &metadata, WriterConfig::default())?;
+
+let spectrum = SpectrumBuilder::new(0, 1)
+    .ms_level(1).retention_time(60.0).polarity(1)
+    .add_peak(400.5, 10000.0)
+    .build();
+dataset.write_spectrum(&spectrum)?;
+dataset.close()?;
+
+// Read: Zero-extraction reading (no temp files)
+let reader = MzPeakReader::open("data.mzpeak")?;
+for spectrum in reader.iter_spectra()? {
+    println!("Spectrum {}: {} peaks", spectrum.spectrum_id, spectrum.peaks.len());
+}
+```
+
+**Why Container Format?**
+- ✅ **Single file** for easy distribution and archival
+- ✅ **Zero-extraction reading** - reads Parquet directly from ZIP (no temp files)
+- ✅ **Seekable** - Parquet stored uncompressed in ZIP for byte-range access
+- ✅ **70% smaller** than gzipped mzML
+- ✅ **10-100x faster** random access
+- ✅ **Same size** as directory format (Parquet already compressed)
+
+📖 See [CONTAINER_FORMAT.md](CONTAINER_FORMAT.md) for detailed specification.
 
 ## Overview
 
