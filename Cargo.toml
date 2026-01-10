@@ -66,6 +66,7 @@ pyo3-log = { version = "0.12", optional = true }
 
 [dev-dependencies]
 tempfile = "3.14"
+criterion = { version = "0.5", features = ["html_reports"] }
 
 [lib]
 name = "mzpeak"
@@ -75,6 +76,18 @@ crate-type = ["lib", "cdylib"]
 [[bin]]
 name = "mzpeak-convert"
 path = "src/main.rs"
+
+[[bench]]
+name = "conversion"
+harness = false
+
+[[bench]]
+name = "query_performance"
+harness = false
+
+[[bench]]
+name = "filtering"
+harness = false
 
 [profile.release]
 lto = true
