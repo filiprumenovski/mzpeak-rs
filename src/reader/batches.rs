@@ -1,0 +1,73 @@
+use std::fs::File;
+
+use arrow::record_batch::RecordBatch;
+use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
+
+use super::config::ReaderSource;
+use super::{MzPeakReader, ReaderError};
+
+/// Streaming iterator over record batches (Issue 003 fix)
+///
+/// This iterator provides bounded memory usage by reading batches on-demand
+/// rather than loading the entire file into memory.
+pub struct RecordBatchIterator {
+    inner: Box<dyn Iterator<Item = Result<RecordBatch, arrow::error::ArrowError>> + Send>,
+}
+
+impl Iterator for RecordBatchIterator {
+    type Item = Result<RecordBatch, ReaderError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next().map(|r| r.map_err(ReaderError::from))
+    }
+}
+
+impl MzPeakReader {
+    /// Returns a streaming iterator over record batches
+    ///
+    /// This is the preferred API for large files as it avoids loading all data into memory.
+    /// Memory usage is bounded by `batch_size * row_size`.
+    ///
+    /// # Example
+    /// ```rust,no_run
+    /// use mzpeak::reader::MzPeakReader;
+    ///
+    /// let reader = MzPeakReader::open("data.mzpeak")?;
+    /// for batch_result in reader.iter_batches()? {
+    ///     let batch = batch_result?;
+    ///     println!("Processing batch with {} rows", batch.num_rows());
+    /// }
+    /// # Ok::<(), mzpeak::reader::ReaderError>(())
+    /// ```
+    pub fn iter_batches(&self) -> Result<RecordBatchIterator, ReaderError> {
+        match &self.source {
+            ReaderSource::FilePath(path) => {
+                let file = File::open(path)?;
+                let builder = ParquetRecordBatchReaderBuilder::try_new(file)?
+                    .with_batch_size(self.config.batch_size);
+                let reader = builder.build()?;
+                Ok(RecordBatchIterator {
+                    inner: Box::new(reader),
+                })
+            }
+            ReaderSource::ZipContainer { peaks_bytes, .. } => {
+                let builder = ParquetRecordBatchReaderBuilder::try_new(peaks_bytes.clone())?
+                    .with_batch_size(self.config.batch_size);
+                let reader = builder.build()?;
+                Ok(RecordBatchIterator {
+                    inner: Box::new(reader),
+                })
+            }
+        }
+    }
+
+    /// Read all record batches from the file (eager, collects all batches)
+    ///
+    /// Returns the raw Arrow record batches for efficient data access.
+    /// Useful for zero-copy integration with data processing libraries.
+    ///
+    /// **Warning**: This loads all data into memory. For large files, prefer `iter_batches()`.
+    pub fn read_all_batches(&self) -> Result<Vec<RecordBatch>, ReaderError> {
+        self.iter_batches()?.collect()
+    }
+}

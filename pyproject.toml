@@ -44,9 +44,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/mzpeak/mzpeak-rs"
+Homepage = "https://github.com/filiprumenovski/mzpeak-rs"
 Documentation = "https://docs.rs/mzpeak"
-Repository = "https://github.com/mzpeak/mzpeak-rs"
+Repository = "https://github.com/filiprumenovski/mzpeak-rs"
 
 [tool.maturin]
 # Build for the Python extension module

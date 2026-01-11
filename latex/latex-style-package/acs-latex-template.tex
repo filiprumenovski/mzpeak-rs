@@ -1,0 +1,289 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% This is a "template" model document for submission to the
+%% American Chemical Society (ACS).
+%%
+%% The guidance here contains information about how you may wish to
+%% modify it to match the requirements of various ACS journals. The
+%% ACS do *not* typeset accepted articles using LaTeX, so there is
+%% no specific class required.
+%%
+%% This template deliberately does *not* seek to reproduce
+%% the layout of the typeset journal: this is explicitly not
+%% required by the ACS for LaTeX submissions.
+%%
+%% Please report any issues with the template at
+%% https://github.com/josephwright/acs-template/issues
+%%
+%% Released under the Creative Commons 0 license
+%% https://creativecommons.org/public-domain/cc0/
+%% 
+%% Copyight (c) 2025 Joseph Wright
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[letterpaper]{article}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Font setup - delete if you are using LuaLaTeX
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage[T1]{fontenc}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Adjust the margins and allow for line spacing
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{geometry}
+\geometry{margin = 1in}
+\usepackage{setspace}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Reference support
+%%
+%% The recommended method for producing the reference section is
+%% to use biblatex. If you wish to use a classical BibTeX
+%% approach, this is easiest to achieve using the achemso package.
+%% In that case, you should remove the biblatex lines.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% You can adjust the printing of DOI, article title, etc. using
+% package options, e.g. "doi = true"; see the biblatex manual for
+% details of adjusting the number of authors printed, e.g.
+% "maxnames = 15" to print no more than 15 authors.
+\usepackage[style = chem-acs]{biblatex}
+\addbibresource{acs-template.bib}
+% If you are using classical BibTeX, remove the above lines and 
+% uncomment:
+%\usepackage{achemso}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Graphic inclusion and scheme and chart support
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{graphicx}
+\usepackage{float}
+\newfloat{scheme}{htbp}{los}
+\floatname{scheme}{Scheme}
+\floatname{chart}{Chart}
+\newfloat{graph}{htbp}{loh}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Common support packages
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{chemformula} % Formulas using \ch{}
+% or
+\usepackage[version = 4]{mhchem} % Formulas using \ce{}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Many journals require that sections are unnumbered: this 
+%% is activated here
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\setcounter{secnumdepth}{-1}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Place any additional macros here.  Please use \newcommand* where
+%% possible, and avoid layout-changing macros (which are not used
+%% when typesetting).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand*\mycommand[1]{\texttt{\emph{#1}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Author and title data:
+%% the authblk package is currently the simplest way to provide this
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{authblk}
+\author[1]{Andrew N. Other}
+\author[1]{Fred T. Secondauthor}
+\author[1]{I. Ken Groupleader*}
+\affil[1]{Department of Chemistry, Unknown University, Unknown Town}
+\author[2]{Susanne K. Laborator}
+\affil[2]{Lead Discovery, BigPharma, Big Town, USA}
+\author[1]{Kay T. Finally}
+
+\title{A ``template'' model document for submission to the
+  American Chemical Society (ACS)}
+% Use the \date command for email address(s) of corresponding authors
+\date{*Email: i.k.groupleader@unknown.uu}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  This is an example document for creating \LaTeX{} submissions to the American
+  Chemical Society (ACS) for publication. As ACS does not use \LaTeX{} for
+  typesetting accepted manuscripts, this template does not seek to
+  reproduce the appearance of a published paper.
+\end{abstract}
+
+\section*{Keywords}
+
+Some journals require keywords: these normally should be given immediately
+after the abstract.
+
+\section*{Abbreviations}
+
+Some journals require a list of abbreviations: these normally should be given
+immediately after the keyswords (if required).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Start the main part of the manuscript here.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}
+
+This is a paragraph of text to fill the introduction of the demonstration file. 
+
+\section{Results and discussion}
+
+\subsection{Outline}
+
+The document layout should follow the style of the journal concerned. Where
+appropriate, sections and subsections should be added in the normal way.
+
+\subsection{References}
+
+References should be given in the normal way in \LaTeX{}. If you are using
+\textsf{biblatex} (as recommended) then you can use the full range of citation
+commands it provides. If you choose to use classical Bib\TeX{}, the
+\textsf{natbib} package will be loaded and you can use it's commands.
+
+\subsection{Floats}
+
+New float types are set up in the preamble. The means graphics are included as
+follows (Scheme~\ref{sch:example}). As illustrated, the float is ``here'' if
+possible.
+\begin{scheme}
+  \centering
+  Your scheme graphic would go here: PDF graphics are recommended.
+  %\includegraphics{graphic}
+  \caption{An example scheme}
+  \label{sch:example}
+\end{scheme}
+
+\begin{figure}
+  \centering
+  A standard figure environment.
+  \label{fgr:example}
+\end{figure}
+
+The use of the different floating environments is not required, but it is
+intended to make document preparation easier for authors. In general, you
+should place your graphics where they make logical sense; the production
+process will move them if needed.
+
+\subsection{Math}
+
+If packages such as \textsf{amsmath} are required, they should be loaded in the
+preamble. However, the basic \LaTeX\ math(s) input should work correctly
+without this. Some inline material $1 + 1 = 2$ followed by some display. \[ A =
+\pi r^2 \]
+
+It is possible to label equations in the usual way (Eq.~\ref{eqn:example}).
+\begin{equation}
+  \frac{\mathrm{d}}{\mathrm{d}x} \, r^2 = 2r \label{eqn:example}
+\end{equation}
+This can also be used to have equations containing graphical content. To align
+the equation number with the middle of the graphic, rather than the bottom, a
+minipage may be used.
+\begin{equation}
+  \begin{minipage}[c]{0.80\linewidth}
+    \centering
+    As illustrated here, the width of \\
+    the minipage needs to allow some  \\
+    space for the number to fit in to.
+    %\includegraphics{graphic}
+  \end{minipage}
+  \label{eqn:graphic}
+\end{equation}
+
+\section{Experimental}
+
+The usual experimental details should appear here. This could include a table,
+which can be referenced as Table~\ref{tbl:example}. Notice that the caption is
+positioned at the top of the table.
+\begin{table}
+  \caption{An example table}
+  \label{tbl:example}
+  \centering
+  \begin{tabular}{ll}
+    \hline
+    Header one  & Header two  \\
+    \hline
+    Entry one   & Entry two   \\
+    Entry three & Entry four  \\
+    Entry five  & Entry five  \\
+    Entry seven & Entry eight \\
+    \hline
+  \end{tabular}
+\end{table}
+
+Adding notes to tables can be complicated. Perhaps the easiest method is to
+generate these using the basic \texttt{\textbackslash textsuperscript} and
+\texttt{\textbackslash emph} macros, as illustrated (Table~\ref{tbl:notes}).
+\begin{table}
+  \caption{A table with notes}
+  \label{tbl:notes}
+  \centering
+  \begin{tabular}{ll}
+    \hline
+    Header one                            & Header two \\
+    \hline
+    Entry one\textsuperscript{\emph{a}}   & Entry two  \\
+    Entry three\textsuperscript{\emph{b}} & Entry four \\
+    \hline
+  \end{tabular}
+
+  \textsuperscript{\emph{a}} Some text;
+  \textsuperscript{\emph{b}} Some more text.
+\end{table}
+
+The example file also loads the optional \textsf{chemformula} and
+\textsf{mhchem} packages, so that formulas are easy to input:
+\texttt{\textbackslash ce\{H2SO4\}} gives \ce{H2SO4}. The two have similar
+syntax but authors may prefer one or the other.
+
+The use of new commands should be limited to simple things which will not
+interfere with the production process. For example, \texttt{\textbackslash
+mycommand} has been defined in this example, to give italic, mono-spaced text:
+\mycommand{some text}.
+
+\section*{Acknowledgements}
+
+Please use ``The authors thank \ldots'' rather than ``The authors would like to
+thank \ldots''.
+
+\section*{Supporting information}
+
+A listing of the contents of each file supplied as Supporting Information
+should be included. For instructions on what should be included in the
+Supporting Information as well as how to prepare this material for
+publications, refer to the journal's Instructions for Authors.
+
+The following files are available free of charge.
+\begin{itemize}
+  \item Filename-1: brief description
+  \item Filename-2: brief description
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% If you are using classical BibTeX rather than biblatex,
+%% remove the \printbibliography and uncomment the \bibliograpy one
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\printbibliography
+%\bibliography{acs-template.bib}
+
+\newpage
+
+\rule{0.05in}{1.75in}%
+\begin{minipage}[b][1.75in]{3.25in}
+  \sffamily
+  \frenchspacing
+
+  Some journals require a graphical entry for the Table of Contents. This
+  should be laid out ``print ready'' so that the sizing of the text is correct.
+
+  The space available depends on the journal: J. Am. Chem. Soc. allows 3.25 in
+  by 1.75 in and requires sanserif text. Some journals want different sizes:
+  you can easily adjust here.
+  
+  The two rules either side of the content are there to help judge the height
+  of your material: they may be deleted once not required.
+  
+\end{minipage}%
+\rule{0.05in}{1.75in}
+
+\end{document}

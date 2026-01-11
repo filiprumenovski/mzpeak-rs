@@ -338,10 +338,41 @@ impl PyMzPeakReader {
     }
 }
 
-/// Convert an Arrow RecordBatch to a PyArrow RecordBatch using the C Data Interface
+/// Convert an Arrow RecordBatch to a PyArrow RecordBatch using the C Data Interface.
+///
+/// # Memory Safety
+///
+/// This function implements zero-copy data transfer between Rust and Python using
+/// the Apache Arrow C Data Interface (PEP 688 / Arrow PyCapsule Protocol):
+///
+/// 1. **Ownership Transfer**: The `FFI_ArrowArrayStream` is heap-allocated via
+///    `Box::into_raw()` and ownership is transferred to Python via `PyCapsule`.
+///    The Rust side relinquishes ownership of the memory.
+///
+/// 2. **Lifecycle Management**: The capsule has a custom destructor (`drop_ffi_stream`)
+///    registered via `PyCapsule_New`. When Python's garbage collector frees the
+///    capsule, the destructor is invoked, which reclaims the Rust-allocated stream
+///    via `Box::from_raw()`.
+///
+/// 3. **Zero-Copy Guarantee**: The Arrow arrays' underlying buffers are shared
+///    directly between Rust and Python - no data serialization or copying occurs.
+///    The `Bytes` type used for buffer storage in Arrow is reference-counted,
+///    allowing safe concurrent access.
+///
+/// 4. **Thread Safety**: The GIL is held during all FFI operations. The `Bytes`
+///    backing store uses atomic reference counting (`Arc`) and is `Send + Sync`.
+///
+/// 5. **Error Recovery**: If capsule creation fails, we immediately reclaim the
+///    stream via `Box::from_raw()` to prevent memory leaks.
+///
+/// # Protocol Compliance
+///
+/// This implementation follows the Arrow C Stream specification (ARROW-15656) and
+/// the Python PyCapsule Protocol. The capsule name `"arrow_array_stream\0"` is
+/// the standard identifier for Arrow stream capsules.
 fn record_batch_to_pyarrow(py: Python<'_>, batch: RecordBatch) -> PyResult<PyObject> {
     let pa = py.import("pyarrow")?;
-    
+
     // Create a RecordBatchReader from the single batch
     let schema = batch.schema();
     let batches = vec![batch];
@@ -349,18 +380,21 @@ fn record_batch_to_pyarrow(py: Python<'_>, batch: RecordBatch) -> PyResult<PyObj
         batches.into_iter().map(Ok),
         schema,
     );
-    
+
     // Create FFI stream from reader using Arrow 54 API
+    // This wraps the reader in a C-compatible struct that Python can consume
     let ffi_stream = FFI_ArrowArrayStream::new(Box::new(reader));
-    
-    // Create a PyCapsule for the stream - we need to keep the stream alive
-    // so we box it and create a capsule from that
+
+    // SAFETY: We box the stream and convert to raw pointer for FFI transfer.
+    // The PyCapsule takes ownership and will call our destructor when freed.
     let stream_box = Box::new(ffi_stream);
     let stream_ptr = Box::into_raw(stream_box);
-    
+
     // Capsule name must be a NUL-terminated C string.
     // Use an explicit byte string to keep MSRV-compatible (avoid `c"..."` literals).
     let capsule_name = b"arrow_array_stream\0";
+    // SAFETY: PyCapsule_New takes ownership of stream_ptr. The destructor
+    // (drop_ffi_stream) will be called when Python GC collects the capsule.
     let capsule = unsafe {
         pyo3::ffi::PyCapsule_New(
             stream_ptr as *mut std::ffi::c_void,
@@ -368,15 +402,17 @@ fn record_batch_to_pyarrow(py: Python<'_>, batch: RecordBatch) -> PyResult<PyObj
             Some(drop_ffi_stream),
         )
     };
-    
+
     if capsule.is_null() {
         // Clean up the stream if capsule creation failed
+        // SAFETY: We still own stream_ptr since capsule creation failed
         unsafe { drop(Box::from_raw(stream_ptr)); }
         return Err(pyo3::exceptions::PyMemoryError::new_err(
             "Failed to create PyCapsule for Arrow stream"
         ));
     }
-    
+
+    // SAFETY: capsule is non-null and we transfer ownership to Python
     let capsule_obj: PyObject = unsafe { PyObject::from_owned_ptr(py, capsule) };
 
     // In pyarrow>=10, `RecordBatchReader.from_stream` expects an object implementing
@@ -391,14 +427,20 @@ fn record_batch_to_pyarrow(py: Python<'_>, batch: RecordBatch) -> PyResult<PyObj
     let pa_reader = pa
         .getattr("RecordBatchReader")?
         .call_method1("from_stream", (stream_obj,))?;
-    
+
     // Read the batch from the reader
     let batch = pa_reader.call_method0("read_next_batch")?;
-    
+
     Ok(batch.into())
 }
 
-/// Destructor for the FFI stream capsule
+/// Destructor for the FFI stream capsule.
+///
+/// # Safety
+///
+/// This function is called by Python's garbage collector when the PyCapsule is freed.
+/// It reclaims the Rust-allocated `FFI_ArrowArrayStream` to prevent memory leaks.
+/// The function is marked `unsafe extern "C"` as required by the PyCapsule API.
 unsafe extern "C" fn drop_ffi_stream(capsule: *mut pyo3::ffi::PyObject) {
     let capsule_name = b"arrow_array_stream\0";
     let ptr = pyo3::ffi::PyCapsule_GetPointer(
@@ -406,6 +448,7 @@ unsafe extern "C" fn drop_ffi_stream(capsule: *mut pyo3::ffi::PyObject) {
         capsule_name.as_ptr() as *const std::ffi::c_char,
     );
     if !ptr.is_null() {
+        // SAFETY: ptr was created by Box::into_raw in record_batch_to_pyarrow
         drop(Box::from_raw(ptr as *mut FFI_ArrowArrayStream));
     }
 }

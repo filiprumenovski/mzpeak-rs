@@ -1,0 +1,46 @@
+\begin{thebibliography}{1}
+
+\bibitem{mzpeak_whitepaper}
+Filip Rumenovski and Author Others.
+\newblock mzpeak: A modern, scalable mass spectrometry data format based on
+  apache parquet.
+\newblock {\em J. Proteome Res.}, 2025.
+\newblock Whitepaper describing the mzPeak format specification.
+
+\bibitem{mzml_ref}
+Lennart Martens, Matthew Chambers, Julio Sez-Rodriguez, et~al.
+\newblock mzml---a community standard for mass spectrometry data.
+\newblock {\em Mol. Cell. Proteomics}, 10(1):R110.000133, 2011.
+
+\bibitem{parquet_ref}
+{Apache Software Foundation}.
+\newblock Apache parquet.
+\newblock \url{https://parquet.apache.org/}, 2024.
+\newblock Accessed: 2025-01-10.
+
+\bibitem{arrow_ref}
+{Apache Software Foundation}.
+\newblock Apache arrow: A cross-language development platform for in-memory
+  analytics.
+\newblock \url{https://arrow.apache.org/}, 2024.
+\newblock Accessed: 2025-01-10.
+
+\bibitem{rust_ref}
+{Rust Foundation}.
+\newblock The rust programming language.
+\newblock \url{https://www.rust-lang.org/}, 2024.
+\newblock Accessed: 2025-01-10.
+
+\bibitem{sdrf_ref}
+Chengxin Dai, Anja F{\"u}llgrabe, Julianus Pfeuffer, et~al.
+\newblock A proteomics sample metadata representation for multiomics
+  integration and big data analysis.
+\newblock {\em Nat. Commun.}, 12:5854, 2021.
+
+\bibitem{duckdb_ref}
+Mark Raasveldt and Hannes M{\"u}hleisen.
+\newblock Duckdb: An embeddable analytical database.
+\newblock {\em Proc. ACM SIGMOD Int. Conf. Manage. Data}, pages 1981--1984,
+  2019.
+
+\end{thebibliography}

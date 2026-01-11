@@ -26,24 +26,32 @@ use crate::schema::{chromatogram_columns, create_chromatogram_schema_arc};
 /// Errors that can occur during chromatogram writing
 #[derive(Debug, thiserror::Error)]
 pub enum ChromatogramWriterError {
+    /// I/O error during file operations
     #[error("I/O error: {0}")]
     IoError(#[from] std::io::Error),
 
+    /// Error from the Arrow library during array operations
     #[error("Arrow error: {0}")]
     ArrowError(#[from] arrow::error::ArrowError),
 
+    /// Error from the Parquet library during file writing
     #[error("Parquet error: {0}")]
     ParquetError(#[from] parquet::errors::ParquetError),
 
+    /// Error processing metadata
     #[error("Metadata error: {0}")]
     MetadataError(#[from] crate::metadata::MetadataError),
 
+    /// Invalid data provided to the writer
     #[error("Invalid data: {0}")]
     InvalidData(String),
 
+    /// Time and intensity arrays have different lengths
     #[error("Array length mismatch: time array has {time_len} elements, intensity array has {intensity_len} elements")]
     ArrayLengthMismatch {
+        /// Length of the time array
         time_len: usize,
+        /// Length of the intensity array
         intensity_len: usize,
     },
 }
@@ -316,9 +324,13 @@ impl<W: Write + Send> ChromatogramWriter<W> {
 /// Statistics from a completed chromatogram write operation
 #[derive(Debug, Clone)]
 pub struct ChromatogramWriterStats {
+    /// Number of chromatograms written to the file
     pub chromatograms_written: usize,
+    /// Total number of data points (time/intensity pairs) written
     pub data_points_written: usize,
+    /// Number of Parquet row groups written
     pub row_groups_written: usize,
+    /// Total file size in bytes
     pub file_size_bytes: u64,
 }
 

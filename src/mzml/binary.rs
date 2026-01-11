@@ -16,6 +16,7 @@ use flate2::read::ZlibDecoder;
 /// Compression types used in mzML binary data
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CompressionType {
+    /// No compression (raw binary)
     #[default]
     None,
     /// zlib compression (most common)
@@ -94,13 +95,13 @@ impl BinaryDecoder {
     /// Decode a Base64-encoded binary array from mzML
     ///
     /// # Arguments
-    /// * `base64_data` - The Base64-encoded string from the <binary> element
+    /// * `base64_data` - The Base64-encoded string from the `<binary>` element
     /// * `encoding` - The numerical precision (32 or 64 bit)
     /// * `compression` - The compression type (none, zlib, etc.)
     /// * `expected_length` - Expected number of values (from defaultArrayLength)
     ///
     /// # Returns
-    /// A Vec<f64> containing the decoded values
+    /// A `Vec<f64>` containing the decoded values
     pub fn decode(
         base64_data: &str,
         encoding: BinaryEncoding,

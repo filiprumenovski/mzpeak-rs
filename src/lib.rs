@@ -62,7 +62,7 @@
 //! ```text
 //! output.mzpeak/
 //! ├── peaks/peaks.parquet      # Spectral data
-//! ├── chromatograms/            # TIC/BPC traces (future)
+//! ├── chromatograms/            # TIC/BPC traces
 //! └── metadata.json             # Human-readable metadata
 //! ```
 //!
@@ -173,9 +173,9 @@
 //! 6. **Single file**: Self-contained archive format (Section 5)
 //! 7. **Cross-platform**: Rust implementation with bindings potential (Section 5)
 
-// Documentation lints - warn but don't fail build
-#![warn(missing_docs)]
-#![warn(rustdoc::missing_crate_level_docs)]
+// Documentation lints - enforce complete documentation for publication
+#![deny(missing_docs)]
+#![deny(rustdoc::missing_crate_level_docs)]
 // Allow some patterns common in scientific code
 #![allow(clippy::too_many_arguments)]
 
@@ -213,7 +213,8 @@ pub mod prelude {
     };
     pub use crate::validator::{validate_mzpeak_file, ValidationReport};
     pub use crate::writer::{
-        CompressionType, MzPeakWriter, Peak, Spectrum, SpectrumBuilder, WriterConfig, WriterStats,
+        ColumnarBatch, CompressionType, MzPeakWriter, OptionalColumn, Peak, Spectrum,
+        SpectrumBuilder, WriterConfig, WriterStats,
     };
     pub use crate::reader::{
         FileSummary, FileMetadata, MzPeakReader, ReaderConfig, ReaderError, SpectrumIterator,

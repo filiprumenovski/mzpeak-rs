@@ -75,6 +75,7 @@ impl From<ConversionError> for PyErr {
             ConversionError::ChromatogramWriterError(_) => MzPeakException::new_err(err.to_string()),
             ConversionError::IoError(_) => MzPeakIOError::new_err(err.to_string()),
             ConversionError::MetadataError(_) => MzPeakFormatError::new_err(err.to_string()),
+            ConversionError::BinaryDecodeError { .. } => MzPeakFormatError::new_err(err.to_string()),
         }
     }
 }

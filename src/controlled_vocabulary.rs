@@ -5,8 +5,8 @@
 //! as specified in the mzPeak whitepaper.
 //!
 //! ## Reference
-//! - OBO file: https://raw.githubusercontent.com/HUPO-PSI/psi-ms-CV/master/psi-ms.obo
-//! - Documentation: https://github.com/HUPO-PSI/psi-ms-CV
+//! - OBO file: <https://raw.githubusercontent.com/HUPO-PSI/psi-ms-CV/master/psi-ms.obo>
+//! - Documentation: <https://github.com/HUPO-PSI/psi-ms-CV>
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

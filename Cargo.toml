@@ -6,9 +6,9 @@ rust-version = "1.70"
 authors = ["mzPeak Contributors"]
 description = "A modern, scalable, and interoperable mass spectrometry data format based on Apache Parquet"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/mzpeak/mzpeak-rs"
+repository = "https://github.com/filiprumenovski/mzpeak-rs"
 documentation = "https://docs.rs/mzpeak"
-homepage = "https://github.com/mzpeak/mzpeak-rs"
+homepage = "https://github.com/filiprumenovski/mzpeak-rs"
 readme = "README.md"
 keywords = ["mass-spectrometry", "proteomics", "metabolomics", "parquet", "bioinformatics"]
 categories = ["science", "encoding", "parser-implementations"]
@@ -20,10 +20,12 @@ default = ["colorized_output"]
 python = ["pyo3", "pyo3-log"]
 # Colorized CLI output
 colorized_output = ["console"]
+# Parallel decoding with SIMD acceleration for mzML conversion
+parallel-decode = ["rayon", "base64-simd", "wide", "fast-float"]
 
 [dependencies]
 # Apache Arrow and Parquet for columnar storage
-arrow = { version = "54", features = ["prettyprint", "ffi"] }
+arrow = { version = "54", features = ["ffi"] }
 parquet = { version = "54", features = ["arrow", "zstd", "snap"] }
 
 # Serialization
@@ -62,13 +64,18 @@ byteorder = "1.5"
 # CLI argument parsing
 clap = { version = "4.5", features = ["derive"] }
 
-# Progress bars and colorized output
-indicatif = "0.17"
+# Colorized CLI output
 console = { version = "0.15", optional = true }
 
 # Python bindings (optional)
 pyo3 = { version = "0.23", features = ["extension-module", "abi3-py38"], optional = true }
 pyo3-log = { version = "0.12", optional = true }
+
+# Parallel decoding with SIMD acceleration (optional)
+rayon = { version = "1.10", optional = true }
+base64-simd = { version = "0.8", optional = true }
+wide = { version = "0.7", optional = true }
+fast-float = { version = "0.2", optional = true }
 
 [dev-dependencies]
 tempfile = "3.14"
@@ -100,3 +107,11 @@ harness = false
 lto = true
 codegen-units = 1
 opt-level = 3
+
+# Lint configuration - Issue 007: Prevent unwrap() in production code
+[lints.clippy]
+# Deny unwrap() calls in non-test code to prevent panics on malformed data.
+# This is critical for enterprise-grade scientific software.
+unwrap_used = "warn"  # Start as warning, upgrade to "deny" after audit
+# Also prevent expect() with non-descriptive messages
+# expect_used = "warn"

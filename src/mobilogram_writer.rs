@@ -13,8 +13,8 @@
 //! |--------|------|-------------|---------|
 //! | mobilogram_id | Utf8 | Unique mobilogram identifier | MS:1003006 |
 //! | mobilogram_type | Utf8 | Type (TIM, XIM, etc.) | MS:1003006 |
-//! | mobility_array | List<Float64> | Ion mobility values | MS:1002476 |
-//! | intensity_array | List<Float32> | Intensity values | MS:1000515 |
+//! | mobility_array | `List<Float64>` | Ion mobility values | MS:1002476 |
+//! | intensity_array | `List<Float32>` | Intensity values | MS:1000515 |
 
 use std::collections::HashMap;
 use std::fs::File;
