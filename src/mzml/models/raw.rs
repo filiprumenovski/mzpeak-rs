@@ -91,6 +91,15 @@ pub struct RawMzMLSpectrum {
     /// Scan window upper limit
     pub scan_window_upper: Option<f64>,
 
+    /// MSI X coordinate (pixel)
+    pub pixel_x: Option<i32>,
+
+    /// MSI Y coordinate (pixel)
+    pub pixel_y: Option<i32>,
+
+    /// MSI Z coordinate (pixel, optional for 3D)
+    pub pixel_z: Option<i32>,
+
     /// Ion injection time in milliseconds
     pub ion_injection_time: Option<f64>,
 
@@ -193,6 +202,9 @@ impl RawMzMLSpectrum {
             highest_mz: self.highest_mz,
             scan_window_lower: self.scan_window_lower,
             scan_window_upper: self.scan_window_upper,
+            pixel_x: self.pixel_x,
+            pixel_y: self.pixel_y,
+            pixel_z: self.pixel_z,
             ion_injection_time: self.ion_injection_time,
             filter_string: self.filter_string,
             preset_scan_configuration: self.preset_scan_configuration,
@@ -264,6 +276,9 @@ impl RawMzMLSpectrum {
             highest_mz: self.highest_mz,
             scan_window_lower: self.scan_window_lower,
             scan_window_upper: self.scan_window_upper,
+            pixel_x: self.pixel_x,
+            pixel_y: self.pixel_y,
+            pixel_z: self.pixel_z,
             ion_injection_time: self.ion_injection_time,
             filter_string: self.filter_string,
             preset_scan_configuration: self.preset_scan_configuration,

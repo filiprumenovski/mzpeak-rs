@@ -37,6 +37,7 @@
 
 mod binary;
 mod cv_params;
+mod external;
 mod models;
 mod streamer;
 pub mod converter;
@@ -45,7 +46,8 @@ pub mod converter;
 pub mod simd;
 
 pub use binary::{BinaryDecoder, BinaryEncoding, CompressionType as BinaryCompression};
-pub use cv_params::{CvParam, extract_cv_value, MS_CV_ACCESSIONS};
+pub use cv_params::{CvParam, extract_cv_value, IMS_CV_ACCESSIONS, MS_CV_ACCESSIONS};
+pub(crate) use external::ExternalBinaryReader;
 pub use models::*;
 pub use streamer::{MzMLStreamer, MzMLError, SpectrumIterator, RawSpectrumIterator};
 pub use converter::{MzMLConverter, ConversionConfig, ConversionStats};

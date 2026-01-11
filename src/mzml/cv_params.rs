@@ -288,6 +288,25 @@ pub mod MS_CV_ACCESSIONS {
     pub const UNIT_MILLISECOND: &str = "UO:0000028";
 }
 
+/// Common IMS (imaging mass spectrometry) CV accessions used in imzML
+#[allow(non_snake_case)]
+pub mod IMS_CV_ACCESSIONS {
+    /// Position x (pixel coordinate)
+    pub const POSITION_X: &str = "IMS:1000050";
+
+    /// Position y (pixel coordinate)
+    pub const POSITION_Y: &str = "IMS:1000051";
+
+    /// Position z (pixel coordinate)
+    pub const POSITION_Z: &str = "IMS:1000052";
+
+    /// External array length (imzML external binary data)
+    pub const EXTERNAL_ARRAY_LENGTH: &str = "IMS:1000102";
+
+    /// External data offset (imzML external binary data)
+    pub const EXTERNAL_OFFSET: &str = "IMS:1000103";
+}
+
 /// Extract a CV parameter value from a list by accession
 pub fn extract_cv_value(cv_params: &[CvParam], accession: &str) -> Option<String> {
     cv_params

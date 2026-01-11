@@ -17,6 +17,15 @@ impl MzMLConverter {
             builder = builder.injection_time(it as f32);
         }
 
+        // Add MSI pixel coordinates if present
+        if let (Some(x), Some(y)) = (mzml.pixel_x, mzml.pixel_y) {
+            builder = if let Some(z) = mzml.pixel_z {
+                builder.pixel_3d(x, y, z)
+            } else {
+                builder.pixel(x, y)
+            };
+        }
+
         // Add precursor information for MS2+
         if mzml.ms_level >= 2 {
             if let Some(precursor) = mzml.precursors.first() {

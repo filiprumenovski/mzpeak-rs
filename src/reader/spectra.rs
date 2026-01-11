@@ -8,7 +8,7 @@ use crate::writer::{Peak, Spectrum};
 use super::utils::{
     get_float32_column, get_float64_column, get_int16_column, get_int64_column, get_int8_column,
     get_optional_f32, get_optional_f64, get_optional_float32_column, get_optional_float64_column,
-    get_optional_i16, get_optional_int16_column,
+    get_optional_i16, get_optional_i32, get_optional_int16_column, get_optional_int32_column,
 };
 use super::{MzPeakReader, ReaderError};
 
@@ -52,6 +52,9 @@ impl MzPeakReader {
             let base_peak_intensities =
                 get_optional_float32_column(batch, columns::BASE_PEAK_INTENSITY);
             let injection_times = get_optional_float32_column(batch, columns::INJECTION_TIME);
+            let pixel_xs = get_optional_int32_column(batch, columns::PIXEL_X);
+            let pixel_ys = get_optional_int32_column(batch, columns::PIXEL_Y);
+            let pixel_zs = get_optional_int32_column(batch, columns::PIXEL_Z);
 
             for i in 0..batch.num_rows() {
                 let spectrum_id = spectrum_ids.value(i);
@@ -85,9 +88,9 @@ impl MzPeakReader {
                         base_peak_mz: get_optional_f64(base_peak_mzs, i),
                         base_peak_intensity: get_optional_f32(base_peak_intensities, i),
                         injection_time: get_optional_f32(injection_times, i),
-                        pixel_x: None, // MSI fields not yet extracted from Parquet
-                        pixel_y: None,
-                        pixel_z: None,
+                        pixel_x: get_optional_i32(pixel_xs, i),
+                        pixel_y: get_optional_i32(pixel_ys, i),
+                        pixel_z: get_optional_i32(pixel_zs, i),
                         peaks: Vec::new(),
                     });
                 }

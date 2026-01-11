@@ -1,11 +1,14 @@
 use std::io::BufRead;
 
+use base64::prelude::*;
 use quick_xml::events::{BytesStart, Event};
 
 use super::helpers::{get_attribute, parse_cv_param};
 use super::{MzMLError, MzMLStreamer};
 use crate::mzml::binary::{BinaryDecoder, BinaryEncoding, CompressionType};
-use crate::mzml::cv_params::{normalize_retention_time, CvParam, MS_CV_ACCESSIONS};
+use crate::mzml::cv_params::{
+    normalize_retention_time, CvParam, IMS_CV_ACCESSIONS, MS_CV_ACCESSIONS,
+};
 use crate::mzml::models::{MzMLSpectrum, Precursor, RawBinaryData, RawMzMLSpectrum};
 
 impl<R: BufRead> MzMLStreamer<R> {
@@ -373,7 +376,7 @@ impl<R: BufRead> MzMLStreamer<R> {
                                 &mut spectrum,
                                 &current_binary_cv_params,
                                 &mut current_binary_data,
-                            );
+                            )?;
                             current_binary_cv_params.clear();
                         }
                         _ => {}
@@ -395,19 +398,27 @@ impl<R: BufRead> MzMLStreamer<R> {
 
     /// Store raw binary array data in the RawMzMLSpectrum without decoding
     fn store_raw_binary_array(
-        &self,
+        &mut self,
         spectrum: &mut RawMzMLSpectrum,
         cv_params: &[CvParam],
         base64_data: &mut String,
-    ) {
+    ) -> Result<(), MzMLError> {
         let mut encoding = BinaryEncoding::Float64;
         let mut compression = CompressionType::None;
         let mut is_mz = false;
         let mut is_intensity = false;
         let mut is_ion_mobility = false;
+        let mut external_offset: Option<u64> = None;
+        let mut external_length: Option<usize> = None;
 
         for cv in cv_params {
             match cv.accession.as_str() {
+                IMS_CV_ACCESSIONS::EXTERNAL_OFFSET => {
+                    external_offset = cv.value_as_i64().and_then(|v| u64::try_from(v).ok());
+                }
+                IMS_CV_ACCESSIONS::EXTERNAL_ARRAY_LENGTH => {
+                    external_length = cv.value_as_i64().and_then(|v| usize::try_from(v).ok());
+                }
                 MS_CV_ACCESSIONS::FLOAT_32_BIT => encoding = BinaryEncoding::Float32,
                 MS_CV_ACCESSIONS::FLOAT_64_BIT => encoding = BinaryEncoding::Float64,
                 MS_CV_ACCESSIONS::ZLIB_COMPRESSION => compression = CompressionType::Zlib,
@@ -419,9 +430,18 @@ impl<R: BufRead> MzMLStreamer<R> {
             }
         }
 
-        // Use std::mem::take to move the string without cloning
+        let mut payload = std::mem::take(base64_data);
+        if payload.trim().is_empty() {
+            if let (Some(offset), Some(length)) = (external_offset, external_length) {
+                let byte_len =
+                    external_length_bytes(length, spectrum.default_array_length, encoding);
+                let bytes = self.read_external_bytes(offset, byte_len)?;
+                payload = base64::prelude::BASE64_STANDARD.encode(bytes);
+            }
+        }
+
         let raw_data = RawBinaryData {
-            base64: std::mem::take(base64_data),
+            base64: payload,
             encoding,
             compression,
         };
@@ -433,11 +453,22 @@ impl<R: BufRead> MzMLStreamer<R> {
         } else if is_ion_mobility {
             spectrum.ion_mobility_data = Some(raw_data);
         }
+
+        Ok(())
     }
 
     /// Apply CV param to raw spectrum properties
     fn apply_raw_spectrum_cv_param(spectrum: &mut RawMzMLSpectrum, cv: &CvParam) {
         match cv.accession.as_str() {
+            IMS_CV_ACCESSIONS::POSITION_X => {
+                spectrum.pixel_x = cv.value_as_i32();
+            }
+            IMS_CV_ACCESSIONS::POSITION_Y => {
+                spectrum.pixel_y = cv.value_as_i32();
+            }
+            IMS_CV_ACCESSIONS::POSITION_Z => {
+                spectrum.pixel_z = cv.value_as_i32();
+            }
             MS_CV_ACCESSIONS::MS_LEVEL => {
                 spectrum.ms_level = cv.value_as_i64().unwrap_or(1) as i16;
             }
@@ -481,6 +512,15 @@ impl<R: BufRead> MzMLStreamer<R> {
     /// Apply CV param to raw scan properties
     fn apply_raw_scan_cv_param(spectrum: &mut RawMzMLSpectrum, cv: &CvParam) {
         match cv.accession.as_str() {
+            IMS_CV_ACCESSIONS::POSITION_X => {
+                spectrum.pixel_x = cv.value_as_i32();
+            }
+            IMS_CV_ACCESSIONS::POSITION_Y => {
+                spectrum.pixel_y = cv.value_as_i32();
+            }
+            IMS_CV_ACCESSIONS::POSITION_Z => {
+                spectrum.pixel_z = cv.value_as_i32();
+            }
             MS_CV_ACCESSIONS::SCAN_START_TIME => {
                 if let Some(val) = cv.value_as_f64() {
                     spectrum.retention_time =
@@ -505,6 +545,15 @@ impl<R: BufRead> MzMLStreamer<R> {
     /// Apply CV param to spectrum properties
     fn apply_spectrum_cv_param(spectrum: &mut MzMLSpectrum, cv: &CvParam) {
         match cv.accession.as_str() {
+            IMS_CV_ACCESSIONS::POSITION_X => {
+                spectrum.pixel_x = cv.value_as_i32();
+            }
+            IMS_CV_ACCESSIONS::POSITION_Y => {
+                spectrum.pixel_y = cv.value_as_i32();
+            }
+            IMS_CV_ACCESSIONS::POSITION_Z => {
+                spectrum.pixel_z = cv.value_as_i32();
+            }
             MS_CV_ACCESSIONS::MS_LEVEL => {
                 spectrum.ms_level = cv.value_as_i64().unwrap_or(1) as i16;
             }
@@ -548,6 +597,15 @@ impl<R: BufRead> MzMLStreamer<R> {
     /// Apply CV param to scan properties
     fn apply_scan_cv_param(spectrum: &mut MzMLSpectrum, cv: &CvParam) {
         match cv.accession.as_str() {
+            IMS_CV_ACCESSIONS::POSITION_X => {
+                spectrum.pixel_x = cv.value_as_i32();
+            }
+            IMS_CV_ACCESSIONS::POSITION_Y => {
+                spectrum.pixel_y = cv.value_as_i32();
+            }
+            IMS_CV_ACCESSIONS::POSITION_Z => {
+                spectrum.pixel_z = cv.value_as_i32();
+            }
             MS_CV_ACCESSIONS::SCAN_START_TIME => {
                 if let Some(val) = cv.value_as_f64() {
                     spectrum.retention_time =
@@ -605,7 +663,7 @@ impl<R: BufRead> MzMLStreamer<R> {
 
     /// Decode binary array and add to spectrum
     fn decode_binary_array(
-        &self,
+        &mut self,
         spectrum: &mut MzMLSpectrum,
         ctx: BinaryArrayContext,
     ) -> Result<(), MzMLError> {
@@ -614,9 +672,17 @@ impl<R: BufRead> MzMLStreamer<R> {
         let mut is_mz = false;
         let mut is_intensity = false;
         let mut is_ion_mobility = false;
+        let mut external_offset: Option<u64> = None;
+        let mut external_length: Option<usize> = None;
 
         for cv in &ctx.cv_params {
             match cv.accession.as_str() {
+                IMS_CV_ACCESSIONS::EXTERNAL_OFFSET => {
+                    external_offset = cv.value_as_i64().and_then(|v| u64::try_from(v).ok());
+                }
+                IMS_CV_ACCESSIONS::EXTERNAL_ARRAY_LENGTH => {
+                    external_length = cv.value_as_i64().and_then(|v| usize::try_from(v).ok());
+                }
                 MS_CV_ACCESSIONS::FLOAT_32_BIT => encoding = BinaryEncoding::Float32,
                 MS_CV_ACCESSIONS::FLOAT_64_BIT => encoding = BinaryEncoding::Float64,
                 MS_CV_ACCESSIONS::ZLIB_COMPRESSION => compression = CompressionType::Zlib,
@@ -628,16 +694,25 @@ impl<R: BufRead> MzMLStreamer<R> {
             }
         }
 
-        if ctx.base64_data.is_empty() {
+        let values = if !ctx.base64_data.trim().is_empty() {
+            BinaryDecoder::decode(
+                &ctx.base64_data,
+                encoding,
+                compression,
+                Some(spectrum.default_array_length),
+            )?
+        } else if let (Some(offset), Some(length)) = (external_offset, external_length) {
+            let byte_len = external_length_bytes(length, spectrum.default_array_length, encoding);
+            let bytes = self.read_external_bytes(offset, byte_len)?;
+            BinaryDecoder::decode_bytes(
+                &bytes,
+                encoding,
+                compression,
+                Some(spectrum.default_array_length),
+            )?
+        } else {
             return Ok(());
-        }
-
-        let values = BinaryDecoder::decode(
-            &ctx.base64_data,
-            encoding,
-            compression,
-            Some(spectrum.default_array_length),
-        )?;
+        };
 
         if is_mz {
             spectrum.mz_array = values;
@@ -650,6 +725,24 @@ impl<R: BufRead> MzMLStreamer<R> {
         }
 
         Ok(())
+    }
+
+    fn read_external_bytes(&mut self, offset: u64, length: usize) -> Result<Vec<u8>, MzMLError> {
+        match self.external_binary.as_mut() {
+            Some(reader) => reader.read_bytes(offset, length),
+            None => Err(MzMLError::InvalidStructure(
+                "External binary data requested, but no .ibd file is open".to_string(),
+            )),
+        }
+    }
+}
+
+fn external_length_bytes(length: usize, expected_values: usize, encoding: BinaryEncoding) -> usize {
+    let expected_bytes = expected_values.saturating_mul(encoding.byte_size());
+    if length == expected_values {
+        expected_bytes
+    } else {
+        length
     }
 }
 

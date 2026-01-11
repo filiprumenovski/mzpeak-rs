@@ -25,7 +25,11 @@ pub fn run(
     // Determine output path (default to .mzpeak container format or .mzpeak.parquet if legacy)
     let output = output.unwrap_or_else(|| {
         let stem = input.file_stem().unwrap_or_default().to_string_lossy();
-        let stem = stem.trim_end_matches(".mzML").trim_end_matches(".mzml");
+        let stem = stem
+            .trim_end_matches(".mzML")
+            .trim_end_matches(".mzml")
+            .trim_end_matches(".imzML")
+            .trim_end_matches(".imzml");
         if legacy {
             input.with_file_name(format!("{}.mzpeak.parquet", stem))
         } else {
@@ -33,7 +37,7 @@ pub fn run(
         }
     });
 
-    info!("mzPeak Converter - mzML to mzPeak");
+    info!("mzPeak Converter - mzML/imzML to mzPeak");
     info!("==================================");
     info!("Input:  {}", input.display());
     info!("Output: {}", output.display());

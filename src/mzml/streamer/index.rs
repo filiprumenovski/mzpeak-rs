@@ -1,12 +1,13 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read, Seek, SeekFrom};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use quick_xml::events::Event;
 use quick_xml::Reader;
 
 use super::helpers::get_attribute;
 use super::{MzMLError, MzMLStreamer};
+use crate::mzml::ExternalBinaryReader;
 use crate::mzml::models::{IndexEntry, MzMLIndex};
 
 impl MzMLStreamer<BufReader<File>> {
@@ -15,6 +16,24 @@ impl MzMLStreamer<BufReader<File>> {
         let file = File::open(path.as_ref())?;
         let reader = BufReader::with_capacity(64 * 1024, file);
         Self::new(reader)
+    }
+
+    /// Open an imzML file for streaming (with external .ibd binary data)
+    pub fn open_imzml<P: AsRef<Path>>(path: P) -> Result<Self, MzMLError> {
+        let xml_path = path.as_ref();
+        let file = File::open(xml_path)?;
+        let reader = BufReader::with_capacity(64 * 1024, file);
+        let mut streamer = Self::new(reader)?;
+
+        let ibd_path = find_ibd_path(xml_path).ok_or_else(|| {
+            MzMLError::InvalidStructure(format!(
+                "Missing .ibd file for imzML: {}",
+                xml_path.display()
+            ))
+        })?;
+        streamer.external_binary = Some(ExternalBinaryReader::open(&ibd_path)?);
+
+        Ok(streamer)
     }
 
     /// Open an indexed mzML file and read the index first
@@ -67,6 +86,18 @@ impl MzMLStreamer<BufReader<File>> {
 
         Ok(index)
     }
+}
+
+fn find_ibd_path(path: &Path) -> Option<PathBuf> {
+    let lower = path.with_extension("ibd");
+    if lower.exists() {
+        return Some(lower);
+    }
+    let upper = path.with_extension("IBD");
+    if upper.exists() {
+        return Some(upper);
+    }
+    None
 }
 
 impl<R: BufRead> MzMLStreamer<R> {

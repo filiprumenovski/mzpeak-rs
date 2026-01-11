@@ -150,6 +150,41 @@ impl BinaryDecoder {
         Ok(values)
     }
 
+    /// Decode a binary array from raw bytes (imzML external data).
+    pub fn decode_bytes(
+        bytes: &[u8],
+        encoding: BinaryEncoding,
+        compression: CompressionType,
+        expected_length: Option<usize>,
+    ) -> Result<Vec<f64>, BinaryDecodeError> {
+        let uncompressed = match compression {
+            CompressionType::None => bytes.to_vec(),
+            CompressionType::Zlib => {
+                let mut decoder = ZlibDecoder::new(bytes);
+                let mut uncompressed = Vec::new();
+                decoder.read_to_end(&mut uncompressed)?;
+                uncompressed
+            }
+            CompressionType::NumpressLinear
+            | CompressionType::NumpressPic
+            | CompressionType::NumpressSlof => {
+                return Err(BinaryDecodeError::UnsupportedCompression(compression));
+            }
+        };
+
+        let values = Self::bytes_to_floats(&uncompressed, encoding)?;
+        if let Some(expected) = expected_length {
+            if values.len() != expected {
+                return Err(BinaryDecodeError::InvalidLength {
+                    expected,
+                    actual: values.len(),
+                });
+            }
+        }
+
+        Ok(values)
+    }
+
     /// Convert raw bytes to f64 values based on encoding
     fn bytes_to_floats(
         bytes: &[u8],

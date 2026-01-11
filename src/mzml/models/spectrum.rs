@@ -47,6 +47,15 @@ pub struct MzMLSpectrum {
     /// Scan window upper limit
     pub scan_window_upper: Option<f64>,
 
+    /// MSI X coordinate (pixel)
+    pub pixel_x: Option<i32>,
+
+    /// MSI Y coordinate (pixel)
+    pub pixel_y: Option<i32>,
+
+    /// MSI Z coordinate (pixel, optional for 3D)
+    pub pixel_z: Option<i32>,
+
     /// Ion injection time in milliseconds
     pub ion_injection_time: Option<f64>,
 

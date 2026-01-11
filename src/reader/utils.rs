@@ -1,5 +1,6 @@
 use arrow::array::{
-    Array, Float32Array, Float64Array, Int16Array, Int64Array, Int8Array, ListArray, StringArray,
+    Array, Float32Array, Float64Array, Int16Array, Int32Array, Int64Array, Int8Array, ListArray,
+    StringArray,
 };
 use arrow::record_batch::RecordBatch;
 
@@ -94,6 +95,14 @@ pub(super) fn get_optional_int16_column<'a>(
     batch.column_by_name(name)?.as_any().downcast_ref::<Int16Array>()
 }
 
+/// Get an optional Int32 column by name.
+pub(super) fn get_optional_int32_column<'a>(
+    batch: &'a RecordBatch,
+    name: &str,
+) -> Option<&'a Int32Array> {
+    batch.column_by_name(name)?.as_any().downcast_ref::<Int32Array>()
+}
+
 /// Read an optional f64 value from a nullable array.
 pub(super) fn get_optional_f64(array: Option<&Float64Array>, idx: usize) -> Option<f64> {
     array.and_then(|arr| if arr.is_null(idx) { None } else { Some(arr.value(idx)) })
@@ -106,6 +115,11 @@ pub(super) fn get_optional_f32(array: Option<&Float32Array>, idx: usize) -> Opti
 
 /// Read an optional i16 value from a nullable array.
 pub(super) fn get_optional_i16(array: Option<&Int16Array>, idx: usize) -> Option<i16> {
+    array.and_then(|arr| if arr.is_null(idx) { None } else { Some(arr.value(idx)) })
+}
+
+/// Read an optional i32 value from a nullable array.
+pub(super) fn get_optional_i32(array: Option<&Int32Array>, idx: usize) -> Option<i32> {
     array.and_then(|arr| if arr.is_null(idx) { None } else { Some(arr.value(idx)) })
 }
 

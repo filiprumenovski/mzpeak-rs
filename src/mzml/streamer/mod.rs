@@ -8,6 +8,7 @@ use std::io::BufRead;
 use quick_xml::Reader;
 
 use super::models::{MzMLFileMetadata, MzMLIndex};
+use crate::mzml::ExternalBinaryReader;
 
 pub use error::MzMLError;
 pub use iterators::{RawSpectrumIterator, SpectrumIterator};
@@ -38,6 +39,7 @@ pub struct MzMLStreamer<R: BufRead> {
     current_spectrum_index: i64,
     #[allow(dead_code)]
     current_chromatogram_index: i64,
+    external_binary: Option<ExternalBinaryReader>,
 }
 
 impl<R: BufRead> MzMLStreamer<R> {
@@ -56,6 +58,7 @@ impl<R: BufRead> MzMLStreamer<R> {
             chromatogram_count: None,
             current_spectrum_index: 0,
             current_chromatogram_index: 0,
+            external_binary: None,
         })
     }
 

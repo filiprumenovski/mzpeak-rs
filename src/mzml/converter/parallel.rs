@@ -48,8 +48,12 @@ impl MzMLConverter {
         // Get source file size
         let source_file_size = std::fs::metadata(input_path)?.len();
 
-        // Open the mzML file
-        let mut streamer = MzMLStreamer::open(input_path)?;
+        // Open the mzML/imzML file
+        let mut streamer = if is_imzml_path(input_path) {
+            MzMLStreamer::open_imzml(input_path)?
+        } else {
+            MzMLStreamer::open(input_path)?
+        };
 
         // Read metadata first
         let mzml_metadata = streamer.read_metadata()?;
@@ -296,4 +300,11 @@ impl MzMLConverter {
 
         write_batch
     }
+}
+
+fn is_imzml_path(path: &Path) -> bool {
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| ext.eq_ignore_ascii_case("imzml"))
+        .unwrap_or(false)
 }
