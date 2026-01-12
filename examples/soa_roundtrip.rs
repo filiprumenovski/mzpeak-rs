@@ -52,19 +52,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             spectrum.peak_count()
         );
 
-        match &spectrum.peaks.ion_mobility {
-            OptionalColumnBuf::AllNull { .. } => println!("  ion_mobility: none"),
-            OptionalColumnBuf::AllPresent(values) => {
-                println!("  ion_mobility: {} values", values.len());
-            }
-            OptionalColumnBuf::WithValidity { values, validity } => {
-                let present = validity.iter().filter(|v| **v).count();
-                println!(
-                    "  ion_mobility: {} values ({} present)",
-                    values.len(),
-                    present
-                );
-            }
+        let has_ion = spectrum.ion_mobility_arrays()?.is_some();
+        if has_ion {
+            println!("  ion_mobility: present");
+        } else {
+            println!("  ion_mobility: none");
         }
     }
 

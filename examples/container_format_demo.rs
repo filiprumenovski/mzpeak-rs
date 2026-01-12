@@ -11,7 +11,7 @@ use mzpeak::dataset::MzPeakDatasetWriter;
 use mzpeak::metadata::{MzPeakMetadata, SdrfMetadata, SourceFileInfo};
 use mzpeak::reader::MzPeakReader;
 use mzpeak::validator::validate_mzpeak_file;
-use mzpeak::writer::{SpectrumBuilder, WriterConfig};
+use mzpeak::writer::{PeakArrays, SpectrumArrays, WriterConfig};
 use std::fs;
 use tempfile::tempdir;
 
@@ -38,26 +38,35 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     for i in 0..1000 {
         let is_ms1 = i % 10 == 0;
-        let mut builder = SpectrumBuilder::new(i as i64, (i + 1) as i64)
-            .ms_level(if is_ms1 { 1 } else { 2 })
-            .retention_time((i as f32) * 0.1)
-            .polarity(1);
-
-        // Add precursor info for MS2
-        if !is_ms1 {
-            let precursor_mz = 400.0 + ((i % 100) as f64) * 5.0;
-            builder = builder.precursor(precursor_mz, Some(2), Some(1e6));
-        }
-
-        // Add peaks
+        let retention_time = (i as f32) * 0.1;
         let num_peaks = if is_ms1 { 500 } else { 50 };
+
+        let mut mz = Vec::with_capacity(num_peaks);
+        let mut intensity = Vec::with_capacity(num_peaks);
         for j in 0..num_peaks {
-            let mz = 100.0 + (j as f64) * 2.0;
-            let intensity = 1000.0 + (j as f32) * 100.0;
-            builder = builder.add_peak(mz, intensity);
+            mz.push(100.0 + (j as f64) * 2.0);
+            intensity.push(1000.0 + (j as f32) * 100.0);
         }
 
-        dataset.write_spectrum(&builder.build())?;
+        let peaks = PeakArrays::new(mz, intensity);
+        let spectrum = if is_ms1 {
+            SpectrumArrays::new_ms1(i as i64, (i + 1) as i64, retention_time, 1, peaks)
+        } else {
+            let precursor_mz = 400.0 + ((i % 100) as f64) * 5.0;
+            let mut ms2 = SpectrumArrays::new_ms2(
+                i as i64,
+                (i + 1) as i64,
+                retention_time,
+                1,
+                precursor_mz,
+                peaks,
+            );
+            ms2.precursor_charge = Some(2);
+            ms2.precursor_intensity = Some(1e6);
+            ms2
+        };
+
+        dataset.write_spectrum_arrays(&spectrum)?;
     }
 
     // Write chromatograms
@@ -136,17 +145,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Query by retention time
-    let rt_spectra = reader.spectra_by_rt_range(50.0, 60.0)?;
+    let rt_spectra = reader.spectra_by_rt_range_arrays(50.0, 60.0)?;
     println!("   Spectra in RT 50-60s: {}", rt_spectra.len());
 
     // Query by MS level
-    let ms1_spectra = reader.spectra_by_ms_level(1)?;
+    let ms1_spectra = reader.spectra_by_ms_level_arrays(1)?;
     println!("   MS1 spectra retrieved: {}", ms1_spectra.len());
 
     // Get specific spectrum
-    let spectrum = reader.get_spectrum(500)?.unwrap();
-    println!("   Spectrum 500: {} peaks, RT={:.2}s", 
-             spectrum.peaks.len(), spectrum.retention_time);
+    let spectrum = reader.get_spectrum_arrays(500)?.unwrap();
+    println!(
+        "   Spectrum 500: {} peaks, RT={:.2}s",
+        spectrum.peak_count(),
+        spectrum.retention_time
+    );
 
     // Read chromatograms
     let chromatograms = reader.read_chromatograms()?;
@@ -168,14 +180,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Measure full read time
     let reader = MzPeakReader::open(&container_path)?;
     let start = Instant::now();
-    let all_spectra = reader.iter_spectra()?;
+    let all_spectra = reader.iter_spectra_arrays()?;
     let read_duration = start.elapsed();
     println!("   Read all spectra: {:?} ({} spectra)", read_duration, all_spectra.len());
 
     // Measure random access
     let reader = MzPeakReader::open(&container_path)?;
     let start = Instant::now();
-    let _spectrum = reader.get_spectrum(750)?;
+    let _spectrum = reader.get_spectrum_arrays(750)?;
     println!("   Random access (single spectrum): {:?}", start.elapsed());
 
     // 7. Inspect container structure
@@ -209,21 +221,35 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Write same data
     for i in 0..1000 {
         let is_ms1 = i % 10 == 0;
-        let mut builder = SpectrumBuilder::new(i as i64, (i + 1) as i64)
-            .ms_level(if is_ms1 { 1 } else { 2 })
-            .retention_time((i as f32) * 0.1)
-            .polarity(1);
-
-        if !is_ms1 {
-            builder = builder.precursor(400.0 + ((i % 100) as f64) * 5.0, Some(2), Some(1e6));
-        }
-
+        let retention_time = (i as f32) * 0.1;
         let num_peaks = if is_ms1 { 500 } else { 50 };
+
+        let mut mz = Vec::with_capacity(num_peaks);
+        let mut intensity = Vec::with_capacity(num_peaks);
         for j in 0..num_peaks {
-            builder = builder.add_peak(100.0 + (j as f64) * 2.0, 1000.0 + (j as f32) * 100.0);
+            mz.push(100.0 + (j as f64) * 2.0);
+            intensity.push(1000.0 + (j as f32) * 100.0);
         }
 
-        dir_dataset.write_spectrum(&builder.build())?;
+        let peaks = PeakArrays::new(mz, intensity);
+        let spectrum = if is_ms1 {
+            SpectrumArrays::new_ms1(i as i64, (i + 1) as i64, retention_time, 1, peaks)
+        } else {
+            let precursor_mz = 400.0 + ((i % 100) as f64) * 5.0;
+            let mut ms2 = SpectrumArrays::new_ms2(
+                i as i64,
+                (i + 1) as i64,
+                retention_time,
+                1,
+                precursor_mz,
+                peaks,
+            );
+            ms2.precursor_charge = Some(2);
+            ms2.precursor_intensity = Some(1e6);
+            ms2
+        };
+
+        dir_dataset.write_spectrum_arrays(&spectrum)?;
     }
     
     dir_dataset.close()?;

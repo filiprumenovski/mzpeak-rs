@@ -1,7 +1,7 @@
 # Issue 002: Documentation Fragmentation and Redundancy
 
 Priority: P2
-Status: Open
+Status: Resolved
 Components: top-level `.md` files
 
 ## Summary
@@ -18,6 +18,10 @@ Multiple overlapping documentation files cover the same material, increasing mai
 3. Remove obsolete files (`COMMIT_MESSAGE.txt`, duplicate specs)
 
 ## Acceptance Criteria
-- [ ] One canonical format specification
-- [ ] One canonical benchmark guide
-- [ ] No stale or duplicate top-level doc files
+- [x] One canonical format specification
+- [x] One canonical benchmark guide
+- [x] No stale or duplicate top-level doc files
+
+## Progress
+- Confirmed no duplicate top-level docs remain (no `BENCHMARKS.md`, `CONTAINER_FORMAT.md`, or `COMMIT_MESSAGE.txt`)
+- Benchmarks are documented in `benches/README.md` and linked from `README.md`

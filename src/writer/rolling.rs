@@ -5,7 +5,7 @@ use crate::metadata::MzPeakMetadata;
 use super::config::WriterConfig;
 use super::error::WriterError;
 use super::stats::WriterStats;
-use super::types::{Spectrum, SpectrumArrays};
+use super::types::SpectrumArrays;
 use super::writer_impl::MzPeakWriter;
 
 /// Rolling writer that automatically shards output into multiple files
@@ -74,46 +74,6 @@ impl RollingWriter {
         self.current_writer = Some(writer);
 
         Ok(())
-    }
-
-    /// Write a batch of spectra, automatically rotating files if needed
-    pub fn write_spectra(&mut self, spectra: &[Spectrum]) -> Result<(), WriterError> {
-        if spectra.is_empty() {
-            return Ok(());
-        }
-
-        // Initialize first writer if needed
-        if self.current_writer.is_none() {
-            self.rotate_file()?;
-        }
-
-        let writer = self.current_writer.as_mut().unwrap();
-
-        // Check if we need to rotate based on config
-        if let Some(max_peaks) = self.config.max_peaks_per_file {
-            let peaks_in_batch: usize = spectra.iter().map(|s| s.peaks.len()).sum();
-
-            // If adding this batch would exceed limit, rotate first
-            if writer.peaks_written() > 0 && writer.peaks_written() + peaks_in_batch > max_peaks {
-                self.rotate_file()?;
-                let writer = self.current_writer.as_mut().unwrap();
-                writer.write_spectra(spectra)?;
-            } else {
-                writer.write_spectra(spectra)?;
-            }
-        } else {
-            writer.write_spectra(spectra)?;
-        }
-
-        self.total_spectra_written += spectra.len();
-        self.total_peaks_written += spectra.iter().map(|s| s.peaks.len()).sum::<usize>();
-
-        Ok(())
-    }
-
-    /// Write a single spectrum
-    pub fn write_spectrum(&mut self, spectrum: &Spectrum) -> Result<(), WriterError> {
-        self.write_spectra(std::slice::from_ref(spectrum))
     }
 
     /// Write a batch of spectra with SoA peak layout, auto-rotating files if needed.

@@ -14,6 +14,17 @@ pub struct RecordBatchIterator {
     inner: Box<dyn Iterator<Item = Result<RecordBatch, arrow::error::ArrowError>> + Send>,
 }
 
+impl RecordBatchIterator {
+    pub(crate) fn new<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = Result<RecordBatch, arrow::error::ArrowError>> + Send + 'static,
+    {
+        Self {
+            inner: Box::new(iter),
+        }
+    }
+}
+
 impl Iterator for RecordBatchIterator {
     type Item = Result<RecordBatch, ReaderError>;
 
@@ -46,9 +57,7 @@ impl MzPeakReader {
                 let builder = ParquetRecordBatchReaderBuilder::try_new(file)?
                     .with_batch_size(self.config.batch_size);
                 let reader = builder.build()?;
-                Ok(RecordBatchIterator {
-                    inner: Box::new(reader),
-                })
+                Ok(RecordBatchIterator::new(reader))
             }
             ReaderSource::ZipContainer { chunk_reader, .. } => {
                 // Use the seekable chunk reader for streaming access (Issue 002 fix)
@@ -56,9 +65,7 @@ impl MzPeakReader {
                 let builder = ParquetRecordBatchReaderBuilder::try_new(chunk_reader.clone())?
                     .with_batch_size(self.config.batch_size);
                 let reader = builder.build()?;
-                Ok(RecordBatchIterator {
-                    inner: Box::new(reader),
-                })
+                Ok(RecordBatchIterator::new(reader))
             }
         }
     }

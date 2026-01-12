@@ -26,3 +26,6 @@ Documentation, examples, and tests still focus on AoS APIs (`SpectrumBuilder`, `
 - [x] At least one integration test covers SoA read/write
 - [x] README describes SoA APIs and when to use them
 - [x] An example demonstrates SoA usage end-to-end
+
+## Progress
+- Rust docs/examples/tests now exclusively use SoA (`SpectrumArrays`/views); AoS references removed from Rust-facing docs

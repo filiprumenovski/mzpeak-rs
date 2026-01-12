@@ -8,6 +8,7 @@ The benchmark suite provides reproducible performance metrics for:
 1. **mzML to mzPeak conversion** - Parsing, decoding, and encoding throughput
 2. **Random access queries** - Seeking specific spectra by ID or retention time
 3. **Peak filtering** - MS2 extraction, intensity thresholds, precursor m/z ranges
+4. **mzML streaming** - Sequential parsing throughput for decoded and raw spectra
 
 These benchmarks are designed to support the performance claims in the mzPeak preprint.
 
@@ -20,6 +21,7 @@ Measures end-to-end conversion performance from synthetic mzML files to mzPeak f
 **Benchmarks:**
 - `mzml_conversion`: Convert varying dataset sizes (100/500/1000 spectra × 100 peaks)
 - `peak_writing`: Direct write performance without mzML parsing (1K/10K/100K peaks)
+- `peak_writing_arrays`: SoA (SpectrumArrays) write performance (1K/10K/100K peaks)
 - `per_peak_overhead`: Single-peak write to measure minimum overhead
 
 **Metrics:**
@@ -36,6 +38,7 @@ Tests random access and query operations on pre-built mzPeak files.
 - `rt_range_query`: Retention time range queries (10s/50s/100s windows)
 - `ms_level_filter`: Extract all MS1 or MS2 spectra
 - `full_scan`: Sequential read of entire file (streaming)
+- `full_scan_arrays_view`: Sequential read using view-backed SoA arrays
 - `metadata_only`: Read file metadata without peak data
 
 **Use Case:** Demonstrates Parquet's column pruning and predicate pushdown benefits.
@@ -52,6 +55,14 @@ Measures peak filtering performance for common analytical workflows.
 - `top_n_peaks`: Extract top-N most intense peaks per spectrum
 
 **Use Case:** Real-world data processing pipelines (e.g., DIA analysis, metabolomics).
+
+### 4. mzML Streaming (`benches/mzml_streamer.rs`)
+
+Measures sequential parsing throughput for both decoded and raw spectrum paths.
+
+**Benchmarks:**
+- `mzml_streamer_next_spectrum`: `next_spectrum()` throughput (decoded arrays)
+- `mzml_streamer_next_raw_spectrum`: `next_raw_spectrum()` throughput (raw base64 arrays)
 
 ## Running Benchmarks
 

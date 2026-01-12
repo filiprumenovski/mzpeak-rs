@@ -27,7 +27,7 @@
 //!
 //! ```rust,no_run
 //! use mzpeak::dataset::MzPeakDatasetWriter;
-//! use mzpeak::writer::{SpectrumBuilder, WriterConfig};
+//! use mzpeak::writer::{PeakArrays, SpectrumArrays, WriterConfig};
 //! use mzpeak::metadata::MzPeakMetadata;
 //!
 //! // Create metadata
@@ -40,17 +40,12 @@
 //!     WriterConfig::default()
 //! )?;
 //!
-//! // Build a spectrum
-//! let spectrum = SpectrumBuilder::new(0, 1)
-//!     .ms_level(1)
-//!     .retention_time(60.0)
-//!     .polarity(1)
-//!     .add_peak(400.0, 10000.0)
-//!     .add_peak(500.0, 20000.0)
-//!     .build();
+//! // Build a spectrum (SoA)
+//! let peaks = PeakArrays::new(vec![400.0, 500.0], vec![10000.0, 20000.0]);
+//! let spectrum = SpectrumArrays::new_ms1(0, 1, 60.0, 1, peaks);
 //!
 //! // Write the spectrum
-//! dataset.write_spectrum(&spectrum)?;
+//! dataset.write_spectrum_arrays(&spectrum)?;
 //!
 //! // Finalize
 //! let stats = dataset.close()?;
@@ -69,7 +64,7 @@
 //! ## Legacy Single-File Format
 //!
 //! ```rust,no_run
-//! use mzpeak::writer::{MzPeakWriter, SpectrumBuilder, WriterConfig};
+//! use mzpeak::writer::{MzPeakWriter, PeakArrays, SpectrumArrays, WriterConfig};
 //! use mzpeak::metadata::MzPeakMetadata;
 //!
 //! let metadata = MzPeakMetadata::new();
@@ -79,14 +74,10 @@
 //!     WriterConfig::default()
 //! )?;
 //!
-//! let spectrum = SpectrumBuilder::new(0, 1)
-//!     .ms_level(1)
-//!     .retention_time(60.0)
-//!     .polarity(1)
-//!     .add_peak(400.0, 10000.0)
-//!     .build();
+//! let peaks = PeakArrays::new(vec![400.0], vec![10000.0]);
+//! let spectrum = SpectrumArrays::new_ms1(0, 1, 60.0, 1, peaks);
 //!
-//! writer.write_spectrum(&spectrum)?;
+//! writer.write_spectrum_arrays(&spectrum)?;
 //! let stats = writer.finish()?;
 //! # Ok::<(), mzpeak::writer::WriterError>(())
 //! ```
@@ -190,9 +181,9 @@ pub mod schema;
 pub mod validator;
 pub mod writer;
 
-// Python bindings module (only compiled with the "python" feature)
+// Python bindings are temporarily disabled in this prealpha.
 #[cfg(feature = "python")]
-mod python;
+compile_error!("Python bindings are disabled; reintroduce after core features stabilize.");
 
 /// Re-export commonly used types for convenience
 pub mod prelude {
@@ -213,10 +204,11 @@ pub mod prelude {
     };
     pub use crate::validator::{validate_mzpeak_file, ValidationReport};
     pub use crate::writer::{
-        ColumnarBatch, CompressionType, MzPeakWriter, OptionalColumn, OptionalColumnBuf, Peak,
-        PeakArrays, Spectrum, SpectrumArrays, SpectrumBuilder, WriterConfig, WriterStats,
+        ColumnarBatch, CompressionType, MzPeakWriter, OptionalColumn, OptionalColumnBuf,
+        PeakArrays, SpectrumArrays, WriterConfig, WriterStats,
     };
     pub use crate::reader::{
-        FileSummary, FileMetadata, MzPeakReader, ReaderConfig, ReaderError, SpectrumIterator,
+        FileMetadata, FileSummary, MzPeakReader, ReaderConfig, ReaderError, SpectrumArraysView,
+        StreamingSpectrumArraysViewIterator,
     };
 }

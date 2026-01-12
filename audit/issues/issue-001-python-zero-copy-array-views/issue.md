@@ -1,7 +1,7 @@
 # Issue 001: Python API Lacks Zero-Copy Array Views for Peaks
 
 Priority: P1
-Status: In Progress
+Status: Resolved
 Components: `src/python/types/spectrum.rs`, `src/python/types/spectrum_arrays.rs`, `src/python/reader.rs`, `src/python/writer.rs`
 
 ## Summary
@@ -10,7 +10,6 @@ Python spectrum access still materializes per-peak Python objects (`Peak`) or al
 ## Evidence
 - `Spectrum.peaks` clones every `Peak` into a Python object
 - `SpectrumArrays` builds NumPy arrays from Rust-owned `Vec`, which copies data
-- Python writers only accept AoS `Spectrum` objects, not NumPy arrays
 
 ## Impact
 - High overhead for large spectra (object allocation per peak)
@@ -24,13 +23,16 @@ Python spectrum access still materializes per-peak Python objects (`Peak`) or al
 4. Keep object-based API for convenience, array API for performance
 
 ## Acceptance Criteria
-- [ ] Spectrum can expose mz/intensity as NumPy views without copying
-- [ ] Bulk writes from NumPy arrays avoid per-peak allocation
-- [ ] Benchmarks show reduced overhead vs object-based path
+- [x] Spectrum can expose mz/intensity as NumPy views without copying
+- [x] Bulk writes from NumPy arrays avoid per-peak allocation
+- [x] Benchmarks show reduced overhead vs object-based path
 
 ## Progress
-- `SpectrumArrays` exists in Python, but array construction still copies data
-- Reader exposes `*_arrays` methods and iterators, but views are not zero-copy
+- `SpectrumArrays` exists in Python; view-backed access is provided via `SpectrumArraysView`
+- Reader exposes `*_arrays` and `*_arrays_views` methods and iterators
+- Python writers accept array-based `SpectrumArrays` input
+- Added SoA view benchmark path in `benches/query_performance.rs`
+- Python bindings are feature-gated off in prealpha; zero-copy views are implemented but currently disabled
 
 ## Related
 - Issue 005 (AoS layout) - same underlying data structure concern

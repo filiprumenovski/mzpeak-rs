@@ -2,7 +2,7 @@ use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criteri
 use mzpeak::dataset::MzPeakDatasetWriter;
 use mzpeak::metadata::MzPeakMetadata;
 use mzpeak::reader::MzPeakReader;
-use mzpeak::writer::{SpectrumBuilder, WriterConfig};
+use mzpeak::writer::{PeakArrays, SpectrumArrays, WriterConfig};
 use tempfile::TempDir;
 
 /// Create a test mzPeak file with known data
@@ -12,16 +12,19 @@ fn create_test_file(path: &std::path::Path, num_spectra: usize, peaks_per_spectr
     let mut writer = MzPeakDatasetWriter::new(path, &metadata, config).unwrap();
 
     for i in 0..num_spectra {
-        let mut builder = SpectrumBuilder::new(i as i64, i as i64 + 1)
-            .ms_level(if i % 10 == 0 { 1 } else { 2 })
-            .retention_time(i as f32 * 0.5)
-            .polarity(1);
-
+        let mut mz = Vec::with_capacity(peaks_per_spectrum);
+        let mut intensity = Vec::with_capacity(peaks_per_spectrum);
         for j in 0..peaks_per_spectrum {
-            builder = builder.add_peak(200.0 + j as f64 * 10.0, 1000.0 + j as f32 * 100.0);
+            mz.push(200.0 + j as f64 * 10.0);
+            intensity.push(1000.0 + j as f32 * 100.0);
         }
-
-        writer.write_spectrum(&builder.build()).unwrap();
+        let peaks = PeakArrays::new(mz, intensity);
+        let spectrum = if i % 10 == 0 {
+            SpectrumArrays::new_ms1(i as i64, i as i64 + 1, i as f32 * 0.5, 1, peaks)
+        } else {
+            SpectrumArrays::new_ms2(i as i64, i as i64 + 1, i as f32 * 0.5, 1, 600.0, peaks)
+        };
+        writer.write_spectrum_arrays(&spectrum).unwrap();
     }
 
     writer.close().unwrap();
@@ -45,7 +48,7 @@ fn bench_random_access(c: &mut Criterion) {
 
                 b.iter(|| {
                     let spectrum = reader
-                        .get_spectrum(black_box(target_id))
+                        .get_spectrum_arrays(black_box(target_id))
                         .unwrap()
                         .expect("Spectrum not found");
                     black_box(spectrum);
@@ -75,7 +78,7 @@ fn bench_rt_range_query(c: &mut Criterion) {
 
                 b.iter(|| {
                     let spectra = reader
-                        .spectra_by_rt_range(black_box(100.0), black_box(100.0 + range_size))
+                        .spectra_by_rt_range_arrays(black_box(100.0), black_box(100.0 + range_size))
                         .unwrap();
                     black_box(spectra);
                 });
@@ -104,7 +107,7 @@ fn bench_ms_level_filter(c: &mut Criterion) {
 
                 b.iter(|| {
                     let spectra = reader
-                        .spectra_by_ms_level(black_box(ms_level as i16))
+                        .spectra_by_ms_level_arrays(black_box(ms_level as i16))
                         .unwrap();
                     black_box(spectra);
                 });
@@ -137,8 +140,46 @@ fn bench_full_scan(c: &mut Criterion) {
 
                 b.iter(|| {
                     let mut count = 0;
-                    for spectrum in reader.iter_spectra().unwrap() {
-                        count += spectrum.peaks.len();
+                    let iter = reader.iter_spectra_arrays_streaming().unwrap();
+                    for spectrum in iter {
+                        let spectrum = spectrum.unwrap();
+                        count += spectrum.peak_count();
+                    }
+                    black_box(count);
+                });
+            },
+        );
+    }
+
+    group.finish();
+}
+
+/// Benchmark full file scan using view-backed SoA arrays
+fn bench_full_scan_arrays_view(c: &mut Criterion) {
+    let mut group = c.benchmark_group("full_scan_arrays_view");
+
+    for num_spectra in [100, 500, 1000] {
+        let peaks_per_spectrum = 100;
+        let total_peaks = num_spectra * peaks_per_spectrum;
+
+        group.throughput(Throughput::Elements(total_peaks as u64));
+
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("test.mzpeak");
+        create_test_file(&file_path, num_spectra, peaks_per_spectrum);
+
+        group.bench_with_input(
+            BenchmarkId::from_parameter(format!("{}spectra", num_spectra)),
+            &num_spectra,
+            |b, _| {
+                let reader = MzPeakReader::open(&file_path).unwrap();
+
+                b.iter(|| {
+                    let mut count = 0;
+                    let iter = reader.iter_spectra_arrays_streaming().unwrap();
+                    for spectrum in iter {
+                        let spectrum = spectrum.unwrap();
+                        count += spectrum.peak_count();
                     }
                     black_box(count);
                 });
@@ -175,6 +216,7 @@ criterion_group!(
     bench_rt_range_query,
     bench_ms_level_filter,
     bench_full_scan,
+    bench_full_scan_arrays_view,
     bench_metadata_only
 );
 criterion_main!(benches);

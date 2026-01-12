@@ -13,7 +13,7 @@ use mzpeak::chromatogram_writer::Chromatogram;
 use mzpeak::dataset::MzPeakDatasetWriter;
 use mzpeak::metadata::MzPeakMetadata;
 use mzpeak::reader::MzPeakReader;
-use mzpeak::writer::{SpectrumBuilder, WriterConfig};
+use mzpeak::writer::{PeakArrays, SpectrumArrays, WriterConfig};
 use std::error::Error;
 use tempfile::tempdir;
 
@@ -46,18 +46,19 @@ fn main() -> Result<(), Box<dyn Error>> {
         .enumerate()
     {
         // Create a spectrum with peaks that produce the desired TIC and BPC
-        let mut spectrum = SpectrumBuilder::new(i as i64, i as i64 + 1)
-            .ms_level(1)
-            .retention_time(rt)
-            .polarity(1);
-
         // Add peaks - the highest intensity will be BPC, sum will be TIC
-        spectrum = spectrum.add_peak(400.0, bpc); // Base peak
-        spectrum = spectrum.add_peak(450.0, (tic - bpc) * 0.4); // Other peaks
-        spectrum = spectrum.add_peak(500.0, (tic - bpc) * 0.3);
-        spectrum = spectrum.add_peak(550.0, (tic - bpc) * 0.3);
+        let peaks = PeakArrays::new(
+            vec![400.0, 450.0, 500.0, 550.0],
+            vec![
+                bpc,
+                (tic - bpc) * 0.4,
+                (tic - bpc) * 0.3,
+                (tic - bpc) * 0.3,
+            ],
+        );
+        let spectrum = SpectrumArrays::new_ms1(i as i64, i as i64 + 1, rt, 1, peaks);
 
-        dataset.write_spectrum(&spectrum.build())?;
+        dataset.write_spectrum_arrays(&spectrum)?;
     }
 
     println!("   ✓ Wrote {} spectra\n", retention_times.len());

@@ -46,21 +46,17 @@
 //! ```rust,no_run
 //! use mzpeak::dataset::MzPeakDatasetWriter;
 //! use mzpeak::metadata::MzPeakMetadata;
-//! use mzpeak::writer::{WriterConfig, SpectrumBuilder};
+//! use mzpeak::writer::{PeakArrays, SpectrumArrays, WriterConfig};
 //!
 //! let metadata = MzPeakMetadata::new();
 //! // Container mode (single .mzpeak file)
 //! let mut dataset = MzPeakDatasetWriter::new("output.mzpeak", &metadata, WriterConfig::default())?;
 //!
-//! // Write spectrum data
-//! let spectrum = SpectrumBuilder::new(0, 1)
-//!     .ms_level(1)
-//!     .retention_time(60.0)
-//!     .polarity(1)
-//!     .add_peak(400.0, 10000.0)
-//!     .build();
+//! // Write spectrum data (SoA)
+//! let peaks = PeakArrays::new(vec![400.0], vec![10000.0]);
+//! let spectrum = SpectrumArrays::new_ms1(0, 1, 60.0, 1, peaks);
 //!
-//! dataset.write_spectrum(&spectrum)?;
+//! dataset.write_spectrum_arrays(&spectrum)?;
 //!
 //! // Finalize the dataset
 //! dataset.close()?;

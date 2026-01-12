@@ -21,14 +21,14 @@
 //! // Get metadata
 //! println!("Format version: {}", reader.metadata().format_version);
 //!
-//! // Query spectra by retention time range
-//! for spectrum in reader.spectra_by_rt_range(60.0, 120.0)? {
-//!     println!("Spectrum {}: {} peaks", spectrum.spectrum_id, spectrum.peaks.len());
+//! // Query spectra by retention time range (SoA view)
+//! for spectrum in reader.spectra_by_rt_range_arrays(60.0, 120.0)? {
+//!     println!("Spectrum {}: {} peaks", spectrum.spectrum_id, spectrum.peak_count());
 //! }
 //!
-//! // Get a specific spectrum by ID
-//! if let Some(spectrum) = reader.get_spectrum(42)? {
-//!     println!("Found spectrum 42 with {} peaks", spectrum.peaks.len());
+//! // Get a specific spectrum by ID (SoA view)
+//! if let Some(spectrum) = reader.get_spectrum_arrays(42)? {
+//!     println!("Found spectrum 42 with {} peaks", spectrum.peak_count());
 //! }
 //! # Ok::<(), mzpeak::reader::ReaderError>(())
 //! ```
@@ -51,10 +51,7 @@ pub use batches::RecordBatchIterator;
 pub use config::ReaderConfig;
 pub use error::ReaderError;
 pub use metadata::FileMetadata;
-pub use spectra::{
-    SpectrumArraysIterator, SpectrumIterator, StreamingSpectrumArraysIterator,
-    StreamingSpectrumIterator,
-};
+pub use spectra::{SpectrumArraysView, StreamingSpectrumArraysViewIterator};
 pub use summary::FileSummary;
 pub use zip_chunk_reader::{SharedZipEntryReader, ZipEntryChunkReader};
 

@@ -1,7 +1,7 @@
 # Issue 003: Example Rot and Duplicative Scripts
 
 Priority: P2
-Status: Open
+Status: Resolved
 Components: `examples/`
 
 ## Summary
@@ -22,6 +22,10 @@ Several examples are redundant, non-portable, or overlap with benchmarks. Some r
    - Python interop example
 
 ## Acceptance Criteria
-- [ ] `examples/` contains only unique, portable demos
-- [ ] No examples reference local absolute paths
-- [ ] Each example demonstrates a distinct feature
+- [x] `examples/` contains only unique, portable demos
+- [x] No examples reference local absolute paths
+- [x] Each example demonstrates a distinct feature
+
+## Progress
+- Verified `examples/` contains only portable demos and no absolute paths
+- Benchmark-like examples kept as portable scripts alongside Rust demos

@@ -24,7 +24,7 @@ pub struct FileSummary {
 impl MzPeakReader {
     /// Get summary statistics about the file
     pub fn summary(&self) -> Result<FileSummary, ReaderError> {
-        let spectra = self.iter_spectra()?;
+        let spectra = self.iter_spectra_arrays()?;
 
         let num_spectra = spectra.len() as i64;
         let num_ms1 = spectra.iter().filter(|s| s.ms_level == 1).count() as i64;
@@ -45,16 +45,16 @@ impl MzPeakReader {
         };
 
         let mz_range = if !spectra.is_empty() {
-            let min_mz = spectra
-                .iter()
-                .flat_map(|s| s.peaks.iter())
-                .map(|p| p.mz)
-                .fold(f64::MAX, f64::min);
-            let max_mz = spectra
-                .iter()
-                .flat_map(|s| s.peaks.iter())
-                .map(|p| p.mz)
-                .fold(f64::MIN, f64::max);
+            let mut min_mz = f64::MAX;
+            let mut max_mz = f64::MIN;
+            for spectrum in &spectra {
+                for array in spectrum.mz_arrays()? {
+                    for mz in array.values() {
+                        min_mz = min_mz.min(*mz);
+                        max_mz = max_mz.max(*mz);
+                    }
+                }
+            }
             if min_mz <= max_mz {
                 Some((min_mz, max_mz))
             } else {

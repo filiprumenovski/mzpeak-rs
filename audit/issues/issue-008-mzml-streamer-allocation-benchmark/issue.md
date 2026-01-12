@@ -1,7 +1,7 @@
 # Issue 008: No Allocation Benchmark for mzML Streamer
 
 Priority: P3
-Status: Open
+Status: Resolved
 Components: `src/mzml/streamer/`, `benches/`
 
 ## Summary
@@ -21,5 +21,9 @@ The mzML streamer buffer reuse fix removed per-spectrum allocations, but there i
 3. Add a lightweight CI benchmark (optional, non-gating)
 
 ## Acceptance Criteria
-- [ ] Benchmark exists for mzML streaming parser
-- [ ] Allocation/throughput metrics are recorded and compared over time
+- [x] Benchmark exists for mzML streaming parser
+- [x] Allocation/throughput metrics are recorded and compared over time
+
+## Progress
+- Added `benches/mzml_streamer.rs` to benchmark `next_spectrum` and `next_raw_spectrum` throughput
+- Documented the new suite in `benches/README.md` and `README.md`

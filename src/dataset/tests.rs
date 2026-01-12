@@ -1,11 +1,27 @@
 use super::*;
 use crate::metadata::MzPeakMetadata;
 use crate::schema::MZPEAK_MIMETYPE;
-use crate::writer::{SpectrumBuilder, WriterConfig};
+use crate::writer::{PeakArrays, SpectrumArrays, WriterConfig};
 use std::fs;
 use std::fs::File;
 use std::io::Read;
 use tempfile::tempdir;
+
+fn make_ms1_spectrum(
+    spectrum_id: i64,
+    scan_number: i64,
+    retention_time: f32,
+    peaks: &[(f64, f32)],
+) -> SpectrumArrays {
+    let mut mz = Vec::with_capacity(peaks.len());
+    let mut intensity = Vec::with_capacity(peaks.len());
+    for (mz_value, intensity_value) in peaks {
+        mz.push(*mz_value);
+        intensity.push(*intensity_value);
+    }
+    let peak_arrays = PeakArrays::new(mz, intensity);
+    SpectrumArrays::new_ms1(spectrum_id, scan_number, retention_time, 1, peak_arrays)
+}
 
 // ==================== Directory Mode Tests ====================
 
@@ -55,15 +71,9 @@ fn test_directory_mode_write_spectrum() {
 
     let mut dataset = MzPeakDatasetWriter::new_directory(&dataset_path, &metadata, config).unwrap();
 
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(1)
-        .retention_time(60.0)
-        .polarity(1)
-        .add_peak(400.0, 10000.0)
-        .add_peak(500.0, 20000.0)
-        .build();
+    let spectrum = make_ms1_spectrum(0, 1, 60.0, &[(400.0, 10000.0), (500.0, 20000.0)]);
 
-    dataset.write_spectrum(&spectrum).unwrap();
+    dataset.write_spectrum_arrays(&spectrum).unwrap();
 
     let stats = dataset.close().unwrap();
     assert_eq!(stats.peak_stats.spectra_written, 1);
@@ -86,14 +96,9 @@ fn test_directory_mode_metadata_json_created() {
 
     let mut dataset = MzPeakDatasetWriter::new_directory(&dataset_path, &metadata, config).unwrap();
 
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(1)
-        .retention_time(0.0)
-        .polarity(1)
-        .add_peak(400.0, 10000.0)
-        .build();
+    let spectrum = make_ms1_spectrum(0, 1, 0.0, &[(400.0, 10000.0)]);
 
-    dataset.write_spectrum(&spectrum).unwrap();
+    dataset.write_spectrum_arrays(&spectrum).unwrap();
     dataset.close().unwrap();
 
     // Verify metadata.json exists and is valid JSON
@@ -120,14 +125,9 @@ fn test_directory_mode_peaks_file_created() {
 
     let mut dataset = MzPeakDatasetWriter::new_directory(&dataset_path, &metadata, config).unwrap();
 
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(1)
-        .retention_time(60.0)
-        .polarity(1)
-        .add_peak(400.0, 10000.0)
-        .build();
+    let spectrum = make_ms1_spectrum(0, 1, 60.0, &[(400.0, 10000.0)]);
 
-    dataset.write_spectrum(&spectrum).unwrap();
+    dataset.write_spectrum_arrays(&spectrum).unwrap();
     dataset.close().unwrap();
 
     // Verify peaks file exists
@@ -166,13 +166,8 @@ fn test_container_mode_already_exists() {
     // Create first dataset and close it
     let mut dataset1 =
         MzPeakDatasetWriter::new_container(&dataset_path, &metadata, config.clone()).unwrap();
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(1)
-        .retention_time(0.0)
-        .polarity(1)
-        .add_peak(400.0, 10000.0)
-        .build();
-    dataset1.write_spectrum(&spectrum).unwrap();
+    let spectrum = make_ms1_spectrum(0, 1, 0.0, &[(400.0, 10000.0)]);
+    dataset1.write_spectrum_arrays(&spectrum).unwrap();
     dataset1.close().unwrap();
 
     // Try to create again - should fail
@@ -190,15 +185,9 @@ fn test_container_mode_write_spectrum() {
 
     let mut dataset = MzPeakDatasetWriter::new_container(&dataset_path, &metadata, config).unwrap();
 
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(1)
-        .retention_time(60.0)
-        .polarity(1)
-        .add_peak(400.0, 10000.0)
-        .add_peak(500.0, 20000.0)
-        .build();
+    let spectrum = make_ms1_spectrum(0, 1, 60.0, &[(400.0, 10000.0), (500.0, 20000.0)]);
 
-    dataset.write_spectrum(&spectrum).unwrap();
+    dataset.write_spectrum_arrays(&spectrum).unwrap();
 
     let stats = dataset.close().unwrap();
     // Note: In container mode, stats tracking is simplified
@@ -215,14 +204,9 @@ fn test_container_mode_zip_structure() {
 
     let mut dataset = MzPeakDatasetWriter::new_container(&dataset_path, &metadata, config).unwrap();
 
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(1)
-        .retention_time(60.0)
-        .polarity(1)
-        .add_peak(400.0, 10000.0)
-        .build();
+    let spectrum = make_ms1_spectrum(0, 1, 60.0, &[(400.0, 10000.0)]);
 
-    dataset.write_spectrum(&spectrum).unwrap();
+    dataset.write_spectrum_arrays(&spectrum).unwrap();
     dataset.close().unwrap();
 
     // Open and verify ZIP structure
@@ -264,14 +248,9 @@ fn test_container_mode_with_chromatograms() {
 
     let mut dataset = MzPeakDatasetWriter::new_container(&dataset_path, &metadata, config).unwrap();
 
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(1)
-        .retention_time(60.0)
-        .polarity(1)
-        .add_peak(400.0, 10000.0)
-        .build();
+    let spectrum = make_ms1_spectrum(0, 1, 60.0, &[(400.0, 10000.0)]);
 
-    dataset.write_spectrum(&spectrum).unwrap();
+    dataset.write_spectrum_arrays(&spectrum).unwrap();
 
     // Write chromatograms
     let chrom1 = Chromatogram {
@@ -327,14 +306,9 @@ fn test_container_mode_mimetype_content() {
 
     let mut dataset = MzPeakDatasetWriter::new_container(&dataset_path, &metadata, config).unwrap();
 
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(1)
-        .retention_time(0.0)
-        .polarity(1)
-        .add_peak(400.0, 10000.0)
-        .build();
+    let spectrum = make_ms1_spectrum(0, 1, 0.0, &[(400.0, 10000.0)]);
 
-    dataset.write_spectrum(&spectrum).unwrap();
+    dataset.write_spectrum_arrays(&spectrum).unwrap();
     dataset.close().unwrap();
 
     // Verify mimetype content
@@ -362,14 +336,9 @@ fn test_container_mode_metadata_json_content() {
 
     let mut dataset = MzPeakDatasetWriter::new_container(&dataset_path, &metadata, config).unwrap();
 
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(1)
-        .retention_time(0.0)
-        .polarity(1)
-        .add_peak(400.0, 10000.0)
-        .build();
+    let spectrum = make_ms1_spectrum(0, 1, 0.0, &[(400.0, 10000.0)]);
 
-    dataset.write_spectrum(&spectrum).unwrap();
+    dataset.write_spectrum_arrays(&spectrum).unwrap();
     dataset.close().unwrap();
 
     // Extract and verify metadata.json content
@@ -437,17 +406,10 @@ fn test_write_multiple_spectra_directory() {
     let mut dataset = MzPeakDatasetWriter::new_directory(&dataset_path, &metadata, config).unwrap();
 
     let spectra: Vec<_> = (0..10)
-        .map(|i| {
-            SpectrumBuilder::new(i, i + 1)
-                .ms_level(1)
-                .retention_time((i as f32) * 10.0)
-                .polarity(1)
-                .add_peak(400.0 + (i as f64), 10000.0)
-                .build()
-        })
+        .map(|i| make_ms1_spectrum(i, i + 1, (i as f32) * 10.0, &[(400.0 + i as f64, 10000.0)]))
         .collect();
 
-    dataset.write_spectra(&spectra).unwrap();
+    dataset.write_spectra_arrays(&spectra).unwrap();
 
     let stats = dataset.close().unwrap();
     assert_eq!(stats.peak_stats.spectra_written, 10);
@@ -465,17 +427,10 @@ fn test_write_multiple_spectra_container() {
     let mut dataset = MzPeakDatasetWriter::new_container(&dataset_path, &metadata, config).unwrap();
 
     let spectra: Vec<_> = (0..10)
-        .map(|i| {
-            SpectrumBuilder::new(i, i + 1)
-                .ms_level(1)
-                .retention_time((i as f32) * 10.0)
-                .polarity(1)
-                .add_peak(400.0 + (i as f64), 10000.0)
-                .build()
-        })
+        .map(|i| make_ms1_spectrum(i, i + 1, (i as f32) * 10.0, &[(400.0 + i as f64, 10000.0)]))
         .collect();
 
-    dataset.write_spectra(&spectra).unwrap();
+    dataset.write_spectra_arrays(&spectra).unwrap();
 
     let stats = dataset.close().unwrap();
     assert!(stats.total_size_bytes > 0);

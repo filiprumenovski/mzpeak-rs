@@ -5,7 +5,7 @@ Type stub file providing IDE support and static type checking.
 """
 
 from __future__ import annotations
-from typing import Optional, List, Dict, Tuple, Iterator, Union
+from typing import Any, Optional, List, Dict, Tuple, Iterator, Union
 from types import TracebackType
 from os import PathLike
 
@@ -170,6 +170,142 @@ class Spectrum:
         """MSI pixel Z coordinate."""
         ...
     
+    def __len__(self) -> int: ...
+    def __repr__(self) -> str: ...
+
+class SpectrumArrays:
+    """A mass spectrum with SoA arrays."""
+
+    def __init__(
+        self,
+        spectrum_id: int,
+        scan_number: int,
+        ms_level: int,
+        retention_time: float,
+        polarity: int,
+        mz: Any,
+        intensity: Any,
+        ion_mobility: Optional[Any] = None,
+        ion_mobility_validity: Optional[Any] = None,
+        precursor_mz: Optional[float] = None,
+        precursor_charge: Optional[int] = None,
+        precursor_intensity: Optional[float] = None,
+        isolation_window_lower: Optional[float] = None,
+        isolation_window_upper: Optional[float] = None,
+        collision_energy: Optional[float] = None,
+        total_ion_current: Optional[float] = None,
+        base_peak_mz: Optional[float] = None,
+        base_peak_intensity: Optional[float] = None,
+        injection_time: Optional[float] = None,
+        pixel_x: Optional[int] = None,
+        pixel_y: Optional[int] = None,
+        pixel_z: Optional[int] = None,
+    ) -> None: ...
+
+    @property
+    def spectrum_id(self) -> int: ...
+
+    @property
+    def scan_number(self) -> int: ...
+
+    @property
+    def ms_level(self) -> int: ...
+
+    @property
+    def retention_time(self) -> float: ...
+
+    @property
+    def polarity(self) -> int: ...
+
+    @property
+    def mz_array(self) -> Any: ...
+
+    @property
+    def intensity_array(self) -> Any: ...
+
+    @property
+    def ion_mobility_array(self) -> Any: ...
+
+    @property
+    def num_peaks(self) -> int: ...
+
+    @property
+    def precursor_mz(self) -> Optional[float]: ...
+
+    @property
+    def precursor_charge(self) -> Optional[int]: ...
+
+    @property
+    def precursor_intensity(self) -> Optional[float]: ...
+
+    @property
+    def isolation_window_lower(self) -> Optional[float]: ...
+
+    @property
+    def isolation_window_upper(self) -> Optional[float]: ...
+
+    @property
+    def collision_energy(self) -> Optional[float]: ...
+
+    @property
+    def total_ion_current(self) -> Optional[float]: ...
+
+    @property
+    def base_peak_mz(self) -> Optional[float]: ...
+
+    @property
+    def base_peak_intensity(self) -> Optional[float]: ...
+
+    @property
+    def injection_time(self) -> Optional[float]: ...
+
+    @property
+    def pixel_x(self) -> Optional[int]: ...
+
+    @property
+    def pixel_y(self) -> Optional[int]: ...
+
+    @property
+    def pixel_z(self) -> Optional[int]: ...
+
+    def __len__(self) -> int: ...
+    def __repr__(self) -> str: ...
+
+class SpectrumArraysView:
+    """View-backed SoA spectrum with zero-copy array access."""
+
+    @property
+    def spectrum_id(self) -> int: ...
+
+    @property
+    def scan_number(self) -> int: ...
+
+    @property
+    def ms_level(self) -> int: ...
+
+    @property
+    def retention_time(self) -> float: ...
+
+    @property
+    def polarity(self) -> int: ...
+
+    @property
+    def num_peaks(self) -> int: ...
+
+    @property
+    def mz_array_view(self) -> Any: ...
+
+    @property
+    def intensity_array_view(self) -> Any: ...
+
+    @property
+    def mz_array_views(self) -> List[Any]: ...
+
+    @property
+    def intensity_array_views(self) -> List[Any]: ...
+
+    def to_owned(self) -> SpectrumArrays: ...
+
     def __len__(self) -> int: ...
     def __repr__(self) -> str: ...
 
@@ -462,6 +598,20 @@ class SpectrumIterator:
     def __next__(self) -> Spectrum: ...
     def __len__(self) -> int: ...
 
+class SpectrumArraysIterator:
+    """Iterator over spectra (SoA arrays)."""
+
+    def __iter__(self) -> SpectrumArraysIterator: ...
+    def __next__(self) -> SpectrumArrays: ...
+    def __len__(self) -> int: ...
+
+class SpectrumArraysViewIterator:
+    """Iterator over spectra (SoA view arrays)."""
+
+    def __iter__(self) -> SpectrumArraysViewIterator: ...
+    def __next__(self) -> SpectrumArraysView: ...
+    def __len__(self) -> int: ...
+
 class MzPeakReader:
     """
     Reader for mzPeak format files.
@@ -521,6 +671,14 @@ class MzPeakReader:
             Spectrum object or None if not found
         """
         ...
+
+    def get_spectrum_arrays(self, spectrum_id: int) -> Optional[SpectrumArrays]:
+        """Get a single spectrum by ID as SoA arrays."""
+        ...
+
+    def get_spectrum_arrays_view(self, spectrum_id: int) -> Optional[SpectrumArraysView]:
+        """Get a single spectrum by ID as SoA array views."""
+        ...
     
     def get_spectra(self, spectrum_ids: List[int]) -> List[Spectrum]:
         """
@@ -533,6 +691,14 @@ class MzPeakReader:
             List of Spectrum objects
         """
         ...
+
+    def get_spectra_arrays(self, spectrum_ids: List[int]) -> List[SpectrumArrays]:
+        """Get multiple spectra by their IDs as SoA arrays."""
+        ...
+
+    def get_spectra_arrays_views(self, spectrum_ids: List[int]) -> List[SpectrumArraysView]:
+        """Get multiple spectra by their IDs as SoA array views."""
+        ...
     
     def all_spectra(self) -> List[Spectrum]:
         """
@@ -541,6 +707,14 @@ class MzPeakReader:
         Warning: This loads all spectra into memory. For large files,
         consider using iter_spectra() or to_arrow() instead.
         """
+        ...
+
+    def all_spectra_arrays(self) -> List[SpectrumArrays]:
+        """Get all spectra from the file as SoA arrays."""
+        ...
+
+    def all_spectra_arrays_views(self) -> List[SpectrumArraysView]:
+        """Get all spectra from the file as SoA array views."""
         ...
     
     def spectra_by_rt_range(self, min_rt: float, max_rt: float) -> List[Spectrum]:
@@ -552,6 +726,10 @@ class MzPeakReader:
             max_rt: Maximum retention time in seconds
         """
         ...
+
+    def spectra_by_rt_range_arrays(self, min_rt: float, max_rt: float) -> List[SpectrumArrays]:
+        """Get spectra within a retention time range as SoA arrays."""
+        ...
     
     def spectra_by_ms_level(self, ms_level: int) -> List[Spectrum]:
         """
@@ -560,6 +738,10 @@ class MzPeakReader:
         Args:
             ms_level: MS level (1, 2, etc.)
         """
+        ...
+
+    def spectra_by_ms_level_arrays(self, ms_level: int) -> List[SpectrumArrays]:
+        """Get spectra by MS level as SoA arrays."""
         ...
     
     def spectrum_ids(self) -> List[int]:
@@ -580,6 +762,14 @@ class MzPeakReader:
         
         This is memory-efficient for large files as it reads spectra lazily.
         """
+        ...
+
+    def iter_spectra_arrays(self) -> SpectrumArraysIterator:
+        """Return an iterator over all spectra as SoA arrays."""
+        ...
+
+    def iter_spectra_arrays_views(self) -> SpectrumArraysViewIterator:
+        """Return an iterator over all spectra as SoA array views."""
         ...
     
     def to_arrow(self) -> "pyarrow.Table":
@@ -677,9 +867,25 @@ class MzPeakWriter:
     def write_spectrum(self, spectrum: Spectrum) -> None:
         """Write a single spectrum."""
         ...
+
+    def write_spectrum_arrays(self, spectrum: SpectrumArrays) -> None:
+        """Write a single spectrum using SoA arrays."""
+        ...
+
+    def write_spectrum_arrays(self, spectrum: SpectrumArrays) -> None:
+        """Write a single spectrum using SoA arrays."""
+        ...
     
     def write_spectra(self, spectra: List[Spectrum]) -> None:
         """Write multiple spectra in a batch."""
+        ...
+
+    def write_spectra_arrays(self, spectra: List[SpectrumArrays]) -> None:
+        """Write multiple spectra using SoA arrays."""
+        ...
+
+    def write_spectra_arrays(self, spectra: List[SpectrumArrays]) -> None:
+        """Write multiple spectra using SoA arrays."""
         ...
     
     def stats(self) -> WriterStats:

@@ -23,9 +23,11 @@ impl PyArrowCStream {
 use crate::python::exceptions::IntoPyResult;
 use crate::python::types::{
     PyChromatogram, PyFileMetadata, PyFileSummary, PyMobilogram, PySpectrum, PySpectrumArrays,
+    PySpectrumArraysView,
 };
 use crate::reader::{
-    MzPeakReader, ReaderConfig, StreamingSpectrumArraysIterator, StreamingSpectrumIterator,
+    MzPeakReader, ReaderConfig, StreamingSpectrumArraysIterator, StreamingSpectrumArraysViewIterator,
+    StreamingSpectrumIterator,
 };
 
 /// Reader for mzPeak format files
@@ -135,6 +137,27 @@ impl PyMzPeakReader {
         Ok(spectrum.map(|s| PySpectrumArrays::from_arrays(py, s)))
     }
 
+    /// Get a single spectrum by ID as SoA array views (zero-copy)
+    ///
+    /// Args:
+    ///     spectrum_id: The spectrum identifier
+    ///
+    /// Returns:
+    ///     SpectrumArraysView object or None if not found
+    fn get_spectrum_arrays_view(
+        &self,
+        py: Python<'_>,
+        spectrum_id: i64,
+    ) -> PyResult<Option<PySpectrumArraysView>> {
+        let reader = self.get_reader()?;
+        let spectrum = py.allow_threads(|| {
+            reader
+                .get_spectrum_arrays_view(spectrum_id)
+                .into_py_result()
+        })?;
+        Ok(spectrum.map(PySpectrumArraysView::from_view))
+    }
+
     /// Get multiple spectra by their IDs
     ///
     /// Args:
@@ -169,6 +192,27 @@ impl PyMzPeakReader {
             .collect())
     }
 
+    /// Get multiple spectra by their IDs as SoA array views (zero-copy)
+    ///
+    /// Args:
+    ///     spectrum_ids: List of spectrum identifiers
+    ///
+    /// Returns:
+    ///     List of SpectrumArraysView objects
+    fn get_spectra_arrays_views(
+        &self,
+        py: Python<'_>,
+        spectrum_ids: Vec<i64>,
+    ) -> PyResult<Vec<PySpectrumArraysView>> {
+        let reader = self.get_reader()?;
+        let spectra =
+            py.allow_threads(|| reader.get_spectra_arrays_views(&spectrum_ids).into_py_result())?;
+        Ok(spectra
+            .into_iter()
+            .map(PySpectrumArraysView::from_view)
+            .collect())
+    }
+
     /// Get all spectra from the file
     ///
     /// Warning: This loads all spectra into memory. For large files,
@@ -195,6 +239,22 @@ impl PyMzPeakReader {
         Ok(spectra
             .into_iter()
             .map(|s| PySpectrumArrays::from_arrays(py, s))
+            .collect())
+    }
+
+    /// Get all spectra from the file as SoA array views (zero-copy)
+    ///
+    /// Warning: This loads all spectra into memory. For large files,
+    /// consider using iter_spectra_arrays_views() instead.
+    ///
+    /// Returns:
+    ///     List of SpectrumArraysView objects
+    fn all_spectra_arrays_views(&self, py: Python<'_>) -> PyResult<Vec<PySpectrumArraysView>> {
+        let reader = self.get_reader()?;
+        let spectra = py.allow_threads(|| reader.iter_spectra_arrays_views().into_py_result())?;
+        Ok(spectra
+            .into_iter()
+            .map(PySpectrumArraysView::from_view)
             .collect())
     }
 
@@ -327,6 +387,16 @@ impl PyMzPeakReader {
         let reader = self.get_reader()?;
         let streaming_iter = reader.iter_spectra_arrays_streaming().into_py_result()?;
         Ok(PyStreamingSpectrumArraysIterator::new(streaming_iter))
+    }
+
+    /// Return a streaming iterator over all spectra as SoA array views (zero-copy)
+    ///
+    /// Returns:
+    ///     Iterator yielding SpectrumArraysView objects
+    fn iter_spectra_arrays_views(&self) -> PyResult<PyStreamingSpectrumArraysViewIterator> {
+        let reader = self.get_reader()?;
+        let streaming_iter = reader.iter_spectra_arrays_views_streaming().into_py_result()?;
+        Ok(PyStreamingSpectrumArraysViewIterator::new(streaming_iter))
     }
 
     /// Export data as a streaming PyArrow RecordBatchReader (Issue 005 fix)
@@ -627,6 +697,18 @@ impl PyStreamingSpectrumArraysIterator {
     }
 }
 
+/// Streaming iterator over spectra with SoA array views (zero-copy)
+#[pyclass(name = "SpectrumArraysViewIterator", unsendable)]
+pub struct PyStreamingSpectrumArraysViewIterator {
+    inner: Option<StreamingSpectrumArraysViewIterator>,
+}
+
+impl PyStreamingSpectrumArraysViewIterator {
+    pub fn new(inner: StreamingSpectrumArraysViewIterator) -> Self {
+        Self { inner: Some(inner) }
+    }
+}
+
 #[pymethods]
 impl PyStreamingSpectrumArraysIterator {
     fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
@@ -649,6 +731,33 @@ impl PyStreamingSpectrumArraysIterator {
             ))),
             None => {
                 // Iterator exhausted, drop inner to release resources
+                self.inner = None;
+                Ok(None)
+            }
+        }
+    }
+}
+
+#[pymethods]
+impl PyStreamingSpectrumArraysViewIterator {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
+
+    fn __next__(&mut self, py: Python<'_>) -> PyResult<Option<PySpectrumArraysView>> {
+        let inner = self.inner.as_mut().ok_or_else(|| {
+            pyo3::exceptions::PyRuntimeError::new_err("Iterator exhausted or closed")
+        })?;
+
+        let result = py.allow_threads(|| inner.next());
+
+        match result {
+            Some(Ok(spectrum)) => Ok(Some(PySpectrumArraysView::from_view(spectrum))),
+            Some(Err(e)) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+                "Error reading spectrum arrays view: {}",
+                e
+            ))),
+            None => {
                 self.inner = None;
                 Ok(None)
             }

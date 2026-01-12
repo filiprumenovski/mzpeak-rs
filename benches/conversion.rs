@@ -2,7 +2,9 @@ use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Through
 use mzpeak::dataset::MzPeakDatasetWriter;
 use mzpeak::metadata::MzPeakMetadata;
 use mzpeak::mzml::converter::{ConversionConfig, MzMLConverter};
-use mzpeak::writer::{SpectrumBuilder, WriterConfig};
+use mzpeak::writer::{
+    OptionalColumnBuf, PeakArrays, SpectrumArrays, WriterConfig,
+};
 use std::fs;
 use tempfile::TempDir;
 
@@ -160,25 +162,88 @@ fn bench_peak_writing(c: &mut Criterion) {
                         let mut spectra = Vec::new();
 
                         for i in 0..num_spectra {
-                            let mut builder = SpectrumBuilder::new(i as i64, i as i64 + 1)
-                                .ms_level(1)
-                                .retention_time(i as f32 * 0.5)
-                                .polarity(1);
-
+                            let mut mz = Vec::with_capacity(peaks_per_spectrum);
+                            let mut intensity = Vec::with_capacity(peaks_per_spectrum);
                             for j in 0..peaks_per_spectrum {
-                                builder =
-                                    builder.add_peak(200.0 + j as f64 * 10.0, 1000.0 + j as f32 * 100.0);
+                                mz.push(200.0 + j as f64 * 10.0);
+                                intensity.push(1000.0 + j as f32 * 100.0);
                             }
-
-                            spectra.push(builder.build());
+                            let peaks = PeakArrays::new(mz, intensity);
+                            spectra.push(SpectrumArrays::new_ms1(
+                                i as i64,
+                                i as i64 + 1,
+                                i as f32 * 0.5,
+                                1,
+                                peaks,
+                            ));
                         }
 
                         (temp_dir, writer, spectra)
                     },
                     |(temp_dir, mut writer, spectra)| {
                         for spectrum in spectra {
-                            writer.write_spectrum(&spectrum).unwrap();
+                            writer.write_spectrum_arrays(&spectrum).unwrap();
                         }
+                        writer.close().unwrap();
+                        drop(temp_dir);
+                    },
+                    criterion::BatchSize::LargeInput,
+                );
+            },
+        );
+    }
+
+    group.finish();
+}
+
+/// Benchmark peak writing throughput using SoA arrays
+fn bench_peak_writing_arrays(c: &mut Criterion) {
+    let mut group = c.benchmark_group("peak_writing_arrays");
+
+    for num_peaks in [1000, 10_000, 100_000] {
+        group.throughput(Throughput::Elements(num_peaks as u64));
+
+        group.bench_with_input(
+            BenchmarkId::from_parameter(format!("{}peaks", num_peaks)),
+            &num_peaks,
+            |b, &num_peaks| {
+                b.iter_batched(
+                    || {
+                        let temp_dir = TempDir::new().unwrap();
+                        let output_path = temp_dir.path().join("test.mzpeak");
+                        let metadata = MzPeakMetadata::new();
+                        let config = WriterConfig::default();
+                        let writer =
+                            MzPeakDatasetWriter::new(&output_path, &metadata, config).unwrap();
+
+                        let peaks_per_spectrum = 100;
+                        let num_spectra = num_peaks / peaks_per_spectrum;
+                        let mut spectra = Vec::with_capacity(num_spectra);
+
+                        for i in 0..num_spectra {
+                            let mz: Vec<f64> = (0..peaks_per_spectrum)
+                                .map(|j| 200.0 + j as f64 * 10.0)
+                                .collect();
+                            let intensity: Vec<f32> = (0..peaks_per_spectrum)
+                                .map(|j| 1000.0 + j as f32 * 100.0)
+                                .collect();
+                            let mut peaks = PeakArrays::new(mz, intensity);
+                            peaks.ion_mobility = OptionalColumnBuf::all_null(peaks_per_spectrum);
+
+                            let spectrum = SpectrumArrays::new_ms1(
+                                i as i64,
+                                i as i64 + 1,
+                                i as f32 * 0.5,
+                                1,
+                                peaks,
+                            );
+                            spectra.push(spectrum);
+                        }
+
+                        (temp_dir, writer, spectra)
+                    },
+                    |(temp_dir, mut writer, spectra)| {
+                        writer.write_spectra_arrays(&spectra).unwrap();
                         writer.close().unwrap();
                         drop(temp_dir);
                     },
@@ -205,17 +270,13 @@ fn bench_per_peak_overhead(c: &mut Criterion) {
                 let config = WriterConfig::default();
                 let writer = MzPeakDatasetWriter::new(&output_path, &metadata, config).unwrap();
 
-                let spectrum = SpectrumBuilder::new(0, 1)
-                    .ms_level(1)
-                    .retention_time(60.0)
-                    .polarity(1)
-                    .add_peak(500.0, 10000.0)
-                    .build();
+                let peaks = PeakArrays::new(vec![500.0], vec![10000.0]);
+                let spectrum = SpectrumArrays::new_ms1(0, 1, 60.0, 1, peaks);
 
                 (temp_dir, writer, spectrum)
             },
             |(temp_dir, mut writer, spectrum)| {
-                writer.write_spectrum(&spectrum).unwrap();
+                writer.write_spectrum_arrays(&spectrum).unwrap();
                 writer.close().unwrap();
                 drop(temp_dir);
             },
@@ -230,6 +291,7 @@ criterion_group!(
     benches,
     bench_conversion,
     bench_peak_writing,
+    bench_peak_writing_arrays,
     bench_per_peak_overhead
 );
 criterion_main!(benches);

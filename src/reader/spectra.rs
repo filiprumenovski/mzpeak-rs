@@ -1,176 +1,132 @@
 use std::collections::HashSet;
+use std::fs::File;
 
+use arrow::array::{Array, Float32Array, Float64Array};
 use arrow::record_batch::RecordBatch;
+use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
+use parquet::file::metadata::ParquetMetaData;
+use parquet::file::statistics::Statistics;
 
 use crate::schema::columns;
-use crate::writer::{OptionalColumnBuf, PeakArrays, Spectrum, SpectrumArrays};
+use crate::writer::{OptionalColumnBuf, PeakArrays, SpectrumArrays};
 
+use super::config::ReaderSource;
 use super::utils::{
     get_float32_column, get_float64_column, get_int16_column, get_int64_column, get_int8_column,
     get_optional_f32, get_optional_f64, get_optional_float32_column, get_optional_float64_column,
     get_optional_i16, get_optional_i32, get_optional_int16_column, get_optional_int32_column,
 };
-use super::{MzPeakReader, ReaderError};
+use super::{MzPeakReader, ReaderError, RecordBatchIterator};
 
-impl MzPeakReader {
-    /// Iterate over all spectra in the file (eager/legacy)
-    ///
-    /// This reconstructs spectra from the long-format peak data by grouping peaks
-    /// by spectrum_id. **WARNING**: This loads all spectra into memory.
-    ///
-    /// For large files, prefer `iter_spectra_streaming()` which processes data lazily.
-    pub fn iter_spectra(&self) -> Result<Vec<Spectrum>, ReaderError> {
-        let spectra = self.iter_spectra_arrays()?;
-        Ok(spectra.into_iter().map(Spectrum::from).collect())
-    }
+fn spectrum_id_column_index(metadata: &ParquetMetaData) -> Option<usize> {
+    metadata
+        .file_metadata()
+        .schema_descr()
+        .columns()
+        .iter()
+        .position(|column| column.name() == columns::SPECTRUM_ID)
+}
 
-    /// Iterate over all spectra in the file as SoA arrays (eager)
-    ///
-    /// This reconstructs spectra from the long-format peak data by grouping peaks
-    /// by spectrum_id. **WARNING**: This loads all spectra into memory.
-    pub fn iter_spectra_arrays(&self) -> Result<Vec<SpectrumArrays>, ReaderError> {
-        let batches = self.read_all_batches()?;
-        Self::batches_to_spectra_arrays(&batches)
-    }
+fn row_groups_for_spectrum_id_range(
+    metadata: &ParquetMetaData,
+    column_index: usize,
+    min_id: i64,
+    max_id: i64,
+) -> Vec<usize> {
+    let mut row_groups = Vec::new();
+    let num_row_groups = metadata.num_row_groups();
 
-    /// Streaming iterator over spectra (Issue 004 fix)
-    ///
-    /// Returns a lazy iterator that reconstructs spectra on-demand from the
-    /// underlying RecordBatch stream. Memory usage is bounded by batch_size.
-    ///
-    /// # Example
-    ///
-    /// ```rust,no_run
-    /// use mzpeak::reader::MzPeakReader;
-    ///
-    /// let reader = MzPeakReader::open("data.mzpeak")?;
-    /// for result in reader.iter_spectra_streaming()? {
-    ///     let spectrum = result?;
-    ///     println!("Spectrum {}: {} peaks", spectrum.spectrum_id, spectrum.peaks.len());
-    /// }
-    /// # Ok::<(), mzpeak::reader::ReaderError>(())
-    /// ```
-    pub fn iter_spectra_streaming(&self) -> Result<StreamingSpectrumIterator, ReaderError> {
-        let batch_iter = self.iter_batches()?;
-        Ok(StreamingSpectrumIterator::new(batch_iter))
-    }
-
-    /// Streaming iterator over spectra as SoA arrays
-    ///
-    /// Returns a lazy iterator that reconstructs spectra on-demand from the
-    /// underlying RecordBatch stream. Memory usage is bounded by batch_size.
-    pub fn iter_spectra_arrays_streaming(
-        &self,
-    ) -> Result<StreamingSpectrumArraysIterator, ReaderError> {
-        let batch_iter = self.iter_batches()?;
-        Ok(StreamingSpectrumArraysIterator::new(batch_iter))
-    }
-
-    /// Convert record batches to spectra
-    fn batches_to_spectra_arrays(
-        batches: &[RecordBatch],
-    ) -> Result<Vec<SpectrumArrays>, ReaderError> {
-        let mut spectra = Vec::new();
-        let mut current_spectrum: Option<SpectrumArraysBuilder> = None;
-
-        for batch in batches {
-            let spectrum_ids = get_int64_column(batch, columns::SPECTRUM_ID)?;
-            let scan_numbers = get_int64_column(batch, columns::SCAN_NUMBER)?;
-            let ms_levels = get_int16_column(batch, columns::MS_LEVEL)?;
-            let retention_times = get_float32_column(batch, columns::RETENTION_TIME)?;
-            let polarities = get_int8_column(batch, columns::POLARITY)?;
-            let mzs = get_float64_column(batch, columns::MZ)?;
-            let intensities = get_float32_column(batch, columns::INTENSITY)?;
-
-            // Optional columns
-            let ion_mobilities = get_optional_float64_column(batch, columns::ION_MOBILITY);
-            let precursor_mzs = get_optional_float64_column(batch, columns::PRECURSOR_MZ);
-            let precursor_charges = get_optional_int16_column(batch, columns::PRECURSOR_CHARGE);
-            let precursor_intensities =
-                get_optional_float32_column(batch, columns::PRECURSOR_INTENSITY);
-            let isolation_lowers =
-                get_optional_float32_column(batch, columns::ISOLATION_WINDOW_LOWER);
-            let isolation_uppers =
-                get_optional_float32_column(batch, columns::ISOLATION_WINDOW_UPPER);
-            let collision_energies = get_optional_float32_column(batch, columns::COLLISION_ENERGY);
-            let tics = get_optional_float64_column(batch, columns::TOTAL_ION_CURRENT);
-            let base_peak_mzs = get_optional_float64_column(batch, columns::BASE_PEAK_MZ);
-            let base_peak_intensities =
-                get_optional_float32_column(batch, columns::BASE_PEAK_INTENSITY);
-            let injection_times = get_optional_float32_column(batch, columns::INJECTION_TIME);
-            let pixel_xs = get_optional_int32_column(batch, columns::PIXEL_X);
-            let pixel_ys = get_optional_int32_column(batch, columns::PIXEL_Y);
-            let pixel_zs = get_optional_int32_column(batch, columns::PIXEL_Z);
-
-            for i in 0..batch.num_rows() {
-                let spectrum_id = spectrum_ids.value(i);
-
-                // Check if we need to start a new spectrum
-                let need_new_spectrum = match &current_spectrum {
-                    None => true,
-                    Some(s) => s.spectrum_id != spectrum_id,
-                };
-
-                if need_new_spectrum {
-                    // Save the previous spectrum if it exists
-                    if let Some(s) = current_spectrum.take() {
-                        spectra.push(s.finish());
+    for i in 0..num_row_groups {
+        let column = metadata.row_group(i).column(column_index);
+        match column.statistics() {
+            Some(Statistics::Int64(stats)) => {
+                let min = stats.min_opt();
+                let max = stats.max_opt();
+                if stats.min_is_exact() && stats.max_is_exact() {
+                    if let (Some(min), Some(max)) = (min, max) {
+                        if max_id >= *min && min_id <= *max {
+                            row_groups.push(i);
+                        }
+                    } else {
+                        row_groups.push(i);
                     }
-
-                    // Start a new spectrum
-                    current_spectrum = Some(SpectrumArraysBuilder::new(
-                        spectrum_id,
-                        scan_numbers.value(i),
-                        ms_levels.value(i),
-                        retention_times.value(i),
-                        polarities.value(i),
-                        get_optional_f64(precursor_mzs, i),
-                        get_optional_i16(precursor_charges, i),
-                        get_optional_f32(precursor_intensities, i),
-                        get_optional_f32(isolation_lowers, i),
-                        get_optional_f32(isolation_uppers, i),
-                        get_optional_f32(collision_energies, i),
-                        get_optional_f64(tics, i),
-                        get_optional_f64(base_peak_mzs, i),
-                        get_optional_f32(base_peak_intensities, i),
-                        get_optional_f32(injection_times, i),
-                        get_optional_i32(pixel_xs, i),
-                        get_optional_i32(pixel_ys, i),
-                        get_optional_i32(pixel_zs, i),
-                        ion_mobilities.is_some(),
-                    ));
-                }
-
-                // Add the peak to the current spectrum
-                if let Some(ref mut s) = current_spectrum {
-                    s.push_peak(
-                        mzs.value(i),
-                        intensities.value(i),
-                        get_optional_f64(ion_mobilities, i),
-                    );
+                } else {
+                    row_groups.push(i);
                 }
             }
+            _ => row_groups.push(i),
         }
-
-        // Don't forget the last spectrum
-        if let Some(s) = current_spectrum {
-            spectra.push(s.finish());
-        }
-
-        Ok(spectra)
     }
 
-    /// Query spectra by retention time range (inclusive)
-    pub fn spectra_by_rt_range(
+    row_groups
+}
+
+impl MzPeakReader {
+    fn build_iter_for_spectrum_id_range<T: parquet::file::reader::ChunkReader + 'static>(
         &self,
-        start_rt: f32,
-        end_rt: f32,
-    ) -> Result<Vec<Spectrum>, ReaderError> {
-        let all_spectra = self.iter_spectra()?;
-        Ok(all_spectra
-            .into_iter()
-            .filter(|s| s.retention_time >= start_rt && s.retention_time <= end_rt)
-            .collect())
+        builder: ParquetRecordBatchReaderBuilder<T>,
+        min_id: i64,
+        max_id: i64,
+    ) -> Result<RecordBatchIterator, ReaderError> {
+        let metadata = builder.metadata();
+        let row_groups = spectrum_id_column_index(metadata)
+            .map(|column_index| {
+                row_groups_for_spectrum_id_range(metadata, column_index, min_id, max_id)
+            })
+            .unwrap_or_else(|| (0..metadata.num_row_groups()).collect());
+
+        if row_groups.is_empty() {
+            let empty = std::iter::empty::<Result<RecordBatch, arrow::error::ArrowError>>();
+            return Ok(RecordBatchIterator::new(empty));
+        }
+
+        let builder = builder
+            .with_batch_size(self.config.batch_size)
+            .with_row_groups(row_groups);
+        let reader = builder.build()?;
+        Ok(RecordBatchIterator::new(reader))
+    }
+
+    fn iter_batches_for_spectrum_id_range(
+        &self,
+        min_id: i64,
+        max_id: i64,
+    ) -> Result<RecordBatchIterator, ReaderError> {
+        match &self.source {
+            ReaderSource::FilePath(path) => {
+                let file = File::open(path)?;
+                self.build_iter_for_spectrum_id_range(
+                    ParquetRecordBatchReaderBuilder::try_new(file)?,
+                    min_id,
+                    max_id,
+                )
+            }
+            ReaderSource::ZipContainer { chunk_reader, .. } => self.build_iter_for_spectrum_id_range(
+                ParquetRecordBatchReaderBuilder::try_new(chunk_reader.clone())?,
+                min_id,
+                max_id,
+            ),
+        }
+    }
+
+    /// Iterate over all spectra in the file as SoA array views (eager)
+    ///
+    /// This yields view-backed spectra that reference Arrow buffers directly.
+    /// Materialize with `to_owned()` when needed.
+    pub fn iter_spectra_arrays(&self) -> Result<Vec<SpectrumArraysView>, ReaderError> {
+        let iter = self.iter_spectra_arrays_streaming()?;
+        iter.collect()
+    }
+
+    /// Streaming iterator over spectra as SoA array views
+    ///
+    /// Returns a lazy iterator that yields view-backed spectra referencing
+    /// Arrow buffers directly. Memory usage is bounded by batch_size.
+    pub fn iter_spectra_arrays_streaming(
+        &self,
+    ) -> Result<StreamingSpectrumArraysViewIterator, ReaderError> {
+        let batch_iter = self.iter_batches()?;
+        Ok(StreamingSpectrumArraysViewIterator::new(batch_iter))
     }
 
     /// Query spectra by retention time range (inclusive), SoA layout
@@ -178,7 +134,7 @@ impl MzPeakReader {
         &self,
         start_rt: f32,
         end_rt: f32,
-    ) -> Result<Vec<SpectrumArrays>, ReaderError> {
+    ) -> Result<Vec<SpectrumArraysView>, ReaderError> {
         let all_spectra = self.iter_spectra_arrays()?;
         Ok(all_spectra
             .into_iter()
@@ -186,157 +142,327 @@ impl MzPeakReader {
             .collect())
     }
 
-    /// Query spectra by MS level
-    pub fn spectra_by_ms_level(&self, ms_level: i16) -> Result<Vec<Spectrum>, ReaderError> {
-        let all_spectra = self.iter_spectra()?;
-        Ok(all_spectra
-            .into_iter()
-            .filter(|s| s.ms_level == ms_level)
-            .collect())
-    }
-
     /// Query spectra by MS level, SoA layout
     pub fn spectra_by_ms_level_arrays(
         &self,
         ms_level: i16,
-    ) -> Result<Vec<SpectrumArrays>, ReaderError> {
+    ) -> Result<Vec<SpectrumArraysView>, ReaderError> {
         let all_spectra = self.iter_spectra_arrays()?;
         Ok(all_spectra
             .into_iter()
             .filter(|s| s.ms_level == ms_level)
             .collect())
-    }
-
-    /// Get a specific spectrum by ID
-    pub fn get_spectrum(&self, spectrum_id: i64) -> Result<Option<Spectrum>, ReaderError> {
-        let all_spectra = self.iter_spectra()?;
-        Ok(all_spectra.into_iter().find(|s| s.spectrum_id == spectrum_id))
     }
 
     /// Get a specific spectrum by ID, SoA layout
     pub fn get_spectrum_arrays(
         &self,
         spectrum_id: i64,
-    ) -> Result<Option<SpectrumArrays>, ReaderError> {
-        let all_spectra = self.iter_spectra_arrays()?;
-        Ok(all_spectra
-            .into_iter()
-            .find(|s| s.spectrum_id == spectrum_id))
-    }
-
-    /// Get multiple spectra by their IDs
-    pub fn get_spectra(&self, spectrum_ids: &[i64]) -> Result<Vec<Spectrum>, ReaderError> {
-        let id_set: HashSet<_> = spectrum_ids.iter().collect();
-        let all_spectra = self.iter_spectra()?;
-        Ok(all_spectra
-            .into_iter()
-            .filter(|s| id_set.contains(&s.spectrum_id))
-            .collect())
+    ) -> Result<Option<SpectrumArraysView>, ReaderError> {
+        let batch_iter = self.iter_batches_for_spectrum_id_range(spectrum_id, spectrum_id)?;
+        let iter = StreamingSpectrumArraysViewIterator::new(batch_iter);
+        for spectrum in iter {
+            let spectrum = spectrum?;
+            if spectrum.spectrum_id == spectrum_id {
+                return Ok(Some(spectrum));
+            }
+        }
+        Ok(None)
     }
 
     /// Get multiple spectra by their IDs, SoA layout
     pub fn get_spectra_arrays(
         &self,
         spectrum_ids: &[i64],
-    ) -> Result<Vec<SpectrumArrays>, ReaderError> {
+    ) -> Result<Vec<SpectrumArraysView>, ReaderError> {
         let id_set: HashSet<_> = spectrum_ids.iter().collect();
-        let all_spectra = self.iter_spectra_arrays()?;
-        Ok(all_spectra
-            .into_iter()
-            .filter(|s| id_set.contains(&s.spectrum_id))
-            .collect())
+        if id_set.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let min_id = **id_set.iter().min().unwrap();
+        let max_id = **id_set.iter().max().unwrap();
+        let batch_iter = self.iter_batches_for_spectrum_id_range(min_id, max_id)?;
+        let iter = StreamingSpectrumArraysViewIterator::new(batch_iter);
+        let mut matches = Vec::new();
+        for spectrum in iter {
+            let spectrum = spectrum?;
+            if id_set.contains(&spectrum.spectrum_id) {
+                matches.push(spectrum);
+            }
+        }
+        Ok(matches)
     }
 
     /// Get all unique spectrum IDs in the file
     pub fn spectrum_ids(&self) -> Result<Vec<i64>, ReaderError> {
-        let spectra = self.iter_spectra()?;
+        let spectra = self.iter_spectra_arrays()?;
         Ok(spectra.into_iter().map(|s| s.spectrum_id).collect())
     }
 }
 
-/// Legacy iterator over spectra (wrapper for Vec iterator)
-///
-/// This is the eager iterator that loads all spectra into memory.
-/// Prefer `StreamingSpectrumIterator` for large files.
-pub struct SpectrumIterator {
-    inner: std::vec::IntoIter<Spectrum>,
+/// View-backed SoA spectrum that references Arrow buffers.
+#[derive(Debug, Clone)]
+pub struct SpectrumArraysView {
+    segments: Vec<SpectrumArraysViewSegment>,
+    /// Unique spectrum identifier.
+    pub spectrum_id: i64,
+    /// Native scan number from the instrument.
+    pub scan_number: i64,
+    /// MS level (1, 2, 3, ...).
+    pub ms_level: i16,
+    /// Retention time in seconds.
+    pub retention_time: f32,
+    /// Polarity: 1 for positive, -1 for negative.
+    pub polarity: i8,
+    /// Precursor m/z (for MS2+).
+    pub precursor_mz: Option<f64>,
+    /// Precursor charge state.
+    pub precursor_charge: Option<i16>,
+    /// Precursor intensity.
+    pub precursor_intensity: Option<f32>,
+    /// Isolation window lower offset.
+    pub isolation_window_lower: Option<f32>,
+    /// Isolation window upper offset.
+    pub isolation_window_upper: Option<f32>,
+    /// Collision energy in eV.
+    pub collision_energy: Option<f32>,
+    /// Total ion current.
+    pub total_ion_current: Option<f64>,
+    /// Base peak m/z.
+    pub base_peak_mz: Option<f64>,
+    /// Base peak intensity.
+    pub base_peak_intensity: Option<f32>,
+    /// Ion injection time in ms.
+    pub injection_time: Option<f32>,
+    /// MSI X pixel coordinate.
+    pub pixel_x: Option<i32>,
+    /// MSI Y pixel coordinate.
+    pub pixel_y: Option<i32>,
+    /// MSI Z pixel coordinate.
+    pub pixel_z: Option<i32>,
+    num_peaks: usize,
 }
 
-impl Iterator for SpectrumIterator {
-    type Item = Spectrum;
+#[derive(Debug, Clone)]
+struct SpectrumArraysViewSegment {
+    batch: RecordBatch,
+    start: usize,
+    len: usize,
+}
 
-    fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next()
+impl SpectrumArraysView {
+    fn from_segments(segments: Vec<SpectrumArraysViewSegment>) -> Result<Self, ReaderError> {
+        let (batch, row) = {
+            let first = segments.first().ok_or_else(|| {
+                ReaderError::InvalidFormat("empty spectrum view segments".to_string())
+            })?;
+            (first.batch.clone(), first.start)
+        };
+
+        let spectrum_ids = get_int64_column(&batch, columns::SPECTRUM_ID)?;
+        let scan_numbers = get_int64_column(&batch, columns::SCAN_NUMBER)?;
+        let ms_levels = get_int16_column(&batch, columns::MS_LEVEL)?;
+        let retention_times = get_float32_column(&batch, columns::RETENTION_TIME)?;
+        let polarities = get_int8_column(&batch, columns::POLARITY)?;
+
+        let precursor_mzs = get_optional_float64_column(&batch, columns::PRECURSOR_MZ);
+        let precursor_charges = get_optional_int16_column(&batch, columns::PRECURSOR_CHARGE);
+        let precursor_intensities =
+            get_optional_float32_column(&batch, columns::PRECURSOR_INTENSITY);
+        let isolation_lowers =
+            get_optional_float32_column(&batch, columns::ISOLATION_WINDOW_LOWER);
+        let isolation_uppers =
+            get_optional_float32_column(&batch, columns::ISOLATION_WINDOW_UPPER);
+        let collision_energies = get_optional_float32_column(&batch, columns::COLLISION_ENERGY);
+        let tics = get_optional_float64_column(&batch, columns::TOTAL_ION_CURRENT);
+        let base_peak_mzs = get_optional_float64_column(&batch, columns::BASE_PEAK_MZ);
+        let base_peak_intensities =
+            get_optional_float32_column(&batch, columns::BASE_PEAK_INTENSITY);
+        let injection_times = get_optional_float32_column(&batch, columns::INJECTION_TIME);
+        let pixel_xs = get_optional_int32_column(&batch, columns::PIXEL_X);
+        let pixel_ys = get_optional_int32_column(&batch, columns::PIXEL_Y);
+        let pixel_zs = get_optional_int32_column(&batch, columns::PIXEL_Z);
+
+        let num_peaks = segments.iter().map(|s| s.len).sum();
+
+        Ok(Self {
+            segments,
+            spectrum_id: spectrum_ids.value(row),
+            scan_number: scan_numbers.value(row),
+            ms_level: ms_levels.value(row),
+            retention_time: retention_times.value(row),
+            polarity: polarities.value(row),
+            precursor_mz: get_optional_f64(precursor_mzs, row),
+            precursor_charge: get_optional_i16(precursor_charges, row),
+            precursor_intensity: get_optional_f32(precursor_intensities, row),
+            isolation_window_lower: get_optional_f32(isolation_lowers, row),
+            isolation_window_upper: get_optional_f32(isolation_uppers, row),
+            collision_energy: get_optional_f32(collision_energies, row),
+            total_ion_current: get_optional_f64(tics, row),
+            base_peak_mz: get_optional_f64(base_peak_mzs, row),
+            base_peak_intensity: get_optional_f32(base_peak_intensities, row),
+            injection_time: get_optional_f32(injection_times, row),
+            pixel_x: get_optional_i32(pixel_xs, row),
+            pixel_y: get_optional_i32(pixel_ys, row),
+            pixel_z: get_optional_i32(pixel_zs, row),
+            num_peaks,
+        })
     }
-}
 
-/// Legacy iterator over SoA spectra (wrapper for Vec iterator)
-pub struct SpectrumArraysIterator {
-    inner: std::vec::IntoIter<SpectrumArrays>,
-}
-
-impl Iterator for SpectrumArraysIterator {
-    type Item = SpectrumArrays;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next()
+    /// Number of peaks in this spectrum.
+    pub fn peak_count(&self) -> usize {
+        self.num_peaks
     }
-}
 
-/// Streaming iterator over spectra (AoS wrapper over SoA).
-///
-/// This iterator builds SoA spectra first and converts to AoS on demand.
-pub struct StreamingSpectrumIterator {
-    inner: StreamingSpectrumArraysIterator,
-}
+    /// Return m/z arrays for each segment (zero-copy slices).
+    pub fn mz_arrays(&self) -> Result<Vec<Float64Array>, ReaderError> {
+        self.segments
+            .iter()
+            .map(|seg| slice_float64_column(&seg.batch, columns::MZ, seg.start, seg.len))
+            .collect()
+    }
 
-impl StreamingSpectrumIterator {
-    /// Create a new streaming spectrum iterator
-    pub(super) fn new(batch_iter: super::batches::RecordBatchIterator) -> Self {
-        Self {
-            inner: StreamingSpectrumArraysIterator::new(batch_iter),
+    /// Return intensity arrays for each segment (zero-copy slices).
+    pub fn intensity_arrays(&self) -> Result<Vec<Float32Array>, ReaderError> {
+        self.segments
+            .iter()
+            .map(|seg| slice_float32_column(&seg.batch, columns::INTENSITY, seg.start, seg.len))
+            .collect()
+    }
+
+    /// Return ion mobility arrays for each segment (zero-copy slices), if present.
+    pub fn ion_mobility_arrays(&self) -> Result<Option<Vec<Float64Array>>, ReaderError> {
+        let mut arrays = Vec::with_capacity(self.segments.len());
+        for seg in &self.segments {
+            match slice_optional_float64_column(&seg.batch, columns::ION_MOBILITY, seg.start, seg.len)? {
+                Some(array) => arrays.push(array),
+                None => return Ok(None),
+            }
         }
+        Ok(Some(arrays))
+    }
+
+    /// Materialize this view into an owned SpectrumArrays.
+    pub fn to_owned(&self) -> Result<SpectrumArrays, ReaderError> {
+        let has_ion_mobility = self
+            .segments
+            .first()
+            .and_then(|seg| get_optional_float64_column(&seg.batch, columns::ION_MOBILITY))
+            .is_some();
+
+        let mut builder = SpectrumArraysBuilder::new(
+            self.spectrum_id,
+            self.scan_number,
+            self.ms_level,
+            self.retention_time,
+            self.polarity,
+            self.precursor_mz,
+            self.precursor_charge,
+            self.precursor_intensity,
+            self.isolation_window_lower,
+            self.isolation_window_upper,
+            self.collision_energy,
+            self.total_ion_current,
+            self.base_peak_mz,
+            self.base_peak_intensity,
+            self.injection_time,
+            self.pixel_x,
+            self.pixel_y,
+            self.pixel_z,
+            has_ion_mobility,
+        );
+
+        for seg in &self.segments {
+            let batch = &seg.batch;
+            let mzs = get_float64_column(batch, columns::MZ)?;
+            let intensities = get_float32_column(batch, columns::INTENSITY)?;
+            let ion_mobilities = get_optional_float64_column(batch, columns::ION_MOBILITY);
+
+            for i in seg.start..seg.start + seg.len {
+                builder.push_peak(
+                    mzs.value(i),
+                    intensities.value(i),
+                    get_optional_f64(ion_mobilities, i),
+                );
+            }
+        }
+
+        Ok(builder.finish())
     }
 }
 
-impl Iterator for StreamingSpectrumIterator {
-    type Item = Result<Spectrum, ReaderError>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|result| result.map(Spectrum::from))
-    }
+fn slice_float64_column(
+    batch: &RecordBatch,
+    name: &str,
+    start: usize,
+    len: usize,
+) -> Result<Float64Array, ReaderError> {
+    let column = get_float64_column(batch, name)?;
+    let array = column.slice(start, len);
+    array
+        .as_any()
+        .downcast_ref::<Float64Array>()
+        .ok_or_else(|| ReaderError::InvalidFormat(format!("{} is not Float64", name)))
+        .cloned()
 }
 
-/// Streaming iterator over spectra (SoA layout)
-///
-/// Reconstructs spectra on-demand from RecordBatch stream, yielding one
-/// spectrum at a time with bounded memory proportional to batch_size.
-pub struct StreamingSpectrumArraysIterator {
-    /// The underlying batch iterator
+fn slice_float32_column(
+    batch: &RecordBatch,
+    name: &str,
+    start: usize,
+    len: usize,
+) -> Result<Float32Array, ReaderError> {
+    let column = get_float32_column(batch, name)?;
+    let array = column.slice(start, len);
+    array
+        .as_any()
+        .downcast_ref::<Float32Array>()
+        .ok_or_else(|| ReaderError::InvalidFormat(format!("{} is not Float32", name)))
+        .cloned()
+}
+
+fn slice_optional_float64_column(
+    batch: &RecordBatch,
+    name: &str,
+    start: usize,
+    len: usize,
+) -> Result<Option<Float64Array>, ReaderError> {
+    let column = match get_optional_float64_column(batch, name) {
+        Some(column) => column,
+        None => return Ok(None),
+    };
+    let array = column.slice(start, len);
+    let array = array
+        .as_any()
+        .downcast_ref::<Float64Array>()
+        .ok_or_else(|| ReaderError::InvalidFormat(format!("{} is not Float64", name)))?
+        .clone();
+    Ok(Some(array))
+}
+
+/// Streaming iterator over spectra as view-backed SoA layout
+pub struct StreamingSpectrumArraysViewIterator {
     batch_iter: super::batches::RecordBatchIterator,
-    /// Current batch being processed
     current_batch: Option<RecordBatch>,
-    /// Current row index within the batch
     current_row: usize,
-    /// Spectrum being assembled (may span batch boundaries)
-    pending_spectrum: Option<SpectrumArraysBuilder>,
-    /// Whether we've finished all batches
+    pending: Option<SpectrumArraysViewBuilder>,
+    ready: std::collections::VecDeque<SpectrumArraysView>,
     exhausted: bool,
 }
 
-impl StreamingSpectrumArraysIterator {
-    /// Create a new streaming spectrum iterator
+impl StreamingSpectrumArraysViewIterator {
     pub(super) fn new(batch_iter: super::batches::RecordBatchIterator) -> Self {
         Self {
             batch_iter,
             current_batch: None,
             current_row: 0,
-            pending_spectrum: None,
+            pending: None,
+            ready: std::collections::VecDeque::new(),
             exhausted: false,
         }
     }
 
-    /// Load the next batch from the iterator
     fn load_next_batch(&mut self) -> Option<RecordBatch> {
         match self.batch_iter.next() {
             Some(Ok(batch)) => {
@@ -356,139 +482,99 @@ impl StreamingSpectrumArraysIterator {
     }
 }
 
-impl Iterator for StreamingSpectrumArraysIterator {
-    type Item = Result<SpectrumArrays, ReaderError>;
+impl Iterator for StreamingSpectrumArraysViewIterator {
+    type Item = Result<SpectrumArraysView, ReaderError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            // Load batch if needed
+            if let Some(view) = self.ready.pop_front() {
+                return Some(Ok(view));
+            }
+
             if self.current_batch.is_none() {
                 if self.exhausted {
-                    // Return any pending spectrum before finishing
-                    return self.pending_spectrum.take().map(|s| Ok(s.finish()));
+                    return self
+                        .pending
+                        .take()
+                        .map(|pending| pending.finish().map_err(|e| e));
                 }
                 self.current_batch = self.load_next_batch();
                 if self.current_batch.is_none() {
-                    // No more batches, return pending spectrum if any
-                    return self.pending_spectrum.take().map(|s| Ok(s.finish()));
+                    return self
+                        .pending
+                        .take()
+                        .map(|pending| pending.finish().map_err(|e| e));
                 }
             }
 
             let batch = self.current_batch.as_ref()?;
 
-            // If we've processed all rows in this batch, load next
             if self.current_row >= batch.num_rows() {
                 self.current_batch = None;
                 continue;
             }
 
-            // Extract columns (fail fast on schema issues)
             let spectrum_ids = match get_int64_column(batch, columns::SPECTRUM_ID) {
                 Ok(col) => col,
                 Err(e) => return Some(Err(e)),
             };
-            let scan_numbers = match get_int64_column(batch, columns::SCAN_NUMBER) {
-                Ok(col) => col,
-                Err(e) => return Some(Err(e)),
-            };
-            let ms_levels = match get_int16_column(batch, columns::MS_LEVEL) {
-                Ok(col) => col,
-                Err(e) => return Some(Err(e)),
-            };
-            let retention_times = match get_float32_column(batch, columns::RETENTION_TIME) {
-                Ok(col) => col,
-                Err(e) => return Some(Err(e)),
-            };
-            let polarities = match get_int8_column(batch, columns::POLARITY) {
-                Ok(col) => col,
-                Err(e) => return Some(Err(e)),
-            };
-            let mzs = match get_float64_column(batch, columns::MZ) {
-                Ok(col) => col,
-                Err(e) => return Some(Err(e)),
-            };
-            let intensities = match get_float32_column(batch, columns::INTENSITY) {
-                Ok(col) => col,
-                Err(e) => return Some(Err(e)),
-            };
 
-            // Optional columns
-            let ion_mobilities = get_optional_float64_column(batch, columns::ION_MOBILITY);
-            let precursor_mzs = get_optional_float64_column(batch, columns::PRECURSOR_MZ);
-            let precursor_charges = get_optional_int16_column(batch, columns::PRECURSOR_CHARGE);
-            let precursor_intensities =
-                get_optional_float32_column(batch, columns::PRECURSOR_INTENSITY);
-            let isolation_lowers =
-                get_optional_float32_column(batch, columns::ISOLATION_WINDOW_LOWER);
-            let isolation_uppers =
-                get_optional_float32_column(batch, columns::ISOLATION_WINDOW_UPPER);
-            let collision_energies = get_optional_float32_column(batch, columns::COLLISION_ENERGY);
-            let tics = get_optional_float64_column(batch, columns::TOTAL_ION_CURRENT);
-            let base_peak_mzs = get_optional_float64_column(batch, columns::BASE_PEAK_MZ);
-            let base_peak_intensities =
-                get_optional_float32_column(batch, columns::BASE_PEAK_INTENSITY);
-            let injection_times = get_optional_float32_column(batch, columns::INJECTION_TIME);
-            let pixel_xs = get_optional_int32_column(batch, columns::PIXEL_X);
-            let pixel_ys = get_optional_int32_column(batch, columns::PIXEL_Y);
-            let pixel_zs = get_optional_int32_column(batch, columns::PIXEL_Z);
-
-            // Process rows in this batch until we complete a spectrum
-            while self.current_row < batch.num_rows() {
-                let i = self.current_row;
-                let spectrum_id = spectrum_ids.value(i);
-
-                // Check if this row belongs to a new spectrum
-                let is_new_spectrum = match &self.pending_spectrum {
-                    None => true,
-                    Some(s) => s.spectrum_id != spectrum_id,
-                };
-
-                if is_new_spectrum {
-                    // If we have a pending spectrum, return it now
-                    if let Some(completed) = self.pending_spectrum.take() {
-                        // Don't advance current_row - we'll process this row next time
-                        return Some(Ok(completed.finish()));
-                    }
-
-                    // Start a new spectrum
-                    self.pending_spectrum = Some(SpectrumArraysBuilder::new(
-                        spectrum_id,
-                        scan_numbers.value(i),
-                        ms_levels.value(i),
-                        retention_times.value(i),
-                        polarities.value(i),
-                        get_optional_f64(precursor_mzs, i),
-                        get_optional_i16(precursor_charges, i),
-                        get_optional_f32(precursor_intensities, i),
-                        get_optional_f32(isolation_lowers, i),
-                        get_optional_f32(isolation_uppers, i),
-                        get_optional_f32(collision_energies, i),
-                        get_optional_f64(tics, i),
-                        get_optional_f64(base_peak_mzs, i),
-                        get_optional_f32(base_peak_intensities, i),
-                        get_optional_f32(injection_times, i),
-                        get_optional_i32(pixel_xs, i),
-                        get_optional_i32(pixel_ys, i),
-                        get_optional_i32(pixel_zs, i),
-                        ion_mobilities.is_some(),
-                    ));
-                }
-
-                // Add peak to the current spectrum
-                if let Some(ref mut s) = self.pending_spectrum {
-                    s.push_peak(
-                        mzs.value(i),
-                        intensities.value(i),
-                        get_optional_f64(ion_mobilities, i),
-                    );
-                }
-
-                self.current_row += 1;
+            let start = self.current_row;
+            let spectrum_id = spectrum_ids.value(start);
+            let mut end = start + 1;
+            while end < batch.num_rows() && spectrum_ids.value(end) == spectrum_id {
+                end += 1;
             }
 
-            // End of batch, but spectrum may continue in next batch
-            self.current_batch = None;
+            let len = end - start;
+
+            match &mut self.pending {
+                None => {
+                    self.pending = Some(SpectrumArraysViewBuilder::new(spectrum_id));
+                }
+                Some(pending) if pending.spectrum_id != spectrum_id => {
+                    let completed = match self.pending.take().unwrap().finish() {
+                        Ok(view) => view,
+                        Err(e) => return Some(Err(e)),
+                    };
+                    self.ready.push_back(completed);
+                    self.pending = Some(SpectrumArraysViewBuilder::new(spectrum_id));
+                }
+                _ => {}
+            }
+
+            if let Some(pending) = &mut self.pending {
+                pending.push_segment(batch, start, len);
+            }
+
+            self.current_row = end;
         }
+    }
+}
+
+struct SpectrumArraysViewBuilder {
+    spectrum_id: i64,
+    segments: Vec<SpectrumArraysViewSegment>,
+}
+
+impl SpectrumArraysViewBuilder {
+    fn new(spectrum_id: i64) -> Self {
+        Self {
+            spectrum_id,
+            segments: Vec::new(),
+        }
+    }
+
+    fn push_segment(&mut self, batch: &RecordBatch, start: usize, len: usize) {
+        self.segments.push(SpectrumArraysViewSegment {
+            batch: batch.clone(),
+            start,
+            len,
+        });
+    }
+
+    fn finish(self) -> Result<SpectrumArraysView, ReaderError> {
+        SpectrumArraysView::from_segments(self.segments)
     }
 }
 

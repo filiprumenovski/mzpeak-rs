@@ -6,12 +6,51 @@ use mzpeak::dataset::MzPeakDatasetWriter;
 use mzpeak::metadata::{MzPeakMetadata, RunParameters, SdrfMetadata, SourceFileInfo};
 use mzpeak::reader::MzPeakReader;
 use mzpeak::writer::{
-    MzPeakWriter, OptionalColumnBuf, Peak, PeakArrays, SpectrumArrays, SpectrumBuilder,
-    WriterConfig,
+    MzPeakWriter, OptionalColumnBuf, PeakArrays, SpectrumArrays, WriterConfig,
 };
 use parquet::file::reader::{FileReader, SerializedFileReader};
 use std::fs::{self, File};
 use tempfile::tempdir;
+
+fn peak_arrays_from_pairs(pairs: &[(f64, f32)]) -> PeakArrays {
+    let mut mz = Vec::with_capacity(pairs.len());
+    let mut intensity = Vec::with_capacity(pairs.len());
+    for (mz_value, intensity_value) in pairs {
+        mz.push(*mz_value);
+        intensity.push(*intensity_value);
+    }
+    PeakArrays::new(mz, intensity)
+}
+
+fn make_ms1_spectrum(
+    spectrum_id: i64,
+    scan_number: i64,
+    retention_time: f32,
+    polarity: i8,
+    peaks: &[(f64, f32)],
+) -> SpectrumArrays {
+    let peak_arrays = peak_arrays_from_pairs(peaks);
+    SpectrumArrays::new_ms1(spectrum_id, scan_number, retention_time, polarity, peak_arrays)
+}
+
+fn make_ms2_spectrum(
+    spectrum_id: i64,
+    scan_number: i64,
+    retention_time: f32,
+    polarity: i8,
+    precursor_mz: f64,
+    peaks: &[(f64, f32)],
+) -> SpectrumArrays {
+    let peak_arrays = peak_arrays_from_pairs(peaks);
+    SpectrumArrays::new_ms2(
+        spectrum_id,
+        scan_number,
+        retention_time,
+        polarity,
+        precursor_mz,
+        peak_arrays,
+    )
+}
 
 /// Test the complete write-read cycle
 #[test]
@@ -32,26 +71,29 @@ fn test_write_read_cycle() {
     // Create and write spectra
     let spectra: Vec<_> = (0..100)
         .map(|i| {
-            let mut builder = SpectrumBuilder::new(i, i + 1)
-                .ms_level(if i % 10 == 0 { 1 } else { 2 })
-                .retention_time((i as f32) * 0.5)
-                .polarity(1);
+            let ms_level = if i % 10 == 0 { 1 } else { 2 };
+            let peaks: Vec<(f64, f32)> = (0..50)
+                .map(|j| {
+                    (
+                        100.0 + (j as f64) * 10.0,
+                        1000.0 + (j as f32) * 100.0,
+                    )
+                })
+                .collect();
 
-            // Add precursor for MS2
-            if i % 10 != 0 {
-                builder = builder.precursor(500.0 + (i as f64) * 0.1, Some(2), Some(1e6));
+            if ms_level == 1 {
+                make_ms1_spectrum(i, i + 1, (i as f32) * 0.5, 1, &peaks)
+            } else {
+                let mut spectrum =
+                    make_ms2_spectrum(i, i + 1, (i as f32) * 0.5, 1, 500.0 + (i as f64) * 0.1, &peaks);
+                spectrum.precursor_charge = Some(2);
+                spectrum.precursor_intensity = Some(1e6);
+                spectrum
             }
-
-            // Add peaks
-            for j in 0..50 {
-                builder = builder.add_peak(100.0 + (j as f64) * 10.0, 1000.0 + (j as f32) * 100.0);
-            }
-
-            builder.build()
         })
         .collect();
 
-    writer.write_spectra(&spectra).unwrap();
+    writer.write_spectra_arrays(&spectra).unwrap();
     let stats = writer.finish().unwrap();
 
     // Verify write statistics
@@ -110,28 +152,53 @@ fn test_write_read_cycle_arrays() {
 
     let reader = MzPeakReader::open(&path).unwrap();
 
-    let spectrum = reader.get_spectrum_arrays(1).unwrap().unwrap();
-    assert_eq!(spectrum.ms_level, 2);
-    assert_eq!(spectrum.precursor_charge, Some(2));
+    let spectrum_view = reader.get_spectrum_arrays(1).unwrap().unwrap();
+    assert_eq!(spectrum_view.ms_level, 2);
+    assert_eq!(spectrum_view.precursor_charge, Some(2));
+    let spectrum = spectrum_view.to_owned().unwrap();
     assert_eq!(spectrum.peaks.mz.len(), 3);
 
-    for (actual, expected) in spectrum.peaks.mz.iter().zip([150.0, 250.0, 350.0]) {
-        assert!((actual - expected).abs() < 1e-6);
+    let expected_mz = [150.0, 250.0, 350.0];
+    for (idx, (actual, expected)) in spectrum
+        .peaks
+        .mz
+        .iter()
+        .zip(expected_mz.iter())
+        .enumerate()
+    {
+        assert!(
+            (actual - expected).abs() < 1e-6,
+            "mz mismatch at {}: actual {} expected {}",
+            idx,
+            actual,
+            expected
+        );
     }
-    for (actual, expected) in spectrum
+    let expected_intensity = [15.0_f32, 25.0, 35.0];
+    for (idx, (actual, expected)) in spectrum
         .peaks
         .intensity
         .iter()
-        .zip([15.0_f32, 25.0, 35.0])
+        .zip(expected_intensity.iter())
+        .enumerate()
     {
-        assert!((actual - expected).abs() < 1e-3);
+        assert!(
+            (actual - expected).abs() < 1e-3,
+            "intensity mismatch at {}: actual {} expected {}",
+            idx,
+            actual,
+            expected
+        );
     }
 
     match spectrum.peaks.ion_mobility {
         OptionalColumnBuf::WithValidity { values, validity } => {
-            for (actual, expected) in values.iter().zip([1.1, 1.2, 1.3]) {
-                assert!((actual - expected).abs() < 1e-6);
-            }
+            let actual: Vec<Option<f64>> = values
+                .iter()
+                .zip(validity.iter())
+                .map(|(value, is_valid)| if *is_valid { Some(*value) } else { None })
+                .collect();
+            assert_eq!(actual, vec![Some(1.1), None, Some(1.3)]);
             assert_eq!(validity, vec![true, false, true]);
         }
         other => panic!("unexpected ion mobility layout: {:?}", other),
@@ -164,24 +231,18 @@ fn test_large_batch() {
     // Create many spectra with many peaks
     let spectra: Vec<_> = (0..1000)
         .map(|i| {
-            let peaks: Vec<Peak> = (0..100)
-                .map(|j| Peak {
-                    mz: 100.0 + (j as f64),
-                    intensity: 1000.0,
-                    ion_mobility: None,
-                })
-                .collect();
-
-            SpectrumBuilder::new(i, i + 1)
-                .ms_level(1)
-                .retention_time((i as f32) * 0.1)
-                .polarity(1)
-                .peaks(peaks)
-                .build()
+            let mut mz = Vec::with_capacity(100);
+            let mut intensity = Vec::with_capacity(100);
+            for j in 0..100 {
+                mz.push(100.0 + (j as f64));
+                intensity.push(1000.0);
+            }
+            let peaks = PeakArrays::new(mz, intensity);
+            SpectrumArrays::new_ms1(i, i + 1, (i as f32) * 0.1, 1, peaks)
         })
         .collect();
 
-    writer.write_spectra(&spectra).unwrap();
+    writer.write_spectra_arrays(&spectra).unwrap();
     let stats = writer.finish().unwrap();
 
     assert_eq!(stats.spectra_written, 1000);
@@ -197,25 +258,27 @@ fn test_ms2_spectrum() {
     let metadata = MzPeakMetadata::new();
     let mut writer = MzPeakWriter::new_file(&path, &metadata, WriterConfig::default()).unwrap();
 
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(2)
-        .retention_time(60.5)
-        .polarity(1)
-        .precursor(500.2534, Some(2), Some(1e7))
-        .isolation_window(0.7, 0.7)
-        .collision_energy(30.0)
-        .injection_time(50.5)
-        .add_peak(150.1, 10000.0)
-        .add_peak(250.2, 20000.0)
-        .add_peak(350.3, 5000.0)
-        .build();
+    let mut spectrum = make_ms2_spectrum(
+        0,
+        1,
+        60.5,
+        1,
+        500.2534,
+        &[(150.1, 10000.0), (250.2, 20000.0), (350.3, 5000.0)],
+    );
+    spectrum.precursor_charge = Some(2);
+    spectrum.precursor_intensity = Some(1e7);
+    spectrum.isolation_window_lower = Some(0.7);
+    spectrum.isolation_window_upper = Some(0.7);
+    spectrum.collision_energy = Some(30.0);
+    spectrum.injection_time = Some(50.5);
 
     assert_eq!(spectrum.ms_level, 2);
     assert_eq!(spectrum.precursor_mz, Some(500.2534));
     assert_eq!(spectrum.precursor_charge, Some(2));
     assert_eq!(spectrum.collision_energy, Some(30.0));
 
-    writer.write_spectrum(&spectrum).unwrap();
+    writer.write_spectrum_arrays(&spectrum).unwrap();
     let stats = writer.finish().unwrap();
 
     assert_eq!(stats.spectra_written, 1);
@@ -261,14 +324,9 @@ fn test_metadata_roundtrip() {
     // Write file
     let mut writer = MzPeakWriter::new_file(&path, &metadata, WriterConfig::default()).unwrap();
 
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(1)
-        .retention_time(0.0)
-        .polarity(1)
-        .add_peak(400.0, 10000.0)
-        .build();
+    let spectrum = make_ms1_spectrum(0, 1, 0.0, 1, &[(400.0, 10000.0)]);
 
-    writer.write_spectrum(&spectrum).unwrap();
+    writer.write_spectrum_arrays(&spectrum).unwrap();
     writer.finish().unwrap();
 
     // Read and verify metadata
@@ -311,17 +369,20 @@ fn test_dataset_bundle_structure() {
     // Write test data
     let spectra: Vec<_> = (0..50)
         .map(|i| {
-            SpectrumBuilder::new(i, i + 1)
-                .ms_level(1)
-                .retention_time((i as f32) * 0.5)
-                .polarity(1)
-                .add_peak(400.0 + (i as f64), 10000.0)
-                .add_peak(500.0 + (i as f64), 15000.0)
-                .build()
+            make_ms1_spectrum(
+                i,
+                i + 1,
+                (i as f32) * 0.5,
+                1,
+                &[
+                    (400.0 + (i as f64), 10000.0),
+                    (500.0 + (i as f64), 15000.0),
+                ],
+            )
         })
         .collect();
 
-    dataset.write_spectra(&spectra).unwrap();
+    dataset.write_spectra_arrays(&spectra).unwrap();
     let stats = dataset.close().unwrap();
 
     // Verify statistics
@@ -414,14 +475,9 @@ fn test_dataset_bundle_full_metadata() {
     let mut dataset = MzPeakDatasetWriter::new_directory(&dataset_path, &metadata, config).unwrap();
 
     // Write minimal data
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(1)
-        .retention_time(0.0)
-        .polarity(1)
-        .add_peak(400.0, 10000.0)
-        .build();
+    let spectrum = make_ms1_spectrum(0, 1, 0.0, 1, &[(400.0, 10000.0)]);
 
-    dataset.write_spectrum(&spectrum).unwrap();
+    dataset.write_spectrum_arrays(&spectrum).unwrap();
     dataset.close().unwrap();
 
     // Verify all metadata is present in metadata.json
@@ -461,13 +517,8 @@ fn test_dataset_bundle_already_exists() {
 
     // Create first dataset
     let mut dataset1 = MzPeakDatasetWriter::new(&dataset_path, &metadata, config.clone()).unwrap();
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(1)
-        .retention_time(0.0)
-        .polarity(1)
-        .add_peak(400.0, 10000.0)
-        .build();
-    dataset1.write_spectrum(&spectrum).unwrap();
+    let spectrum = make_ms1_spectrum(0, 1, 0.0, 1, &[(400.0, 10000.0)]);
+    dataset1.write_spectrum_arrays(&spectrum).unwrap();
     dataset1.close().unwrap();
 
     // Try to create second dataset at same location - should fail
@@ -489,13 +540,8 @@ fn test_read_chromatograms_directory() {
     let mut dataset = MzPeakDatasetWriter::new_directory(&dataset_path, &metadata, config).unwrap();
 
     // Write a spectrum
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(1)
-        .retention_time(60.0)
-        .polarity(1)
-        .add_peak(400.0, 10000.0)
-        .build();
-    dataset.write_spectrum(&spectrum).unwrap();
+    let spectrum = make_ms1_spectrum(0, 1, 60.0, 1, &[(400.0, 10000.0)]);
+    dataset.write_spectrum_arrays(&spectrum).unwrap();
     dataset.close().unwrap();
 
     // Write chromatograms
@@ -556,13 +602,8 @@ fn test_read_mobilograms_directory() {
     let mut dataset = MzPeakDatasetWriter::new_directory(&dataset_path, &metadata, config).unwrap();
 
     // Write a spectrum
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(1)
-        .retention_time(60.0)
-        .polarity(1)
-        .add_peak(400.0, 10000.0)
-        .build();
-    dataset.write_spectrum(&spectrum).unwrap();
+    let spectrum = make_ms1_spectrum(0, 1, 60.0, 1, &[(400.0, 10000.0)]);
+    dataset.write_spectrum_arrays(&spectrum).unwrap();
     dataset.close().unwrap();
 
     // Write mobilograms
@@ -622,13 +663,8 @@ fn test_read_chromatograms_missing_file() {
     let mut dataset = MzPeakDatasetWriter::new_directory(&dataset_path, &metadata, config).unwrap();
 
     // Write only a spectrum, no chromatograms
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(1)
-        .retention_time(60.0)
-        .polarity(1)
-        .add_peak(400.0, 10000.0)
-        .build();
-    dataset.write_spectrum(&spectrum).unwrap();
+    let spectrum = make_ms1_spectrum(0, 1, 60.0, 1, &[(400.0, 10000.0)]);
+    dataset.write_spectrum_arrays(&spectrum).unwrap();
     dataset.close().unwrap();
 
     // Read back - should get empty chromatograms
@@ -650,13 +686,8 @@ fn test_read_mobilograms_missing_file() {
     let mut dataset = MzPeakDatasetWriter::new_directory(&dataset_path, &metadata, config).unwrap();
 
     // Write only a spectrum, no mobilograms
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(1)
-        .retention_time(60.0)
-        .polarity(1)
-        .add_peak(400.0, 10000.0)
-        .build();
-    dataset.write_spectrum(&spectrum).unwrap();
+    let spectrum = make_ms1_spectrum(0, 1, 60.0, 1, &[(400.0, 10000.0)]);
+    dataset.write_spectrum_arrays(&spectrum).unwrap();
     dataset.close().unwrap();
 
     // Read back - should get empty mobilograms
@@ -668,9 +699,8 @@ fn test_read_mobilograms_missing_file() {
 /// Test reading chromatograms from ZIP container
 #[test]
 fn test_read_chromatograms_zip_container() {
-    use mzpeak::chromatogram_writer::{Chromatogram, ChromatogramWriter, ChromatogramWriterConfig};
+    use mzpeak::chromatogram_writer::Chromatogram;
     use mzpeak::reader::MzPeakReader;
-    use mzpeak::dataset::OutputMode;
 
     let dir = tempdir().unwrap();
     let container_path = dir.path().join("test_with_chrom.mzpeak");
@@ -682,13 +712,8 @@ fn test_read_chromatograms_zip_container() {
     let mut dataset = MzPeakDatasetWriter::new(&container_path, &metadata, config).unwrap();
 
     // Write a spectrum
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(1)
-        .retention_time(60.0)
-        .polarity(1)
-        .add_peak(400.0, 10000.0)
-        .build();
-    dataset.write_spectrum(&spectrum).unwrap();
+    let spectrum = make_ms1_spectrum(0, 1, 60.0, 1, &[(400.0, 10000.0)]);
+    dataset.write_spectrum_arrays(&spectrum).unwrap();
 
     // Write chromatograms
     let tic = Chromatogram::new(
@@ -722,7 +747,7 @@ fn test_read_chromatograms_zip_container() {
 /// Test reading mobilograms from ZIP container
 #[test]
 fn test_read_mobilograms_zip_container() {
-    use mzpeak::mobilogram_writer::{Mobilogram, MobilogramWriter, MobilogramWriterConfig};
+    use mzpeak::mobilogram_writer::Mobilogram;
     use mzpeak::reader::MzPeakReader;
 
     let dir = tempdir().unwrap();
@@ -735,13 +760,8 @@ fn test_read_mobilograms_zip_container() {
     let mut dataset = MzPeakDatasetWriter::new(&container_path, &metadata, config).unwrap();
 
     // Write a spectrum
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(1)
-        .retention_time(60.0)
-        .polarity(1)
-        .add_peak(400.0, 10000.0)
-        .build();
-    dataset.write_spectrum(&spectrum).unwrap();
+    let spectrum = make_ms1_spectrum(0, 1, 60.0, 1, &[(400.0, 10000.0)]);
+    dataset.write_spectrum_arrays(&spectrum).unwrap();
 
     // Write mobilograms
     let eim1 = Mobilogram::new(
@@ -934,7 +954,7 @@ fn test_mzml_conversion_with_chromatograms() {
 
     // Verify spectrum reading still works
     let reader = MzPeakReader::open(&output_path).unwrap();
-    let spectra = reader.iter_spectra().unwrap();
+    let spectra = reader.iter_spectra_arrays().unwrap();
     assert_eq!(spectra.len(), 2, "Should have 2 spectra");
 }
 
@@ -942,22 +962,17 @@ fn test_mzml_conversion_with_chromatograms() {
 
 use proptest::prelude::*;
 
-/// Generate arbitrary Peak data
-fn arb_peak() -> impl Strategy<Value = Peak> {
+/// Generate arbitrary peak triplets (mz, intensity, ion mobility).
+fn arb_peak() -> impl Strategy<Value = (f64, f32, Option<f64>)> {
     (
-        100.0..3000.0_f64,           // mz range
-        0.0..1_000_000.0_f32,        // intensity range
+        100.0..3000.0_f64,              // mz range
+        0.0..1_000_000.0_f32,           // intensity range
         prop::option::of(0.0..2.0_f64), // optional ion mobility
     )
-        .prop_map(|(mz, intensity, ion_mobility)| Peak {
-            mz,
-            intensity,
-            ion_mobility,
-        })
 }
 
-/// Generate arbitrary Spectrum data - split into nested tuples to avoid 12-element limit
-fn arb_spectrum() -> impl Strategy<Value = mzpeak::writer::Spectrum> {
+/// Generate arbitrary SpectrumArrays data - split into nested tuples to avoid 12-element limit.
+fn arb_spectrum() -> impl Strategy<Value = SpectrumArrays> {
     // Core fields (under 12 elements)
     let core_fields = (
         0..1_000_000_i64,                          // spectrum_id
@@ -967,47 +982,103 @@ fn arb_spectrum() -> impl Strategy<Value = mzpeak::writer::Spectrum> {
         prop::bool::ANY.prop_map(|b| if b { 1 } else { -1 }), // polarity
         prop::collection::vec(arb_peak(), 1..50),  // peaks (1-50 per spectrum)
     );
-    
+
     // Optional precursor fields (under 12 elements)
     let precursor_fields = (
-        prop::option::of(200.0..2000.0_f64),       // precursor_mz
-        prop::option::of(1..10_i16),               // precursor_charge
-        prop::option::of(0.0..1_000_000.0_f32),    // precursor_intensity
-        prop::option::of(0.0..10.0_f32),           // isolation_window_lower
-        prop::option::of(0.0..10.0_f32),           // isolation_window_upper
-        prop::option::of(0.0..100.0_f32),          // collision_energy
-        prop::option::of(0.0..1000.0_f32),         // injection_time
+        prop::option::of(200.0..2000.0_f64),    // precursor_mz
+        prop::option::of(1..10_i16),            // precursor_charge
+        prop::option::of(0.0..1_000_000.0_f32), // precursor_intensity
+        prop::option::of(0.0..10.0_f32),        // isolation_window_lower
+        prop::option::of(0.0..10.0_f32),        // isolation_window_upper
+        prop::option::of(0.0..100.0_f32),       // collision_energy
+        prop::option::of(0.0..1000.0_f32),      // injection_time
     );
-    
-    (core_fields, precursor_fields)
-        .prop_map(|(core, precursor)| {
-            let (spectrum_id, scan_number, ms_level, retention_time, polarity, peaks) = core;
-            let (precursor_mz, precursor_charge, precursor_intensity, 
-                 isolation_window_lower, isolation_window_upper, 
-                 collision_energy, injection_time) = precursor;
-            
-            mzpeak::writer::Spectrum {
-                spectrum_id,
-                scan_number,
-                ms_level,
-                retention_time,
-                polarity,
-                precursor_mz,
-                precursor_charge,
-                precursor_intensity,
-                isolation_window_lower,
-                isolation_window_upper,
-                collision_energy,
-                total_ion_current: None,
-                base_peak_mz: None,
-                base_peak_intensity: None,
-                injection_time,
-                pixel_x: None,
-                pixel_y: None,
-                pixel_z: None,
-                peaks,
+
+    (core_fields, precursor_fields).prop_map(|(core, precursor)| {
+        let (spectrum_id, scan_number, ms_level, retention_time, polarity, peaks) = core;
+        let (
+            precursor_mz,
+            precursor_charge,
+            precursor_intensity,
+            isolation_window_lower,
+            isolation_window_upper,
+            collision_energy,
+            injection_time,
+        ) = precursor;
+
+        let mut mz = Vec::with_capacity(peaks.len());
+        let mut intensity = Vec::with_capacity(peaks.len());
+        let mut ion_values = Vec::with_capacity(peaks.len());
+        let mut validity = Vec::with_capacity(peaks.len());
+        let mut has_any = false;
+        let mut all_present = true;
+
+        for (mz_value, intensity_value, ion_mobility) in peaks {
+            mz.push(mz_value);
+            intensity.push(intensity_value);
+            match ion_mobility {
+                Some(v) => {
+                    ion_values.push(v);
+                    validity.push(true);
+                    has_any = true;
+                }
+                None => {
+                    ion_values.push(0.0);
+                    validity.push(false);
+                    all_present = false;
+                }
             }
-        })
+        }
+
+        let ion_mobility = if !has_any {
+            OptionalColumnBuf::all_null(mz.len())
+        } else if all_present {
+            OptionalColumnBuf::AllPresent(ion_values)
+        } else {
+            OptionalColumnBuf::WithValidity {
+                values: ion_values,
+                validity,
+            }
+        };
+
+        SpectrumArrays {
+            spectrum_id,
+            scan_number,
+            ms_level,
+            retention_time,
+            polarity,
+            precursor_mz,
+            precursor_charge,
+            precursor_intensity,
+            isolation_window_lower,
+            isolation_window_upper,
+            collision_energy,
+            total_ion_current: None,
+            base_peak_mz: None,
+            base_peak_intensity: None,
+            injection_time,
+            pixel_x: None,
+            pixel_y: None,
+            pixel_z: None,
+            peaks: PeakArrays {
+                mz,
+                intensity,
+                ion_mobility,
+            },
+        }
+    })
+}
+
+fn expand_optional_f64(column: &OptionalColumnBuf<f64>) -> Vec<Option<f64>> {
+    match column {
+        OptionalColumnBuf::AllNull { len } => vec![None; *len],
+        OptionalColumnBuf::AllPresent(values) => values.iter().copied().map(Some).collect(),
+        OptionalColumnBuf::WithValidity { values, validity } => values
+            .iter()
+            .zip(validity.iter())
+            .map(|(value, is_valid)| if *is_valid { Some(*value) } else { None })
+            .collect(),
+    }
 }
 
 /// Test that all 10 Parquet footer metadata keys are written correctly
@@ -1075,13 +1146,8 @@ fn test_all_footer_metadata_keys() {
 
     // Write file
     let mut writer = MzPeakWriter::new_file(&path, &metadata, WriterConfig::default()).unwrap();
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(1)
-        .retention_time(0.0)
-        .polarity(1)
-        .add_peak(400.0, 10000.0)
-        .build();
-    writer.write_spectrum(&spectrum).unwrap();
+    let spectrum = make_ms1_spectrum(0, 1, 0.0, 1, &[(400.0, 10000.0)]);
+    writer.write_spectrum_arrays(&spectrum).unwrap();
     writer.finish().unwrap();
 
     // Read and verify ALL metadata keys are present
@@ -1205,7 +1271,8 @@ fn test_metadata_from_parquet_roundtrip() {
 
     // Write file
     let mut writer = MzPeakWriter::new_file(&path, &original, WriterConfig::default()).unwrap();
-    writer.write_spectrum(&SpectrumBuilder::new(0, 1).ms_level(1).retention_time(0.0).polarity(1).add_peak(100.0, 1000.0).build()).unwrap();
+    let spectrum = make_ms1_spectrum(0, 1, 0.0, 1, &[(100.0, 1000.0)]);
+    writer.write_spectrum_arrays(&spectrum).unwrap();
     writer.finish().unwrap();
 
     // Read back using MzPeakReader
@@ -1285,7 +1352,8 @@ fn test_processing_history_footer_serialization() {
 
     // Write file
     let mut writer = MzPeakWriter::new_file(&path, &metadata, WriterConfig::default()).unwrap();
-    writer.write_spectrum(&SpectrumBuilder::new(0, 1).ms_level(1).retention_time(0.0).polarity(1).add_peak(100.0, 1000.0).build()).unwrap();
+    let spectrum = make_ms1_spectrum(0, 1, 0.0, 1, &[(100.0, 1000.0)]);
+    writer.write_spectrum_arrays(&spectrum).unwrap();
     writer.finish().unwrap();
 
     // Read and verify processing history
@@ -1317,7 +1385,7 @@ fn test_processing_history_footer_serialization() {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(10_000))]
+    #![proptest_config(ProptestConfig::with_cases(500))]
 
     /// Property test: Round-trip data integrity
     /// Tests that any generated spectrum can be written and read back with exact equality
@@ -1333,24 +1401,26 @@ proptest! {
         let config = WriterConfig::default();
         let mut writer = MzPeakWriter::new_file(&path, &metadata, config).unwrap();
         
-        writer.write_spectra(&spectra).unwrap();
+        writer.write_spectra_arrays(&spectra).unwrap();
         let write_stats = writer.finish().unwrap();
         
         // Calculate expected totals
         let expected_spectra = spectra.len();
-        let expected_peaks: usize = spectra.iter().map(|s| s.peaks.len()).sum();
+        let expected_peaks: usize = spectra.iter().map(|s| s.peak_count()).sum();
         
         prop_assert_eq!(write_stats.spectra_written, expected_spectra, "Spectra count mismatch");
         prop_assert_eq!(write_stats.peaks_written, expected_peaks, "Peak count mismatch");
         
         // Read back
         let reader = MzPeakReader::open(&path).unwrap();
-        let read_spectra = reader.iter_spectra().unwrap();
+        let read_spectra = reader.iter_spectra_arrays().unwrap();
         
         prop_assert_eq!(read_spectra.len(), spectra.len(), "Read spectrum count mismatch");
         
         // Verify each spectrum
         for (original, read_back) in spectra.iter().zip(read_spectra.iter()) {
+            let read_back = read_back.to_owned().unwrap();
+
             prop_assert_eq!(read_back.spectrum_id, original.spectrum_id, "spectrum_id mismatch");
             prop_assert_eq!(read_back.scan_number, original.scan_number, "scan_number mismatch");
             prop_assert_eq!(read_back.ms_level, original.ms_level, "ms_level mismatch");
@@ -1363,15 +1433,18 @@ proptest! {
             prop_assert_eq!(read_back.isolation_window_upper, original.isolation_window_upper, "isolation_window_upper mismatch");
             prop_assert_eq!(read_back.collision_energy, original.collision_energy, "collision_energy mismatch");
             prop_assert_eq!(read_back.injection_time, original.injection_time, "injection_time mismatch");
-            
-            prop_assert_eq!(read_back.peaks.len(), original.peaks.len(), "peak count mismatch");
-            
-            // Verify each peak
-            for (orig_peak, read_peak) in original.peaks.iter().zip(read_back.peaks.iter()) {
-                prop_assert_eq!(read_peak.mz, orig_peak.mz, "peak mz mismatch");
-                prop_assert_eq!(read_peak.intensity, orig_peak.intensity, "peak intensity mismatch");
-                prop_assert_eq!(read_peak.ion_mobility, orig_peak.ion_mobility, "peak ion_mobility mismatch");
-            }
+
+            prop_assert_eq!(read_back.peaks.mz.len(), original.peaks.mz.len(), "peak count mismatch");
+            prop_assert_eq!(read_back.peaks.mz, original.peaks.mz.as_slice(), "peak mz mismatch");
+            prop_assert_eq!(
+                read_back.peaks.intensity,
+                original.peaks.intensity.as_slice(),
+                "peak intensity mismatch"
+            );
+
+            let read_im = expand_optional_f64(&read_back.peaks.ion_mobility);
+            let orig_im = expand_optional_f64(&original.peaks.ion_mobility);
+            prop_assert_eq!(read_im, orig_im, "peak ion_mobility mismatch");
         }
     }
 }

@@ -15,7 +15,7 @@ use crate::mobilogram_writer::{
 };
 use crate::metadata::MzPeakMetadata;
 use crate::schema::MZPEAK_MIMETYPE;
-use crate::writer::{MzPeakWriter, Spectrum, SpectrumArrays, WriterConfig, WriterStats};
+use crate::writer::{MzPeakWriter, SpectrumArrays, WriterConfig, WriterStats};
 
 use super::error::DatasetError;
 use super::stats::DatasetStats;
@@ -120,9 +120,6 @@ pub struct MzPeakDatasetWriter {
 
     /// Copy of metadata for JSON export
     metadata: MzPeakMetadata,
-
-    /// Writer configuration
-    config: WriterConfig,
 
     /// Flag indicating if the dataset is finalized
     finalized: bool,
@@ -232,7 +229,6 @@ impl MzPeakDatasetWriter {
             },
             mode: OutputMode::Container,
             metadata: metadata.clone(),
-            config,
             finalized: false,
         })
     }
@@ -294,7 +290,6 @@ impl MzPeakDatasetWriter {
             },
             mode: OutputMode::Directory,
             metadata: metadata.clone(),
-            config,
             finalized: false,
         })
     }
@@ -302,27 +297,6 @@ impl MzPeakDatasetWriter {
     /// Get the output mode being used
     pub fn mode(&self) -> OutputMode {
         self.mode
-    }
-
-    /// Write a single spectrum to the dataset
-    ///
-    /// This delegates to the internal peak writer.
-    pub fn write_spectrum(&mut self, spectrum: &Spectrum) -> Result<(), DatasetError> {
-        if self.finalized {
-            return Err(DatasetError::NotInitialized);
-        }
-
-        match &mut self.sink {
-            DatasetSink::Directory { peak_writer, .. } => {
-                let writer = peak_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
-                writer.write_spectrum(spectrum)?;
-            }
-            DatasetSink::Container { peak_writer, .. } => {
-                let writer = peak_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
-                writer.write_spectrum(spectrum)?;
-            }
-        }
-        Ok(())
     }
 
     /// Write a single spectrum with SoA peak layout to the dataset.
@@ -342,27 +316,6 @@ impl MzPeakDatasetWriter {
             DatasetSink::Container { peak_writer, .. } => {
                 let writer = peak_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
                 writer.write_spectrum_arrays(spectrum)?;
-            }
-        }
-        Ok(())
-    }
-
-    /// Write multiple spectra to the dataset
-    ///
-    /// This delegates to the internal peak writer.
-    pub fn write_spectra(&mut self, spectra: &[Spectrum]) -> Result<(), DatasetError> {
-        if self.finalized {
-            return Err(DatasetError::NotInitialized);
-        }
-
-        match &mut self.sink {
-            DatasetSink::Directory { peak_writer, .. } => {
-                let writer = peak_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
-                writer.write_spectra(spectra)?;
-            }
-            DatasetSink::Container { peak_writer, .. } => {
-                let writer = peak_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
-                writer.write_spectra(spectra)?;
             }
         }
         Ok(())

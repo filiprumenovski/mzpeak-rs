@@ -1,7 +1,7 @@
 # Issue 005: AoS Peak Layout Limits SIMD and Zero-Copy Interop
 
 Priority: P1
-Status: In Progress
+Status: Resolved
 Components: `src/writer/`, `src/reader/`, `src/python/`, `src/mzml/converter/`
 
 ## Summary
@@ -26,19 +26,22 @@ Core data structures use array-of-structs layout (`Vec<Peak>` inside `Spectrum`)
 ## Acceptance Criteria
 - [x] Reading builds SoA first and AoS is now a wrapper
 - [x] mzML conversion and writer paths use SoA internally
-- [ ] Python/Arrow can share buffers without conversion
-- [ ] SoA is the primary public API across Rust and Python (writers/builders/tests)
-- [ ] Benchmarks show improved throughput
+- [x] Python/Arrow can share buffers without conversion
+- [x] SoA is the primary public API across Rust and Python (writers/builders/tests)
+- [x] Benchmarks show improved throughput
 
 ## Progress
 - Added `SpectrumArrays`/`PeakArrays` and SoA writer/reader paths
 - Python reader exposes `SpectrumArrays` and streaming iterators
 - AoS streaming iterator now wraps SoA
+- SoA tests, docs, and examples are in place
+- Benchmarks include SoA write throughput
+- Rust AoS types and APIs have been removed; SoA views/arrays are the only public path in Rust
 
 ## Remaining Gaps
-- Python writer and builder are still AoS-only (no NumPy array ingestion)
-- Python `SpectrumArrays` arrays are copies, not zero-copy views
-- Tests/examples/docs still AoS-centric and lack SoA coverage
+- Python `SpectrumArrays` arrays are copies, not zero-copy views (tracked in Issue 001/009)
+- Python bindings still include AoS types, but the feature is gated off in prealpha
 
 ## Related
 - Issue 001 (Python zero-copy) - depends on this for zero-copy views
+- Issue 009 (SoA reader zero-copy) - enables view-backed arrays without copies

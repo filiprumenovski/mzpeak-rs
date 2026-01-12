@@ -2,7 +2,7 @@ use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criteri
 use mzpeak::dataset::MzPeakDatasetWriter;
 use mzpeak::metadata::MzPeakMetadata;
 use mzpeak::reader::MzPeakReader;
-use mzpeak::writer::{SpectrumBuilder, WriterConfig};
+use mzpeak::writer::{PeakArrays, SpectrumArrays, WriterConfig};
 use tempfile::TempDir;
 
 /// Create a test file with MS2 peaks for filtering
@@ -13,20 +13,29 @@ fn create_ms2_test_file(path: &std::path::Path, num_spectra: usize, peaks_per_sp
 
     for i in 0..num_spectra {
         let ms_level = if i % 3 == 0 { 1 } else { 2 };
-        let mut builder = SpectrumBuilder::new(i as i64, i as i64 + 1)
-            .ms_level(ms_level)
-            .retention_time(i as f32 * 0.5)
-            .polarity(1);
-
-        if ms_level == 2 {
-            builder = builder.precursor(500.0 + (i % 100) as f64, Some(2), Some(1e6));
-        }
-
+        let mut mz = Vec::with_capacity(peaks_per_spectrum);
+        let mut intensity = Vec::with_capacity(peaks_per_spectrum);
         for j in 0..peaks_per_spectrum {
-            builder = builder.add_peak(200.0 + j as f64 * 10.0, 1000.0 + j as f32 * 100.0);
+            mz.push(200.0 + j as f64 * 10.0);
+            intensity.push(1000.0 + j as f32 * 100.0);
         }
-
-        writer.write_spectrum(&builder.build()).unwrap();
+        let peaks = PeakArrays::new(mz, intensity);
+        let spectrum = if ms_level == 1 {
+            SpectrumArrays::new_ms1(i as i64, i as i64 + 1, i as f32 * 0.5, 1, peaks)
+        } else {
+            let mut ms2 = SpectrumArrays::new_ms2(
+                i as i64,
+                i as i64 + 1,
+                i as f32 * 0.5,
+                1,
+                500.0 + (i % 100) as f64,
+                peaks,
+            );
+            ms2.precursor_charge = Some(2);
+            ms2.precursor_intensity = Some(1e6);
+            ms2
+        };
+        writer.write_spectrum_arrays(&spectrum).unwrap();
     }
 
     writer.close().unwrap();
@@ -55,7 +64,7 @@ fn bench_ms2_filtering(c: &mut Criterion) {
 
                 b.iter(|| {
                     let ms2_spectra = reader
-                        .spectra_by_ms_level(black_box(2))
+                        .spectra_by_ms_level_arrays(black_box(2))
                         .unwrap();
                     black_box(ms2_spectra);
                 });
@@ -90,7 +99,7 @@ fn bench_precursor_mz_filter(c: &mut Criterion) {
 
                     // Filter MS2 spectra by precursor m/z range
                     let filtered: Vec<_> = reader
-                        .spectra_by_ms_level(2)
+                        .spectra_by_ms_level_arrays(2)
                         .unwrap()
                         .into_iter()
                         .filter(|s| {
@@ -131,10 +140,14 @@ fn bench_intensity_filter(c: &mut Criterion) {
                 b.iter(|| {
                     let mut filtered_count = 0;
 
-                    for spectrum in reader.iter_spectra().unwrap() {
-                        for peak in spectrum.peaks {
-                            if peak.intensity >= threshold {
-                                filtered_count += 1;
+                    let iter = reader.iter_spectra_arrays_streaming().unwrap();
+                    for spectrum in iter {
+                        let spectrum = spectrum.unwrap();
+                        for array in spectrum.intensity_arrays().unwrap() {
+                            for intensity in array.values() {
+                                if *intensity >= threshold {
+                                    filtered_count += 1;
+                                }
                             }
                         }
                     }
@@ -168,15 +181,22 @@ fn bench_combined_filter(c: &mut Criterion) {
             let intensity_threshold = 5000.0;
 
             let filtered: Vec<_> = reader
-                .spectra_by_ms_level(2)
+                .spectra_by_ms_level_arrays(2)
                 .unwrap()
                 .into_iter()
                 .filter(|s| s.retention_time >= rt_min && s.retention_time <= rt_max)
-                .map(|mut s| {
-                    s.peaks.retain(|p| p.intensity >= intensity_threshold);
-                    s
+                .map(|s| {
+                    let mut count = 0usize;
+                    for array in s.intensity_arrays().unwrap() {
+                        for intensity in array.values() {
+                            if *intensity >= intensity_threshold {
+                                count += 1;
+                            }
+                        }
+                    }
+                    count
                 })
-                .filter(|s| !s.peaks.is_empty())
+                .filter(|count| *count > 0)
                 .collect();
 
             black_box(filtered);
@@ -206,18 +226,19 @@ fn bench_top_n_peaks(c: &mut Criterion) {
 
                 b.iter(|| {
                     let filtered: Vec<_> = reader
-                        .iter_spectra()
+                        .iter_spectra_arrays()
                         .unwrap()
                         .into_iter()
-                        .map(|mut s| {
-                            // Sort by intensity descending and take top N
-                            s.peaks.sort_by(|a, b| {
-                                b.intensity
-                                    .partial_cmp(&a.intensity)
-                                    .unwrap_or(std::cmp::Ordering::Equal)
+                        .map(|s| {
+                            let mut intensities = Vec::new();
+                            for array in s.intensity_arrays().unwrap() {
+                                intensities.extend_from_slice(array.values());
+                            }
+                            intensities.sort_by(|a, b| {
+                                b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal)
                             });
-                            s.peaks.truncate(top_n);
-                            s
+                            intensities.truncate(top_n);
+                            intensities
                         })
                         .collect();
 

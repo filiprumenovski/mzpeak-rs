@@ -30,3 +30,4 @@ Python writers only accept AoS `Spectrum` objects (`Peak` lists or `SpectrumBuil
 ## Progress
 - Added `SpectrumArrays` constructor and writer methods for array-based writes
 - Added array-based write/read smoke test in `python_tests/test_smoke.py`
+- Python bindings are feature-gated off in prealpha; SoA writer APIs are implemented but currently disabled

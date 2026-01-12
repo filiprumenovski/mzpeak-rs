@@ -120,22 +120,22 @@ fn test_imzml_conversion_roundtrip() {
     assert_eq!(stats.peak_count, 5);
 
     let reader = MzPeakReader::open(&output_path).unwrap();
-    let spectra = reader.iter_spectra().unwrap();
+    let spectra = reader.iter_spectra_arrays().unwrap();
     assert_eq!(spectra.len(), 2);
 
-    let s1 = &spectra[0];
+    let s1 = spectra[0].to_owned().unwrap();
     assert_eq!(s1.pixel_x, Some(1));
     assert_eq!(s1.pixel_y, Some(1));
     assert_eq!(s1.pixel_z, None);
-    assert_eq!(s1.peaks.len(), 3);
-    assert!((s1.peaks[0].mz - 100.0).abs() < 1e-6);
-    assert!((s1.peaks[0].intensity - 10.0).abs() < 1e-6);
+    assert_eq!(s1.peak_count(), 3);
+    assert!((s1.peaks.mz[0] - 100.0).abs() < 1e-6);
+    assert!((s1.peaks.intensity[0] - 10.0).abs() < 1e-6);
 
-    let s2 = &spectra[1];
+    let s2 = spectra[1].to_owned().unwrap();
     assert_eq!(s2.pixel_x, Some(1));
     assert_eq!(s2.pixel_y, Some(2));
     assert_eq!(s2.pixel_z, Some(3));
-    assert_eq!(s2.peaks.len(), 2);
-    assert!((s2.peaks[1].mz - 250.0).abs() < 1e-6);
-    assert!((s2.peaks[1].intensity - 25.0).abs() < 1e-6);
+    assert_eq!(s2.peak_count(), 2);
+    assert!((s2.peaks.mz[1] - 250.0).abs() < 1e-6);
+    assert!((s2.peaks.intensity[1] - 25.0).abs() < 1e-6);
 }

@@ -115,6 +115,13 @@ class TestMzPeakSmoke(unittest.TestCase):
                 np.testing.assert_allclose(values, ion_mobility2)
                 np.testing.assert_array_equal(validity, ion_mobility_validity2)
 
+                views = list(reader.iter_spectra_arrays_views())
+                self.assertEqual(len(views), 2)
+                mz_view = views[0].mz_array_view
+                intensity_view = views[0].intensity_array_view
+                self.assertFalse(mz_view.flags["OWNDATA"])
+                self.assertFalse(intensity_view.flags["OWNDATA"])
+
     def test_convert_open_summary_and_arrow(self) -> None:
         import mzpeak
 

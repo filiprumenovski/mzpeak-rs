@@ -10,11 +10,34 @@ use mzpeak::dataset::MzPeakDatasetWriter;
 use mzpeak::metadata::MzPeakMetadata;
 use mzpeak::reader::MzPeakReader;
 use mzpeak::validator::validate_mzpeak_file;
-use mzpeak::writer::{SpectrumBuilder, WriterConfig};
+use mzpeak::writer::{PeakArrays, SpectrumArrays, WriterConfig};
 use std::fs::File;
 use std::io::Read;
 use tempfile::tempdir;
 use zip::ZipArchive;
+
+fn make_ms1_spectrum(
+    spectrum_id: i64,
+    scan_number: i64,
+    retention_time: f32,
+    mz: f64,
+    intensity: f32,
+) -> SpectrumArrays {
+    let peaks = PeakArrays::new(vec![mz], vec![intensity]);
+    SpectrumArrays::new_ms1(spectrum_id, scan_number, retention_time, 1, peaks)
+}
+
+fn make_ms2_spectrum(
+    spectrum_id: i64,
+    scan_number: i64,
+    retention_time: f32,
+    precursor_mz: f64,
+    mz: Vec<f64>,
+    intensity: Vec<f32>,
+) -> SpectrumArrays {
+    let peaks = PeakArrays::new(mz, intensity);
+    SpectrumArrays::new_ms2(spectrum_id, scan_number, retention_time, 1, precursor_mz, peaks)
+}
 
 #[test]
 fn test_container_format_creation() {
@@ -28,17 +51,10 @@ fn test_container_format_creation() {
 
     // Write some test spectra
     let spectra: Vec<_> = (0..10)
-        .map(|i| {
-            SpectrumBuilder::new(i, i + 1)
-                .ms_level(1)
-                .retention_time((i as f32) * 10.0)
-                .polarity(1)
-                .add_peak(400.0 + (i as f64), 10000.0)
-                .build()
-        })
+        .map(|i| make_ms1_spectrum(i, i + 1, (i as f32) * 10.0, 400.0 + (i as f64), 10000.0))
         .collect();
 
-    dataset.write_spectra(&spectra).unwrap();
+    dataset.write_spectra_arrays(&spectra).unwrap();
     let stats = dataset.close().unwrap();
 
     assert!(stats.total_size_bytes > 0);
@@ -56,14 +72,9 @@ fn test_container_mimetype_compliance() {
 
     let mut dataset = MzPeakDatasetWriter::new(&dataset_path, &metadata, config).unwrap();
 
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(1)
-        .retention_time(0.0)
-        .polarity(1)
-        .add_peak(400.0, 10000.0)
-        .build();
+    let spectrum = make_ms1_spectrum(0, 1, 0.0, 400.0, 10000.0);
 
-    dataset.write_spectrum(&spectrum).unwrap();
+    dataset.write_spectrum_arrays(&spectrum).unwrap();
     dataset.close().unwrap();
 
     // Open and validate ZIP structure
@@ -99,14 +110,9 @@ fn test_container_seekable_parquet() {
 
     let mut dataset = MzPeakDatasetWriter::new(&dataset_path, &metadata, config).unwrap();
 
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(1)
-        .retention_time(60.0)
-        .polarity(1)
-        .add_peak(400.0, 10000.0)
-        .build();
+    let spectrum = make_ms1_spectrum(0, 1, 60.0, 400.0, 10000.0);
 
-    dataset.write_spectrum(&spectrum).unwrap();
+    dataset.write_spectrum_arrays(&spectrum).unwrap();
     dataset.close().unwrap();
 
     // Verify peaks.parquet is uncompressed (Stored) for seekability
@@ -134,17 +140,18 @@ fn test_zero_extraction_reading() {
     // Write test data
     let spectra: Vec<_> = (0..50)
         .map(|i| {
-            SpectrumBuilder::new(i, i + 1)
-                .ms_level(if i % 5 == 0 { 1 } else { 2 })
-                .retention_time((i as f32) * 2.0)
-                .polarity(1)
-                .add_peak(400.0 + (i as f64) * 10.0, 10000.0)
-                .add_peak(500.0 + (i as f64) * 10.0, 20000.0)
-                .build()
+            let mz_values = vec![400.0 + (i as f64) * 10.0, 500.0 + (i as f64) * 10.0];
+            let intensity_values = vec![10000.0, 20000.0];
+            if i % 5 == 0 {
+                let peaks = PeakArrays::new(mz_values, intensity_values);
+                SpectrumArrays::new_ms1(i, i + 1, (i as f32) * 2.0, 1, peaks)
+            } else {
+                make_ms2_spectrum(i, i + 1, (i as f32) * 2.0, 600.0, mz_values, intensity_values)
+            }
         })
         .collect();
 
-    dataset.write_spectra(&spectra).unwrap();
+    dataset.write_spectra_arrays(&spectra).unwrap();
     dataset.close().unwrap();
 
     // Read without extraction - this should work entirely in memory
@@ -155,23 +162,23 @@ fn test_zero_extraction_reading() {
     assert_eq!(file_metadata.total_rows, 100); // 50 spectra * 2 peaks each
 
     // Verify we can read all spectra
-    let read_spectra = reader.iter_spectra().unwrap();
+    let read_spectra = reader.iter_spectra_arrays().unwrap();
     assert_eq!(read_spectra.len(), 50);
 
     // Verify first spectrum
     assert_eq!(read_spectra[0].spectrum_id, 0);
-    assert_eq!(read_spectra[0].peaks.len(), 2);
+    assert_eq!(read_spectra[0].peak_count(), 2);
 
     // Test querying by retention time
-    let rt_spectra = reader.spectra_by_rt_range(0.0, 20.0).unwrap();
+    let rt_spectra = reader.spectra_by_rt_range_arrays(0.0, 20.0).unwrap();
     assert_eq!(rt_spectra.len(), 11); // 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20
 
     // Test querying by MS level
-    let ms1_spectra = reader.spectra_by_ms_level(1).unwrap();
+    let ms1_spectra = reader.spectra_by_ms_level_arrays(1).unwrap();
     assert_eq!(ms1_spectra.len(), 10); // Every 5th spectrum
 
     // Test getting specific spectrum
-    let spectrum_25 = reader.get_spectrum(25).unwrap();
+    let spectrum_25 = reader.get_spectrum_arrays(25).unwrap();
     assert!(spectrum_25.is_some());
     assert_eq!(spectrum_25.unwrap().retention_time, 50.0);
 
@@ -201,14 +208,9 @@ fn test_validator_compliance() {
 
     let mut dataset = MzPeakDatasetWriter::new(&dataset_path, &metadata, config).unwrap();
 
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(1)
-        .retention_time(60.0)
-        .polarity(1)
-        .add_peak(400.0, 10000.0)
-        .build();
+    let spectrum = make_ms1_spectrum(0, 1, 60.0, 400.0, 10000.0);
 
-    dataset.write_spectrum(&spectrum).unwrap();
+    dataset.write_spectrum_arrays(&spectrum).unwrap();
     dataset.close().unwrap();
 
     // Run validator
@@ -246,14 +248,9 @@ fn test_container_with_chromatograms() {
     let mut dataset = MzPeakDatasetWriter::new(&dataset_path, &metadata, config).unwrap();
 
     // Write spectrum
-    let spectrum = SpectrumBuilder::new(0, 1)
-        .ms_level(1)
-        .retention_time(60.0)
-        .polarity(1)
-        .add_peak(400.0, 10000.0)
-        .build();
+    let spectrum = make_ms1_spectrum(0, 1, 60.0, 400.0, 10000.0);
 
-    dataset.write_spectrum(&spectrum).unwrap();
+    dataset.write_spectrum_arrays(&spectrum).unwrap();
 
     // Write chromatograms
     let tic = Chromatogram {
@@ -302,49 +299,44 @@ fn test_roundtrip_container_vs_directory() {
     // Create test data
     let spectra: Vec<_> = (0..20)
         .map(|i| {
-            SpectrumBuilder::new(i, i + 1)
-                .ms_level(1)
-                .retention_time((i as f32) * 5.0)
-                .polarity(1)
-                .add_peak(400.0 + (i as f64), 1000.0 + (i as f32) * 100.0)
-                .add_peak(500.0 + (i as f64), 2000.0 + (i as f32) * 100.0)
-                .build()
+            let peaks = PeakArrays::new(
+                vec![400.0 + (i as f64), 500.0 + (i as f64)],
+                vec![1000.0 + (i as f32) * 100.0, 2000.0 + (i as f32) * 100.0],
+            );
+            SpectrumArrays::new_ms1(i, i + 1, (i as f32) * 5.0, 1, peaks)
         })
         .collect();
 
     // Write to container
     let mut container_writer =
         MzPeakDatasetWriter::new_container(&container_path, &metadata, config.clone()).unwrap();
-    container_writer.write_spectra(&spectra).unwrap();
+    container_writer.write_spectra_arrays(&spectra).unwrap();
     container_writer.close().unwrap();
 
     // Write to directory
     let mut directory_writer =
         MzPeakDatasetWriter::new_directory(&directory_path, &metadata, config).unwrap();
-    directory_writer.write_spectra(&spectra).unwrap();
+    directory_writer.write_spectra_arrays(&spectra).unwrap();
     directory_writer.close().unwrap();
 
     // Read from both and compare
     let container_reader = MzPeakReader::open(&container_path).unwrap();
     let directory_reader = MzPeakReader::open(&directory_path).unwrap();
 
-    let container_spectra = container_reader.iter_spectra().unwrap();
-    let directory_spectra = directory_reader.iter_spectra().unwrap();
+    let container_spectra = container_reader.iter_spectra_arrays().unwrap();
+    let directory_spectra = directory_reader.iter_spectra_arrays().unwrap();
 
     assert_eq!(container_spectra.len(), directory_spectra.len());
 
     for i in 0..container_spectra.len() {
-        let c_spec = &container_spectra[i];
-        let d_spec = &directory_spectra[i];
+        let c_spec = container_spectra[i].to_owned().unwrap();
+        let d_spec = directory_spectra[i].to_owned().unwrap();
 
         assert_eq!(c_spec.spectrum_id, d_spec.spectrum_id);
         assert_eq!(c_spec.retention_time, d_spec.retention_time);
-        assert_eq!(c_spec.peaks.len(), d_spec.peaks.len());
-
-        for j in 0..c_spec.peaks.len() {
-            assert_eq!(c_spec.peaks[j].mz, d_spec.peaks[j].mz);
-            assert_eq!(c_spec.peaks[j].intensity, d_spec.peaks[j].intensity);
-        }
+        assert_eq!(c_spec.peak_count(), d_spec.peak_count());
+        assert_eq!(c_spec.peaks.mz, d_spec.peaks.mz);
+        assert_eq!(c_spec.peaks.intensity, d_spec.peaks.intensity);
     }
 }
 
@@ -363,21 +355,22 @@ fn test_reader_performance_no_temp_extraction() {
     // Write larger dataset
     let spectra: Vec<_> = (0..500)
         .map(|i| {
-            let mut builder = SpectrumBuilder::new(i, i + 1)
-                .ms_level(if i % 10 == 0 { 1 } else { 2 })
-                .retention_time((i as f32) * 0.5)
-                .polarity(1);
-
-            // Add 100 peaks per spectrum
+            let mut mz = Vec::with_capacity(100);
+            let mut intensity = Vec::with_capacity(100);
             for j in 0..100 {
-                builder = builder.add_peak(100.0 + (j as f64) * 5.0, 1000.0 + (j as f32) * 10.0);
+                mz.push(100.0 + (j as f64) * 5.0);
+                intensity.push(1000.0 + (j as f32) * 10.0);
             }
-
-            builder.build()
+            let peaks = PeakArrays::new(mz, intensity);
+            if i % 10 == 0 {
+                SpectrumArrays::new_ms1(i, i + 1, (i as f32) * 0.5, 1, peaks)
+            } else {
+                SpectrumArrays::new_ms2(i, i + 1, (i as f32) * 0.5, 1, 600.0, peaks)
+            }
         })
         .collect();
 
-    dataset.write_spectra(&spectra).unwrap();
+    dataset.write_spectra_arrays(&spectra).unwrap();
     dataset.close().unwrap();
 
     // Measure reading time (should be fast since no extraction)
@@ -394,7 +387,7 @@ fn test_reader_performance_no_temp_extraction() {
 
     // Reading spectra should work without extracting ZIP
     let start = Instant::now();
-    let read_spectra = reader.iter_spectra().unwrap();
+    let read_spectra = reader.iter_spectra_arrays().unwrap();
     let read_duration = start.elapsed();
     println!("Read all spectra time: {:?}", read_duration);
 

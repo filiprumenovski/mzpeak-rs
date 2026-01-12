@@ -9,6 +9,7 @@ mod mobilogram;
 mod peak;
 mod spectrum;
 mod spectrum_arrays;
+mod spectrum_arrays_view;
 mod writer;
 
 pub use chromatogram::PyChromatogram;
@@ -18,4 +19,5 @@ pub use mobilogram::PyMobilogram;
 pub use peak::PyPeak;
 pub use spectrum::PySpectrum;
 pub use spectrum_arrays::PySpectrumArrays;
+pub use spectrum_arrays_view::PySpectrumArraysView;
 pub use writer::{PyWriterConfig, PyWriterStats};

@@ -6,12 +6,10 @@
 //! - Raw spectrum parsing and decoding
 //! - Property-based testing for edge cases
 
-use std::fs;
 use std::io::{BufReader, Cursor};
-use tempfile::tempdir;
 
 use mzpeak::mzml::{
-    BinaryCompression, BinaryEncoding, MzMLSpectrum, MzMLStreamer, RawBinaryData,
+    BinaryCompression, BinaryEncoding, MzMLSpectrum, MzMLStreamer,
 };
 
 // ============================================================================

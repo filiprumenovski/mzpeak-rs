@@ -27,11 +27,11 @@ impl MzMLStreamer<BufReader<File>> {
     ///
     /// # Example
     /// ```rust,no_run
-    /// use mzpeak::mzml::streamer::MzMLStreamer;
+    /// use mzpeak::mzml::MzMLStreamer;
     ///
     /// // Use 256KB buffer for better throughput
     /// let streamer = MzMLStreamer::open_with_buffer_size("data.mzML", 256 * 1024)?;
-    /// # Ok::<(), mzpeak::mzml::streamer::MzMLError>(())
+    /// # Ok::<(), mzpeak::mzml::MzMLError>(())
     /// ```
     pub fn open_with_buffer_size<P: AsRef<Path>>(
         path: P,

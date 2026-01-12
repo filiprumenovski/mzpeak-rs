@@ -110,6 +110,8 @@ mzpeak = "0.1"
 
 This repository also ships optional Python bindings (PyO3 + maturin) under the Cargo feature `python`.
 
+Note: Python bindings are currently disabled in this prealpha and will be reintroduced once core features stabilize.
+
 **Requirements**
 
 - Rust toolchain (same as building from source)
@@ -180,16 +182,11 @@ let metadata = MzPeakMetadata::new();
 let config = WriterConfig::default();
 let mut dataset = MzPeakDatasetWriter::new("output.mzpeak", &metadata, config)?;
 
-// Write spectra
-let spectrum = SpectrumBuilder::new(0, 1)
-    .ms_level(1)
-    .retention_time(60.0)
-    .polarity(1)
-    .add_peak(400.0, 10000.0)
-    .add_peak(500.0, 20000.0)
-    .build();
+// Write spectra (SoA)
+let peaks = PeakArrays::new(vec![400.0, 500.0], vec![10000.0, 20000.0]);
+let spectrum = SpectrumArrays::new_ms1(0, 1, 60.0, 1, peaks);
 
-dataset.write_spectrum(&spectrum)?;
+dataset.write_spectrum_arrays(&spectrum)?;
 let stats = dataset.close()?;
 
 println!("Wrote {} spectra, {} peaks", 
@@ -218,8 +215,10 @@ writer.write_spectrum_arrays(&spectrum)?;
 writer.finish()?;
 
 let reader = MzPeakReader::open("output.mzpeak.parquet")?;
-let spectra = reader.iter_spectra_arrays()?;
+let spectra = reader.iter_spectra_arrays()?; // view-backed
 println!("Read {} spectra", spectra.len());
+let first = spectra[0].to_owned()?;
+println!("First spectrum has {} peaks", first.peak_count());
 ```
 
 Run the full example: `cargo run --example soa_roundtrip`
@@ -641,6 +640,7 @@ Benchmark suites:
 - **conversion**: mzML parsing and conversion throughput
 - **query_performance**: Random access, range queries, MS level filtering
 - **filtering**: Peak filtering, precursor m/z ranges, intensity thresholds
+- **mzml_streamer**: Sequential parsing throughput for decoded and raw spectra
 
 
 
@@ -662,17 +662,14 @@ let mut dataset = MzPeakDatasetWriter::new_container("output.mzpeak", &metadata,
 // Directory mode (legacy bundle):
 let mut dataset = MzPeakDatasetWriter::new_directory("output_dir", &metadata, config)?;
 
-// Write spectra
-let spectrum = SpectrumBuilder::new(0, 1)
-    .ms_level(2)
-    .retention_time(120.5)
-    .precursor(500.25, Some(2), Some(1e6))
-    .collision_energy(30.0)
-    .add_peak(150.0, 1000.0)
-    .add_peak(250.0, 2000.0)
-    .build();
+// Write spectra (SoA)
+let peaks = PeakArrays::new(vec![150.0, 250.0], vec![1000.0, 2000.0]);
+let mut spectrum = SpectrumArrays::new_ms2(0, 1, 120.5, 1, 500.25, peaks);
+spectrum.precursor_charge = Some(2);
+spectrum.precursor_intensity = Some(1e6);
+spectrum.collision_energy = Some(30.0);
 
-dataset.write_spectrum(&spectrum)?;
+dataset.write_spectrum_arrays(&spectrum)?;
 let stats = dataset.close()?;
 println!("Wrote {} spectra", stats.peak_stats.spectra_written);
 ```
@@ -691,18 +688,13 @@ let metadata = MzPeakMetadata::new();
 let config = WriterConfig::default();
 let mut writer = MzPeakWriter::new_file("output.parquet", &metadata, config)?;
 
-let spectrum = SpectrumBuilder::new(spectrum_id, scan_number)
-    .ms_level(2)
-    .retention_time(120.5)
-    .precursor(500.25, Some(2), Some(1e6))
-    .collision_energy(30.0)
-    .peaks(vec![
-        Peak { mz: 150.0, intensity: 1000.0, ion_mobility: None },
-        Peak { mz: 250.0, intensity: 2000.0, ion_mobility: None },
-    ])
-    .build();
+let peaks = PeakArrays::new(vec![150.0, 250.0], vec![1000.0, 2000.0]);
+let mut spectrum = SpectrumArrays::new_ms2(spectrum_id, scan_number, 120.5, 1, 500.25, peaks);
+spectrum.precursor_charge = Some(2);
+spectrum.precursor_intensity = Some(1e6);
+spectrum.collision_energy = Some(30.0);
 
-writer.write_spectra(&[spectrum])?;
+writer.write_spectra_arrays(&[spectrum])?;
 let stats = writer.finish()?;
 ```
 
@@ -745,20 +737,11 @@ mzPeak natively supports ion mobility data from IM-MS instruments:
 use mzpeak::prelude::*;
 
 // Create peaks with ion mobility values
-let peak = Peak {
-    mz: 500.25,
-    intensity: 1e6,
-    ion_mobility: Some(25.3), // drift time in milliseconds
-};
+let mut peaks = PeakArrays::new(vec![500.25], vec![1e6]);
+peaks.ion_mobility = OptionalColumnBuf::AllPresent(vec![25.3]); // drift time in milliseconds
 
-// Or use the builder for spectra with IM
-let spectrum = SpectrumBuilder::new(0, 1)
-    .ms_level(1)
-    .retention_time(60.0)
-    .add_peak_with_im(500.25, 1e6, 25.3) // mz, intensity, ion_mobility
-    .build();
-
-dataset.write_spectrum(&spectrum)?;
+let spectrum = SpectrumArrays::new_ms1(0, 1, 60.0, 1, peaks);
+dataset.write_spectrum_arrays(&spectrum)?;
 ```
 
 **Supported Instruments:**
@@ -781,7 +764,7 @@ config.max_peaks_per_file = Some(50_000_000); // 50M peaks per file (~1-2 GB)
 let mut writer = RollingWriter::new("output/dataset.parquet", &metadata, config)?;
 
 // Write spectra - files are automatically rotated when threshold is reached
-writer.write_spectra(&spectra)?;
+writer.write_spectra_arrays(&spectra)?;
 
 let stats = writer.finish()?;
 println!("Wrote {} peaks across {} files", 
