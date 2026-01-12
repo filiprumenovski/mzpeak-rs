@@ -51,6 +51,7 @@ fn mzpeak(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Register data types
     m.add_class::<types::PyPeak>()?;
     m.add_class::<types::PySpectrum>()?;
+    m.add_class::<types::PySpectrumArrays>()?;
     m.add_class::<types::PyFileSummary>()?;
     m.add_class::<types::PyFileMetadata>()?;
     m.add_class::<types::PyChromatogram>()?;
@@ -63,6 +64,7 @@ fn mzpeak(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Register reader classes
     m.add_class::<reader::PyMzPeakReader>()?;
     m.add_class::<reader::PySpectrumIterator>()?;
+    m.add_class::<reader::PyStreamingSpectrumArraysIterator>()?;
 
     // Register writer classes
     m.add_class::<writer::PyMzPeakWriter>()?;

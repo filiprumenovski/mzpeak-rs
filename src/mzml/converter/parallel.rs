@@ -7,7 +7,7 @@ use super::{ConversionError, ConversionStats, MzMLConverter};
 use super::super::models::{MzMLSpectrum, RawMzMLSpectrum};
 use super::super::streamer::MzMLStreamer;
 use crate::dataset::MzPeakDatasetWriter;
-use crate::writer::WriterError;
+use crate::writer::{SpectrumArrays, WriterError};
 
 impl MzMLConverter {
     /// Convert an mzML file to mzPeak format using parallel decoding
@@ -124,7 +124,7 @@ impl MzMLConverter {
                 );
 
                 // Write to output
-                writer.write_spectra(&write_batch)?;
+                writer.write_spectra_arrays(&write_batch)?;
 
                 // Progress update
                 if stats.spectra_count % self.config.progress_interval == 0 {
@@ -165,7 +165,7 @@ impl MzMLConverter {
                 &mut bpc_intensities,
             );
 
-            writer.write_spectra(&write_batch)?;
+            writer.write_spectra_arrays(&write_batch)?;
         }
 
         // Finalize spectrum writer
@@ -247,7 +247,7 @@ impl MzMLConverter {
         tic_intensities: &mut Vec<f32>,
         bpc_times: &mut Vec<f64>,
         bpc_intensities: &mut Vec<f32>,
-    ) -> Vec<crate::writer::Spectrum> {
+    ) -> Vec<SpectrumArrays> {
         let mut write_batch = Vec::with_capacity(decoded_batch.len());
 
         for mzml_spectrum in decoded_batch {

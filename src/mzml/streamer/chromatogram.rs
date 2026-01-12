@@ -12,13 +12,15 @@ use crate::mzml::models::{ChromatogramType, MzMLChromatogram};
 impl<R: BufRead> MzMLStreamer<R> {
     /// Read the next chromatogram from the stream
     pub fn next_chromatogram(&mut self) -> Result<Option<MzMLChromatogram>, MzMLError> {
-        let mut buf = Vec::new();
+        self.event_buf.clear();
 
         loop {
-            match self.reader.read_event_into(&mut buf) {
+            let event = self.reader.read_event_into(&mut self.event_buf);
+            match event {
                 Ok(Event::Start(ref e)) => match e.name().as_ref() {
                     b"chromatogram" => {
-                        let chromatogram = self.parse_chromatogram(e)?;
+                        let e_owned = e.to_owned();
+                        let chromatogram = self.parse_chromatogram(&e_owned)?;
                         self.current_chromatogram_index += 1;
                         return Ok(Some(chromatogram));
                     }
@@ -43,7 +45,7 @@ impl<R: BufRead> MzMLStreamer<R> {
                 Err(e) => return Err(MzMLError::XmlError(e)),
                 _ => {}
             }
-            buf.clear();
+            self.event_buf.clear();
         }
     }
 
@@ -65,20 +67,21 @@ impl<R: BufRead> MzMLStreamer<R> {
 
         let mut depth = 1;
         let mut in_binary_data_array_list = false;
-        let mut current_binary_array: Option<BinaryArrayContext> = None;
-        let mut buf = Vec::new();
+        let mut in_binary_array = false;
+
+        self.binary_array_ctx.cv_params.clear();
+        self.binary_array_ctx.base64_data.clear();
+        self.element_buf.clear();
 
         loop {
-            match self.reader.read_event_into(&mut buf) {
+            match self.reader.read_event_into(&mut self.element_buf) {
                 Ok(Event::Start(ref e)) => {
                     depth += 1;
                     match e.name().as_ref() {
                         b"cvParam" => {
                             let cv_param = parse_cv_param(e)?;
-                            if in_binary_data_array_list {
-                                if let Some(ref mut ctx) = current_binary_array {
-                                    ctx.cv_params.push(cv_param);
-                                }
+                            if in_binary_data_array_list && in_binary_array {
+                                self.binary_array_ctx.cv_params.push(cv_param);
                             } else {
                                 chromatogram.cv_params.push(cv_param);
                             }
@@ -87,7 +90,9 @@ impl<R: BufRead> MzMLStreamer<R> {
                             in_binary_data_array_list = true;
                         }
                         b"binaryDataArray" => {
-                            current_binary_array = Some(BinaryArrayContext::default());
+                            in_binary_array = true;
+                            self.binary_array_ctx.cv_params.clear();
+                            self.binary_array_ctx.base64_data.clear();
                         }
                         b"binary" => {}
                         _ => {}
@@ -97,10 +102,8 @@ impl<R: BufRead> MzMLStreamer<R> {
                     if e.name().as_ref() == b"cvParam" {
                         let cv_param = parse_cv_param(e)?;
 
-                        if in_binary_data_array_list {
-                            if let Some(ref mut ctx) = current_binary_array {
-                                ctx.cv_params.push(cv_param);
-                            }
+                        if in_binary_data_array_list && in_binary_array {
+                            self.binary_array_ctx.cv_params.push(cv_param);
                         } else {
                             Self::apply_chromatogram_cv_param(&mut chromatogram, &cv_param);
                             chromatogram.cv_params.push(cv_param);
@@ -108,8 +111,8 @@ impl<R: BufRead> MzMLStreamer<R> {
                     }
                 }
                 Ok(Event::Text(ref t)) => {
-                    if let Some(ref mut ctx) = current_binary_array {
-                        ctx.base64_data = t.unescape()?.into_owned();
+                    if in_binary_array {
+                        self.binary_array_ctx.base64_data = t.unescape()?.into_owned();
                     }
                 }
                 Ok(Event::End(ref e)) => {
@@ -124,8 +127,12 @@ impl<R: BufRead> MzMLStreamer<R> {
                             in_binary_data_array_list = false;
                         }
                         b"binaryDataArray" => {
-                            if let Some(ctx) = current_binary_array.take() {
-                                self.decode_chromatogram_binary_array(&mut chromatogram, ctx)?;
+                            if in_binary_array {
+                                let ctx = std::mem::take(&mut self.binary_array_ctx);
+                                let ctx =
+                                    self.decode_chromatogram_binary_array(&mut chromatogram, ctx)?;
+                                self.binary_array_ctx = ctx;
+                                in_binary_array = false;
                             }
                         }
                         _ => {}
@@ -139,7 +146,7 @@ impl<R: BufRead> MzMLStreamer<R> {
                 Err(e) => return Err(MzMLError::XmlError(e)),
                 _ => {}
             }
-            buf.clear();
+            self.element_buf.clear();
         }
 
         Ok(chromatogram)
@@ -154,8 +161,8 @@ impl<R: BufRead> MzMLStreamer<R> {
     fn decode_chromatogram_binary_array(
         &self,
         chromatogram: &mut MzMLChromatogram,
-        ctx: BinaryArrayContext,
-    ) -> Result<(), MzMLError> {
+        mut ctx: BinaryArrayContext,
+    ) -> Result<BinaryArrayContext, MzMLError> {
         let mut encoding = BinaryEncoding::Float64;
         let mut compression = CompressionType::None;
         let mut is_time = false;
@@ -174,7 +181,9 @@ impl<R: BufRead> MzMLStreamer<R> {
         }
 
         if ctx.base64_data.is_empty() {
-            return Ok(());
+            ctx.cv_params.clear();
+            ctx.base64_data.clear();
+            return Ok(ctx);
         }
 
         let values = BinaryDecoder::decode(
@@ -190,6 +199,8 @@ impl<R: BufRead> MzMLStreamer<R> {
             chromatogram.intensity_array = values;
         }
 
-        Ok(())
+        ctx.cv_params.clear();
+        ctx.base64_data.clear();
+        Ok(ctx)
     }
 }

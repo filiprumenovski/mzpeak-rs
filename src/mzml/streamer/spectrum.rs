@@ -22,12 +22,14 @@ impl<R: BufRead> MzMLStreamer<R> {
             }
         }
 
-        let mut buf = Vec::new();
+        self.event_buf.clear();
         loop {
-            match self.reader.read_event_into(&mut buf) {
-                Ok(Event::Start(e)) => {
+            let event = self.reader.read_event_into(&mut self.event_buf);
+            match event {
+                Ok(Event::Start(ref e)) => {
                     if e.name().as_ref() == b"spectrum" {
-                        let spectrum = self.parse_spectrum(&e)?;
+                        let e_owned = e.to_owned();
+                        let spectrum = self.parse_spectrum(&e_owned)?;
                         self.current_spectrum_index += 1;
                         return Ok(Some(spectrum));
                     }
@@ -42,7 +44,7 @@ impl<R: BufRead> MzMLStreamer<R> {
                 Err(e) => return Err(MzMLError::XmlError(e)),
                 _ => {}
             }
-            buf.clear();
+            self.event_buf.clear();
         }
     }
 
@@ -81,12 +83,14 @@ impl<R: BufRead> MzMLStreamer<R> {
             }
         }
 
-        let mut buf = Vec::new();
+        self.event_buf.clear();
         loop {
-            match self.reader.read_event_into(&mut buf) {
-                Ok(Event::Start(e)) => {
+            let event = self.reader.read_event_into(&mut self.event_buf);
+            match event {
+                Ok(Event::Start(ref e)) => {
                     if e.name().as_ref() == b"spectrum" {
-                        let spectrum = self.parse_raw_spectrum(&e)?;
+                        let e_owned = e.to_owned();
+                        let spectrum = self.parse_raw_spectrum(&e_owned)?;
                         self.current_spectrum_index += 1;
                         return Ok(Some(spectrum));
                     }
@@ -101,7 +105,7 @@ impl<R: BufRead> MzMLStreamer<R> {
                 Err(e) => return Err(MzMLError::XmlError(e)),
                 _ => {}
             }
-            buf.clear();
+            self.event_buf.clear();
         }
     }
 
@@ -122,21 +126,22 @@ impl<R: BufRead> MzMLStreamer<R> {
         let mut in_scan_list = false;
         let mut in_precursor_list = false;
         let mut in_binary_data_array_list = false;
+        let mut in_binary_array = false;
         let mut current_precursor: Option<Precursor> = None;
-        let mut current_binary_array: Option<BinaryArrayContext> = None;
-        let mut buf = Vec::new();
+
+        self.binary_array_ctx.cv_params.clear();
+        self.binary_array_ctx.base64_data.clear();
+        self.element_buf.clear();
 
         loop {
-            match self.reader.read_event_into(&mut buf) {
+            match self.reader.read_event_into(&mut self.element_buf) {
                 Ok(Event::Start(ref e)) => {
                     depth += 1;
                     match e.name().as_ref() {
                         b"cvParam" => {
                             let cv_param = parse_cv_param(e)?;
-                            if in_binary_data_array_list {
-                                if let Some(ref mut ctx) = current_binary_array {
-                                    ctx.cv_params.push(cv_param);
-                                }
+                            if in_binary_data_array_list && in_binary_array {
+                                self.binary_array_ctx.cv_params.push(cv_param);
                             } else if in_precursor_list {
                                 if let Some(ref mut prec) = current_precursor {
                                     prec.cv_params.push(cv_param);
@@ -163,7 +168,9 @@ impl<R: BufRead> MzMLStreamer<R> {
                             in_binary_data_array_list = true;
                         }
                         b"binaryDataArray" => {
-                            current_binary_array = Some(BinaryArrayContext::default());
+                            in_binary_array = true;
+                            self.binary_array_ctx.cv_params.clear();
+                            self.binary_array_ctx.base64_data.clear();
                         }
                         b"binary" => {}
                         _ => {}
@@ -173,10 +180,8 @@ impl<R: BufRead> MzMLStreamer<R> {
                     if e.name().as_ref() == b"cvParam" {
                         let cv_param = parse_cv_param(e)?;
 
-                        if in_binary_data_array_list {
-                            if let Some(ref mut ctx) = current_binary_array {
-                                ctx.cv_params.push(cv_param);
-                            }
+                        if in_binary_data_array_list && in_binary_array {
+                            self.binary_array_ctx.cv_params.push(cv_param);
                         } else if in_precursor_list {
                             if let Some(ref mut prec) = current_precursor {
                                 Self::apply_precursor_cv_param(prec, &cv_param);
@@ -196,8 +201,8 @@ impl<R: BufRead> MzMLStreamer<R> {
                     }
                 }
                 Ok(Event::Text(ref t)) => {
-                    if let Some(ref mut ctx) = current_binary_array {
-                        ctx.base64_data = t.unescape()?.into_owned();
+                    if in_binary_array {
+                        self.binary_array_ctx.base64_data = t.unescape()?.into_owned();
                     }
                 }
                 Ok(Event::End(ref e)) => {
@@ -223,8 +228,11 @@ impl<R: BufRead> MzMLStreamer<R> {
                             in_binary_data_array_list = false;
                         }
                         b"binaryDataArray" => {
-                            if let Some(ctx) = current_binary_array.take() {
-                                self.decode_binary_array(&mut spectrum, ctx)?;
+                            if in_binary_array {
+                                let ctx = std::mem::take(&mut self.binary_array_ctx);
+                                let ctx = self.decode_binary_array(&mut spectrum, ctx)?;
+                                self.binary_array_ctx = ctx;
+                                in_binary_array = false;
                             }
                         }
                         _ => {}
@@ -238,7 +246,7 @@ impl<R: BufRead> MzMLStreamer<R> {
                 Err(e) => return Err(MzMLError::XmlError(e)),
                 _ => {}
             }
-            buf.clear();
+            self.element_buf.clear();
         }
 
         Ok(spectrum)
@@ -270,19 +278,19 @@ impl<R: BufRead> MzMLStreamer<R> {
         let mut current_precursor: Option<Precursor> = None;
 
         // Track current binary array context for raw capture
-        let mut current_binary_cv_params: Vec<CvParam> = Vec::new();
         let mut current_binary_data = String::with_capacity(1024 * 64);
-        let mut buf = Vec::new();
+        self.raw_binary_cv_params.clear();
+        self.element_buf.clear();
 
         loop {
-            match self.reader.read_event_into(&mut buf) {
+            match self.reader.read_event_into(&mut self.element_buf) {
                 Ok(Event::Start(ref e)) => {
                     depth += 1;
                     match e.name().as_ref() {
                         b"cvParam" => {
                             let cv_param = parse_cv_param(e)?;
                             if in_binary_data_array_list {
-                                current_binary_cv_params.push(cv_param);
+                                self.raw_binary_cv_params.push(cv_param);
                             } else if in_precursor_list {
                                 if let Some(ref mut prec) = current_precursor {
                                     prec.cv_params.push(cv_param);
@@ -309,7 +317,7 @@ impl<R: BufRead> MzMLStreamer<R> {
                             in_binary_data_array_list = true;
                         }
                         b"binaryDataArray" => {
-                            current_binary_cv_params.clear();
+                            self.raw_binary_cv_params.clear();
                             current_binary_data.clear();
                         }
                         b"binary" => {}
@@ -321,7 +329,7 @@ impl<R: BufRead> MzMLStreamer<R> {
                         let cv_param = parse_cv_param(e)?;
 
                         if in_binary_data_array_list {
-                            current_binary_cv_params.push(cv_param);
+                            self.raw_binary_cv_params.push(cv_param);
                         } else if in_precursor_list {
                             if let Some(ref mut prec) = current_precursor {
                                 Self::apply_precursor_cv_param(prec, &cv_param);
@@ -372,12 +380,14 @@ impl<R: BufRead> MzMLStreamer<R> {
                         }
                         b"binaryDataArray" => {
                             // Store raw binary data WITHOUT decoding
+                            let cv_params = std::mem::take(&mut self.raw_binary_cv_params);
                             self.store_raw_binary_array(
                                 &mut spectrum,
-                                &current_binary_cv_params,
+                                &cv_params,
                                 &mut current_binary_data,
                             )?;
-                            current_binary_cv_params.clear();
+                            self.raw_binary_cv_params = cv_params;
+                            self.raw_binary_cv_params.clear();
                         }
                         _ => {}
                     }
@@ -390,7 +400,7 @@ impl<R: BufRead> MzMLStreamer<R> {
                 Err(e) => return Err(MzMLError::XmlError(e)),
                 _ => {}
             }
-            buf.clear();
+            self.element_buf.clear();
         }
 
         Ok(spectrum)
@@ -665,8 +675,8 @@ impl<R: BufRead> MzMLStreamer<R> {
     fn decode_binary_array(
         &mut self,
         spectrum: &mut MzMLSpectrum,
-        ctx: BinaryArrayContext,
-    ) -> Result<(), MzMLError> {
+        mut ctx: BinaryArrayContext,
+    ) -> Result<BinaryArrayContext, MzMLError> {
         let mut encoding = BinaryEncoding::Float64;
         let mut compression = CompressionType::None;
         let mut is_mz = false;
@@ -711,7 +721,9 @@ impl<R: BufRead> MzMLStreamer<R> {
                 Some(spectrum.default_array_length),
             )?
         } else {
-            return Ok(());
+            ctx.cv_params.clear();
+            ctx.base64_data.clear();
+            return Ok(ctx);
         };
 
         if is_mz {
@@ -724,7 +736,9 @@ impl<R: BufRead> MzMLStreamer<R> {
             spectrum.ion_mobility_array = values;
         }
 
-        Ok(())
+        ctx.cv_params.clear();
+        ctx.base64_data.clear();
+        Ok(ctx)
     }
 
     fn read_external_bytes(&mut self, offset: u64, length: usize) -> Result<Vec<u8>, MzMLError> {

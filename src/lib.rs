@@ -213,8 +213,8 @@ pub mod prelude {
     };
     pub use crate::validator::{validate_mzpeak_file, ValidationReport};
     pub use crate::writer::{
-        ColumnarBatch, CompressionType, MzPeakWriter, OptionalColumn, Peak, Spectrum,
-        SpectrumBuilder, WriterConfig, WriterStats,
+        ColumnarBatch, CompressionType, MzPeakWriter, OptionalColumn, OptionalColumnBuf, Peak,
+        PeakArrays, Spectrum, SpectrumArrays, SpectrumBuilder, WriterConfig, WriterStats,
     };
     pub use crate::reader::{
         FileSummary, FileMetadata, MzPeakReader, ReaderConfig, ReaderError, SpectrumIterator,

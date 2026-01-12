@@ -197,6 +197,33 @@ println!("Wrote {} spectra, {} peaks",
     stats.peak_stats.peaks_written);
 ```
 
+### SoA (SpectrumArrays) API
+
+Use the SoA API when you already have peak arrays in memory or want to avoid per-peak object allocations. It accepts columnar vectors and optional per-peak validity masks for sparse ion mobility data.
+
+```rust
+use mzpeak::prelude::*;
+
+let metadata = MzPeakMetadata::new();
+let mut writer = MzPeakWriter::new_file("output.mzpeak.parquet", &metadata, WriterConfig::default())?;
+
+let mut peaks = PeakArrays::new(vec![100.0, 200.0], vec![10.0, 20.0]);
+peaks.ion_mobility = OptionalColumnBuf::WithValidity {
+    values: vec![1.1, 1.2],
+    validity: vec![true, false],
+};
+
+let spectrum = SpectrumArrays::new_ms1(0, 1, 10.0, 1, peaks);
+writer.write_spectrum_arrays(&spectrum)?;
+writer.finish()?;
+
+let reader = MzPeakReader::open("output.mzpeak.parquet")?;
+let spectra = reader.iter_spectra_arrays()?;
+println!("Read {} spectra", spectra.len());
+```
+
+Run the full example: `cargo run --example soa_roundtrip`
+
 **Or convert from mzML:**
 
 ```rust
@@ -490,15 +517,21 @@ The Dataset Bundle includes a `metadata.json` file in the root directory for qui
 
 ### Parquet Footer Metadata
 
-All metadata is also stored in the Parquet footer's key-value metadata:
+All metadata is embedded in the Parquet footer's key-value metadata, making each file self-contained. The footer is the authoritative source of truth for metadata.
 
+**Always Present:**
 - `mzpeak:format_version` - Format version (e.g., "1.0.0")
+- `mzpeak:conversion_timestamp` - ISO 8601 timestamp of conversion
+- `mzpeak:converter_info` - Converter software and version (e.g., "mzpeak-rs v0.1.0")
+
+**Optional (when provided):**
 - `mzpeak:sdrf_metadata` - SDRF-Proteomics sample metadata (JSON)
 - `mzpeak:instrument_config` - Instrument configuration (JSON)
 - `mzpeak:lc_config` - LC system configuration (JSON)
 - `mzpeak:run_parameters` - Run parameters and technical settings (JSON)
 - `mzpeak:source_file` - Original source file information (JSON)
 - `mzpeak:processing_history` - Processing provenance chain (JSON)
+- `mzpeak:raw_file_checksum` - SHA-256 checksum of original raw file
 
 ## Performance
 

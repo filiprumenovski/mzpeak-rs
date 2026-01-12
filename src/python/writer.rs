@@ -9,9 +9,9 @@ use crate::dataset::{MzPeakDatasetWriter, OutputMode};
 use crate::metadata::MzPeakMetadata;
 use crate::python::exceptions::IntoPyResult;
 use crate::python::types::{
-    PyChromatogram, PyMobilogram, PySpectrum, PyWriterConfig, PyWriterStats,
+    PyChromatogram, PyMobilogram, PySpectrum, PySpectrumArrays, PyWriterConfig, PyWriterStats,
 };
-use crate::writer::{MzPeakWriter, Peak, Spectrum, SpectrumBuilder};
+use crate::writer::{MzPeakWriter, Peak, Spectrum, SpectrumArrays, SpectrumBuilder};
 
 /// Writer for creating mzPeak Parquet files
 ///
@@ -68,6 +68,20 @@ impl PyMzPeakWriter {
         py.allow_threads(|| writer.write_spectrum(&spectrum.inner).into_py_result())
     }
 
+    /// Write a single spectrum using SoA arrays
+    ///
+    /// Args:
+    ///     spectrum: SpectrumArrays object to write
+    fn write_spectrum_arrays(
+        &mut self,
+        py: Python<'_>,
+        spectrum: PyRef<'_, PySpectrumArrays>,
+    ) -> PyResult<()> {
+        let writer = self.get_writer_mut()?;
+        let rust_spectrum = spectrum.to_rust(py)?;
+        py.allow_threads(|| writer.write_spectrum_arrays(&rust_spectrum).into_py_result())
+    }
+
     /// Write multiple spectra in a batch
     ///
     /// Args:
@@ -77,6 +91,25 @@ impl PyMzPeakWriter {
         let rust_spectra: Vec<Spectrum> = spectra.into_iter().map(|s| s.inner).collect();
         py.allow_threads(|| writer.write_spectra(&rust_spectra).into_py_result())
     }
+
+    /// Write multiple spectra using SoA arrays
+    ///
+    /// Args:
+    ///     spectra: List of SpectrumArrays objects to write
+    fn write_spectra_arrays(
+        &mut self,
+        py: Python<'_>,
+        spectra: Vec<Py<PySpectrumArrays>>,
+    ) -> PyResult<()> {
+        let writer = self.get_writer_mut()?;
+        let mut rust_spectra: Vec<SpectrumArrays> = Vec::with_capacity(spectra.len());
+        for spectrum in spectra {
+            let spectrum_ref = spectrum.bind(py).borrow();
+            rust_spectra.push(spectrum_ref.to_rust(py)?);
+        }
+        py.allow_threads(|| writer.write_spectra_arrays(&rust_spectra).into_py_result())
+    }
+
 
     /// Get current writer statistics
     ///
@@ -231,6 +264,20 @@ impl PyMzPeakDatasetWriter {
         py.allow_threads(|| writer.write_spectrum(&spectrum.inner).into_py_result())
     }
 
+    /// Write a single spectrum using SoA arrays
+    ///
+    /// Args:
+    ///     spectrum: SpectrumArrays object to write
+    fn write_spectrum_arrays(
+        &mut self,
+        py: Python<'_>,
+        spectrum: PyRef<'_, PySpectrumArrays>,
+    ) -> PyResult<()> {
+        let writer = self.get_writer_mut()?;
+        let rust_spectrum = spectrum.to_rust(py)?;
+        py.allow_threads(|| writer.write_spectrum_arrays(&rust_spectrum).into_py_result())
+    }
+
     /// Write multiple spectra in a batch
     ///
     /// Args:
@@ -239,6 +286,24 @@ impl PyMzPeakDatasetWriter {
         let writer = self.get_writer_mut()?;
         let rust_spectra: Vec<Spectrum> = spectra.into_iter().map(|s| s.inner).collect();
         py.allow_threads(|| writer.write_spectra(&rust_spectra).into_py_result())
+    }
+
+    /// Write multiple spectra using SoA arrays
+    ///
+    /// Args:
+    ///     spectra: List of SpectrumArrays objects to write
+    fn write_spectra_arrays(
+        &mut self,
+        py: Python<'_>,
+        spectra: Vec<Py<PySpectrumArrays>>,
+    ) -> PyResult<()> {
+        let writer = self.get_writer_mut()?;
+        let mut rust_spectra: Vec<SpectrumArrays> = Vec::with_capacity(spectra.len());
+        for spectrum in spectra {
+            let spectrum_ref = spectrum.bind(py).borrow();
+            rust_spectra.push(spectrum_ref.to_rust(py)?);
+        }
+        py.allow_threads(|| writer.write_spectra_arrays(&rust_spectra).into_py_result())
     }
 
     /// Write a chromatogram

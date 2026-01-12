@@ -15,7 +15,7 @@ use crate::mobilogram_writer::{
 };
 use crate::metadata::MzPeakMetadata;
 use crate::schema::MZPEAK_MIMETYPE;
-use crate::writer::{MzPeakWriter, Spectrum, WriterConfig, WriterStats};
+use crate::writer::{MzPeakWriter, Spectrum, SpectrumArrays, WriterConfig, WriterStats};
 
 use super::error::DatasetError;
 use super::stats::DatasetStats;
@@ -325,6 +325,28 @@ impl MzPeakDatasetWriter {
         Ok(())
     }
 
+    /// Write a single spectrum with SoA peak layout to the dataset.
+    pub fn write_spectrum_arrays(
+        &mut self,
+        spectrum: &SpectrumArrays,
+    ) -> Result<(), DatasetError> {
+        if self.finalized {
+            return Err(DatasetError::NotInitialized);
+        }
+
+        match &mut self.sink {
+            DatasetSink::Directory { peak_writer, .. } => {
+                let writer = peak_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
+                writer.write_spectrum_arrays(spectrum)?;
+            }
+            DatasetSink::Container { peak_writer, .. } => {
+                let writer = peak_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
+                writer.write_spectrum_arrays(spectrum)?;
+            }
+        }
+        Ok(())
+    }
+
     /// Write multiple spectra to the dataset
     ///
     /// This delegates to the internal peak writer.
@@ -341,6 +363,28 @@ impl MzPeakDatasetWriter {
             DatasetSink::Container { peak_writer, .. } => {
                 let writer = peak_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
                 writer.write_spectra(spectra)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Write multiple spectra with SoA peak layout to the dataset.
+    pub fn write_spectra_arrays(
+        &mut self,
+        spectra: &[SpectrumArrays],
+    ) -> Result<(), DatasetError> {
+        if self.finalized {
+            return Err(DatasetError::NotInitialized);
+        }
+
+        match &mut self.sink {
+            DatasetSink::Directory { peak_writer, .. } => {
+                let writer = peak_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
+                writer.write_spectra_arrays(spectra)?;
+            }
+            DatasetSink::Container { peak_writer, .. } => {
+                let writer = peak_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
+                writer.write_spectra_arrays(spectra)?;
             }
         }
         Ok(())

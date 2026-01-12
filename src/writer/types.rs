@@ -45,6 +45,58 @@ impl<'a, T> OptionalColumn<'a, T> {
     }
 }
 
+/// Owned optional column data for SoA-style peak storage.
+#[derive(Debug, Clone)]
+pub enum OptionalColumnBuf<T> {
+    /// All values are present.
+    AllPresent(Vec<T>),
+    /// No values are present; length tracked explicitly.
+    AllNull {
+        /// Number of null values.
+        len: usize,
+    },
+    /// Mixed presence with explicit validity bitmap.
+    WithValidity {
+        /// The values (only valid where validity is true).
+        values: Vec<T>,
+        /// Boolean bitmap indicating which values are present.
+        validity: Vec<bool>,
+    },
+}
+
+impl<T> OptionalColumnBuf<T> {
+    /// Create an all-null column with the given length.
+    pub fn all_null(len: usize) -> Self {
+        Self::AllNull { len }
+    }
+
+    /// Returns the number of elements represented by this column.
+    pub fn len(&self) -> usize {
+        match self {
+            OptionalColumnBuf::AllPresent(values) => values.len(),
+            OptionalColumnBuf::AllNull { len } => *len,
+            OptionalColumnBuf::WithValidity { values, .. } => values.len(),
+        }
+    }
+
+    /// Returns true if this column represents no values.
+    pub fn is_all_null(&self) -> bool {
+        matches!(self, OptionalColumnBuf::AllNull { .. })
+    }
+
+    /// Borrow as a column view.
+    pub fn as_column(&self) -> OptionalColumn<'_, T> {
+        match self {
+            OptionalColumnBuf::AllPresent(values) => OptionalColumn::AllPresent(values),
+            OptionalColumnBuf::AllNull { .. } => OptionalColumn::AllNull,
+            OptionalColumnBuf::WithValidity { values, validity } => OptionalColumn::WithValidity {
+                values,
+                validity,
+            },
+        }
+    }
+}
+
 /// Columnar batch for high-throughput vectorized writing.
 ///
 /// Use this API when you already have data in columnar format to avoid
@@ -166,6 +218,333 @@ impl<'a> ColumnarBatch<'a> {
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.mz.is_empty()
+    }
+}
+
+/// SoA peak storage for a single spectrum.
+#[derive(Debug, Clone)]
+pub struct PeakArrays {
+    /// Mass-to-charge ratios (Float64).
+    pub mz: Vec<f64>,
+    /// Peak intensities (Float32).
+    pub intensity: Vec<f32>,
+    /// Ion mobility values (Float64), optional per-peak.
+    pub ion_mobility: OptionalColumnBuf<f64>,
+}
+
+impl PeakArrays {
+    /// Create a new peak array set with required columns.
+    pub fn new(mz: Vec<f64>, intensity: Vec<f32>) -> Self {
+        let len = mz.len();
+        Self {
+            mz,
+            intensity,
+            ion_mobility: OptionalColumnBuf::all_null(len),
+        }
+    }
+
+    /// Returns the number of peaks.
+    pub fn len(&self) -> usize {
+        self.mz.len()
+    }
+
+    /// Returns true if there are no peaks.
+    pub fn is_empty(&self) -> bool {
+        self.mz.is_empty()
+    }
+
+    /// Validate that all arrays have matching lengths.
+    pub fn validate(&self) -> Result<(), String> {
+        let len = self.mz.len();
+        if self.intensity.len() != len {
+            return Err(format!(
+                "intensity length {} does not match mz length {}",
+                self.intensity.len(),
+                len
+            ));
+        }
+        if self.ion_mobility.len() != len {
+            return Err(format!(
+                "ion_mobility length {} does not match mz length {}",
+                self.ion_mobility.len(),
+                len
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// Spectrum with SoA peak layout.
+#[derive(Debug, Clone)]
+pub struct SpectrumArrays {
+    /// Unique spectrum identifier (typically 0-indexed)
+    pub spectrum_id: i64,
+    /// Native scan number from the instrument
+    pub scan_number: i64,
+    /// MS level (1, 2, 3, ...)
+    pub ms_level: i16,
+    /// Retention time in seconds
+    pub retention_time: f32,
+    /// Polarity: 1 for positive, -1 for negative
+    pub polarity: i8,
+    /// Precursor m/z (for MS2+)
+    pub precursor_mz: Option<f64>,
+    /// Precursor charge state
+    pub precursor_charge: Option<i16>,
+    /// Precursor intensity
+    pub precursor_intensity: Option<f32>,
+    /// Isolation window lower offset
+    pub isolation_window_lower: Option<f32>,
+    /// Isolation window upper offset
+    pub isolation_window_upper: Option<f32>,
+    /// Collision energy in eV
+    pub collision_energy: Option<f32>,
+    /// Total ion current
+    pub total_ion_current: Option<f64>,
+    /// Base peak m/z
+    pub base_peak_mz: Option<f64>,
+    /// Base peak intensity
+    pub base_peak_intensity: Option<f32>,
+    /// Ion injection time in ms
+    pub injection_time: Option<f32>,
+    /// X coordinate for imaging data (pixels)
+    pub pixel_x: Option<i32>,
+    /// Y coordinate for imaging data (pixels)
+    pub pixel_y: Option<i32>,
+    /// Z coordinate for 3D imaging data (pixels)
+    pub pixel_z: Option<i32>,
+    /// Peak arrays (SoA)
+    pub peaks: PeakArrays,
+}
+
+impl SpectrumArrays {
+    /// Create a new MS1 spectrum.
+    pub fn new_ms1(
+        spectrum_id: i64,
+        scan_number: i64,
+        retention_time: f32,
+        polarity: i8,
+        peaks: PeakArrays,
+    ) -> Self {
+        Self {
+            spectrum_id,
+            scan_number,
+            ms_level: 1,
+            retention_time,
+            polarity,
+            precursor_mz: None,
+            precursor_charge: None,
+            precursor_intensity: None,
+            isolation_window_lower: None,
+            isolation_window_upper: None,
+            collision_energy: None,
+            total_ion_current: None,
+            base_peak_mz: None,
+            base_peak_intensity: None,
+            injection_time: None,
+            pixel_x: None,
+            pixel_y: None,
+            pixel_z: None,
+            peaks,
+        }
+    }
+
+    /// Create a new MS2 spectrum with precursor information.
+    pub fn new_ms2(
+        spectrum_id: i64,
+        scan_number: i64,
+        retention_time: f32,
+        polarity: i8,
+        precursor_mz: f64,
+        peaks: PeakArrays,
+    ) -> Self {
+        Self {
+            spectrum_id,
+            scan_number,
+            ms_level: 2,
+            retention_time,
+            polarity,
+            precursor_mz: Some(precursor_mz),
+            precursor_charge: None,
+            precursor_intensity: None,
+            isolation_window_lower: None,
+            isolation_window_upper: None,
+            collision_energy: None,
+            total_ion_current: None,
+            base_peak_mz: None,
+            base_peak_intensity: None,
+            injection_time: None,
+            pixel_x: None,
+            pixel_y: None,
+            pixel_z: None,
+            peaks,
+        }
+    }
+
+    /// Calculate and set spectrum statistics (TIC, base peak).
+    pub fn compute_statistics(&mut self) {
+        if self.peaks.is_empty() {
+            return;
+        }
+
+        let mut tic: f64 = 0.0;
+        let mut max_intensity: f32 = 0.0;
+        let mut max_mz: f64 = 0.0;
+
+        for (mz, intensity) in self.peaks.mz.iter().zip(self.peaks.intensity.iter()) {
+            tic += *intensity as f64;
+            if *intensity > max_intensity {
+                max_intensity = *intensity;
+                max_mz = *mz;
+            }
+        }
+
+        self.total_ion_current = Some(tic);
+        self.base_peak_mz = Some(max_mz);
+        self.base_peak_intensity = Some(max_intensity);
+    }
+
+    /// Get the number of peaks in this spectrum.
+    pub fn peak_count(&self) -> usize {
+        self.peaks.len()
+    }
+}
+
+impl From<Spectrum> for SpectrumArrays {
+    fn from(spectrum: Spectrum) -> Self {
+        let mut mz = Vec::with_capacity(spectrum.peaks.len());
+        let mut intensity = Vec::with_capacity(spectrum.peaks.len());
+        let mut ion_values = Vec::with_capacity(spectrum.peaks.len());
+        let mut validity = Vec::with_capacity(spectrum.peaks.len());
+        let mut has_any_ion = false;
+        let mut all_present = true;
+
+        for peak in &spectrum.peaks {
+            mz.push(peak.mz);
+            intensity.push(peak.intensity);
+            match peak.ion_mobility {
+                Some(v) => {
+                    ion_values.push(v);
+                    validity.push(true);
+                    has_any_ion = true;
+                }
+                None => {
+                    ion_values.push(0.0);
+                    validity.push(false);
+                    all_present = false;
+                }
+            }
+        }
+
+        let ion_mobility = if !has_any_ion {
+            OptionalColumnBuf::all_null(mz.len())
+        } else if all_present {
+            OptionalColumnBuf::AllPresent(ion_values)
+        } else {
+            OptionalColumnBuf::WithValidity {
+                values: ion_values,
+                validity,
+            }
+        };
+
+        Self {
+            spectrum_id: spectrum.spectrum_id,
+            scan_number: spectrum.scan_number,
+            ms_level: spectrum.ms_level,
+            retention_time: spectrum.retention_time,
+            polarity: spectrum.polarity,
+            precursor_mz: spectrum.precursor_mz,
+            precursor_charge: spectrum.precursor_charge,
+            precursor_intensity: spectrum.precursor_intensity,
+            isolation_window_lower: spectrum.isolation_window_lower,
+            isolation_window_upper: spectrum.isolation_window_upper,
+            collision_energy: spectrum.collision_energy,
+            total_ion_current: spectrum.total_ion_current,
+            base_peak_mz: spectrum.base_peak_mz,
+            base_peak_intensity: spectrum.base_peak_intensity,
+            injection_time: spectrum.injection_time,
+            pixel_x: spectrum.pixel_x,
+            pixel_y: spectrum.pixel_y,
+            pixel_z: spectrum.pixel_z,
+            peaks: PeakArrays {
+                mz,
+                intensity,
+                ion_mobility,
+            },
+        }
+    }
+}
+
+impl From<SpectrumArrays> for Spectrum {
+    fn from(spectrum: SpectrumArrays) -> Self {
+        let PeakArrays {
+            mz,
+            intensity,
+            ion_mobility,
+        } = spectrum.peaks;
+        let mut peaks = Vec::with_capacity(mz.len());
+
+        match ion_mobility {
+            OptionalColumnBuf::AllNull { .. } => {
+                for (mz, intensity) in mz.iter().zip(intensity.iter()) {
+                    peaks.push(Peak {
+                        mz: *mz,
+                        intensity: *intensity,
+                        ion_mobility: None,
+                    });
+                }
+            }
+            OptionalColumnBuf::AllPresent(values) => {
+                for ((mz, intensity), ion_mobility) in
+                    mz.iter().zip(intensity.iter()).zip(values.iter())
+                {
+                    peaks.push(Peak {
+                        mz: *mz,
+                        intensity: *intensity,
+                        ion_mobility: Some(*ion_mobility),
+                    });
+                }
+            }
+            OptionalColumnBuf::WithValidity { values, validity } => {
+                for ((mz, intensity), (ion_mobility, is_valid)) in mz
+                    .iter()
+                    .zip(intensity.iter())
+                    .zip(values.iter().zip(validity.iter()))
+                {
+                    peaks.push(Peak {
+                        mz: *mz,
+                        intensity: *intensity,
+                        ion_mobility: if *is_valid {
+                            Some(*ion_mobility)
+                        } else {
+                            None
+                        },
+                    });
+                }
+            }
+        }
+
+        Self {
+            spectrum_id: spectrum.spectrum_id,
+            scan_number: spectrum.scan_number,
+            ms_level: spectrum.ms_level,
+            retention_time: spectrum.retention_time,
+            polarity: spectrum.polarity,
+            precursor_mz: spectrum.precursor_mz,
+            precursor_charge: spectrum.precursor_charge,
+            precursor_intensity: spectrum.precursor_intensity,
+            isolation_window_lower: spectrum.isolation_window_lower,
+            isolation_window_upper: spectrum.isolation_window_upper,
+            collision_energy: spectrum.collision_energy,
+            total_ion_current: spectrum.total_ion_current,
+            base_peak_mz: spectrum.base_peak_mz,
+            base_peak_intensity: spectrum.base_peak_intensity,
+            injection_time: spectrum.injection_time,
+            pixel_x: spectrum.pixel_x,
+            pixel_y: spectrum.pixel_y,
+            pixel_z: spectrum.pixel_z,
+            peaks,
+        }
     }
 }
 

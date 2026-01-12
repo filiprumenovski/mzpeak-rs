@@ -51,7 +51,10 @@ pub use batches::RecordBatchIterator;
 pub use config::ReaderConfig;
 pub use error::ReaderError;
 pub use metadata::FileMetadata;
-pub use spectra::{SpectrumIterator, StreamingSpectrumIterator};
+pub use spectra::{
+    SpectrumArraysIterator, SpectrumIterator, StreamingSpectrumArraysIterator,
+    StreamingSpectrumIterator,
+};
 pub use summary::FileSummary;
 pub use zip_chunk_reader::{SharedZipEntryReader, ZipEntryChunkReader};
 

@@ -30,5 +30,8 @@ pub use config::{CompressionType, WriterConfig};
 pub use error::WriterError;
 pub use rolling::{RollingWriter, RollingWriterStats};
 pub use stats::WriterStats;
-pub use types::{ColumnarBatch, OptionalColumn, Peak, Spectrum, SpectrumBuilder};
+pub use types::{
+    ColumnarBatch, OptionalColumn, OptionalColumnBuf, Peak, PeakArrays, Spectrum, SpectrumArrays,
+    SpectrumBuilder,
+};
 pub use writer_impl::MzPeakWriter;

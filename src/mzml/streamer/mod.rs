@@ -8,7 +8,9 @@ use std::io::BufRead;
 use quick_xml::Reader;
 
 use super::models::{MzMLFileMetadata, MzMLIndex};
+use crate::mzml::cv_params::CvParam;
 use crate::mzml::ExternalBinaryReader;
+use crate::mzml::streamer::spectrum::BinaryArrayContext;
 
 pub use error::MzMLError;
 pub use index::DEFAULT_INPUT_BUFFER_SIZE;
@@ -41,6 +43,10 @@ pub struct MzMLStreamer<R: BufRead> {
     #[allow(dead_code)]
     current_chromatogram_index: i64,
     external_binary: Option<ExternalBinaryReader>,
+    event_buf: Vec<u8>,
+    element_buf: Vec<u8>,
+    binary_array_ctx: BinaryArrayContext,
+    raw_binary_cv_params: Vec<CvParam>,
 }
 
 impl<R: BufRead> MzMLStreamer<R> {
@@ -60,6 +66,10 @@ impl<R: BufRead> MzMLStreamer<R> {
             current_spectrum_index: 0,
             current_chromatogram_index: 0,
             external_binary: None,
+            event_buf: Vec::new(),
+            element_buf: Vec::new(),
+            binary_array_ctx: BinaryArrayContext::default(),
+            raw_binary_cv_params: Vec::new(),
         })
     }
 

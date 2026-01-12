@@ -30,6 +30,10 @@ pub struct MzPeakMetadata {
 
     /// Processing history
     pub processing_history: Option<ProcessingHistory>,
+
+    /// SHA-256 checksum of the original raw file (top-level for quick access)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub raw_file_checksum: Option<String>,
 }
 
 impl MzPeakMetadata {
@@ -80,6 +84,10 @@ impl MzPeakMetadata {
             metadata.insert(KEY_PROCESSING_HISTORY.to_string(), history.to_json()?);
         }
 
+        if let Some(ref checksum) = self.raw_file_checksum {
+            metadata.insert(KEY_RAW_FILE_CHECKSUM.to_string(), checksum.clone());
+        }
+
         Ok(metadata)
     }
 
@@ -113,6 +121,10 @@ impl MzPeakMetadata {
 
         if let Some(json) = metadata.get(KEY_PROCESSING_HISTORY) {
             result.processing_history = Some(ProcessingHistory::from_json(json)?);
+        }
+
+        if let Some(checksum) = metadata.get(KEY_RAW_FILE_CHECKSUM) {
+            result.raw_file_checksum = Some(checksum.clone());
         }
 
         Ok(result)

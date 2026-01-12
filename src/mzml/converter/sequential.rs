@@ -5,7 +5,7 @@ use log::info;
 use super::{ConversionError, ConversionStats, MzMLConverter};
 use super::super::streamer::MzMLStreamer;
 use crate::dataset::MzPeakDatasetWriter;
-use crate::writer::{RollingWriter, Spectrum, WriterError};
+use crate::writer::{RollingWriter, SpectrumArrays, WriterError};
 
 impl MzMLConverter {
     /// Convert an mzML file to mzPeak format
@@ -50,7 +50,7 @@ impl MzMLConverter {
             ..Default::default()
         };
 
-        let mut batch: Vec<Spectrum> = Vec::with_capacity(self.config.batch_size);
+        let mut batch: Vec<SpectrumArrays> = Vec::with_capacity(self.config.batch_size);
         let expected_count = streamer.spectrum_count();
 
         // Accumulate TIC and BPC data during spectrum processing
@@ -116,7 +116,7 @@ impl MzMLConverter {
 
             // Write batch if full
             if batch.len() >= self.config.batch_size {
-                writer.write_spectra(&batch)?;
+                writer.write_spectra_arrays(&batch)?;
                 batch.clear();
 
                 // Progress update
@@ -136,7 +136,7 @@ impl MzMLConverter {
 
         // Write remaining spectra
         if !batch.is_empty() {
-            writer.write_spectra(&batch)?;
+            writer.write_spectra_arrays(&batch)?;
         }
 
         // Finalize spectrum writer first
@@ -248,7 +248,7 @@ impl MzMLConverter {
             ..Default::default()
         };
 
-        let mut batch: Vec<Spectrum> = Vec::with_capacity(self.config.batch_size);
+        let mut batch: Vec<SpectrumArrays> = Vec::with_capacity(self.config.batch_size);
         let expected_count = streamer.spectrum_count();
 
         info!(
@@ -275,7 +275,7 @@ impl MzMLConverter {
 
             // Write batch if full
             if batch.len() >= self.config.batch_size {
-                writer.write_spectra(&batch)?;
+                writer.write_spectra_arrays(&batch)?;
                 batch.clear();
 
                 // Progress update
@@ -295,7 +295,7 @@ impl MzMLConverter {
 
         // Write remaining spectra
         if !batch.is_empty() {
-            writer.write_spectra(&batch)?;
+            writer.write_spectra_arrays(&batch)?;
         }
 
         // Finalize

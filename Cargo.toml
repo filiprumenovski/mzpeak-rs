@@ -17,7 +17,7 @@ exclude = ["*.mzML", "*.raw", "*.parquet", "mzPeak_preprint_v02.pdf"]
 [features]
 default = ["colorized_output"]
 # Python bindings via PyO3
-python = ["pyo3", "pyo3-log"]
+python = ["pyo3", "pyo3-log", "numpy"]
 # Colorized CLI output
 colorized_output = ["console"]
 # Parallel decoding with SIMD acceleration for mzML conversion
@@ -73,6 +73,7 @@ console = { version = "0.15", optional = true }
 # Python bindings (optional)
 pyo3 = { version = "0.23", features = ["extension-module", "abi3-py38"], optional = true }
 pyo3-log = { version = "0.12", optional = true }
+numpy = { version = "0.23", optional = true }
 
 # Parallel decoding with SIMD acceleration (optional)
 rayon = { version = "1.10", optional = true }
