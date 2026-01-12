@@ -11,6 +11,7 @@ use super::models::{MzMLFileMetadata, MzMLIndex};
 use crate::mzml::ExternalBinaryReader;
 
 pub use error::MzMLError;
+pub use index::DEFAULT_INPUT_BUFFER_SIZE;
 pub use iterators::{RawSpectrumIterator, SpectrumIterator};
 
 mod error;

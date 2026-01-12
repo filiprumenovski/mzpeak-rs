@@ -6,6 +6,99 @@
 use super::streamer::MzMLError;
 use crate::writer::{WriterConfig, WriterError};
 
+/// Streaming configuration for memory-bounded pipeline operation
+///
+/// These settings control memory usage throughout the conversion pipeline,
+/// ensuring bounded memory proportional to batch size rather than file size.
+///
+/// # Default Memory Bounds
+///
+/// | Component | Memory Bound |
+/// |-----------|--------------|
+/// | Input buffering | `input_buffer_size` (default: 64KB) |
+/// | Spectrum batch | `ConversionConfig::batch_size` * spectrum_size |
+/// | Row groups | `WriterConfig::row_group_size` * row_size |
+/// | Container write | Uses temp file (64KB streaming copy buffer) |
+///
+/// # Example
+///
+/// ```rust
+/// use mzpeak::mzml::converter::{ConversionConfig, StreamingConfig};
+///
+/// let config = ConversionConfig {
+///     streaming_config: StreamingConfig {
+///         input_buffer_size: 128 * 1024,  // 128KB input buffer
+///         ..Default::default()
+///     },
+///     ..Default::default()
+/// };
+/// ```
+#[derive(Debug, Clone)]
+pub struct StreamingConfig {
+    /// Size of input buffer for reading source files (default: 64KB)
+    ///
+    /// Larger buffers can improve throughput for sequential reads,
+    /// but increase memory usage during parsing.
+    pub input_buffer_size: usize,
+
+    /// Maximum memory for in-memory buffering before using temp files
+    ///
+    /// When `None` (default), always uses temp files for container writes.
+    /// Set to `Some(bytes)` to enable in-memory buffering up to the limit.
+    ///
+    /// Note: Container write streaming now uses temp files by default,
+    /// so this setting is primarily for future optimization paths.
+    pub max_container_buffer_bytes: Option<usize>,
+
+    /// Enable streaming mode semantics
+    ///
+    /// When `true` (default), the pipeline operates in bounded memory:
+    /// - Input is read in chunks via BufReader
+    /// - Spectra are processed in batches
+    /// - Output uses row group streaming
+    /// - Container writes use temp files
+    ///
+    /// When `false`, some operations may buffer more data for performance.
+    pub streaming_mode: bool,
+}
+
+impl Default for StreamingConfig {
+    fn default() -> Self {
+        Self {
+            // 64KB is a good default for sequential I/O
+            input_buffer_size: 64 * 1024,
+            // Always use temp files for container writes (Issue 000 fix)
+            max_container_buffer_bytes: None,
+            // Default to streaming mode for bounded memory
+            streaming_mode: true,
+        }
+    }
+}
+
+impl StreamingConfig {
+    /// Create config optimized for low memory usage
+    ///
+    /// Uses smaller buffers, suitable for memory-constrained environments.
+    pub fn low_memory() -> Self {
+        Self {
+            input_buffer_size: 32 * 1024,  // 32KB
+            max_container_buffer_bytes: None,
+            streaming_mode: true,
+        }
+    }
+
+    /// Create config optimized for throughput
+    ///
+    /// Uses larger buffers for better I/O performance.
+    pub fn high_throughput() -> Self {
+        Self {
+            input_buffer_size: 256 * 1024,  // 256KB
+            max_container_buffer_bytes: None,
+            streaming_mode: true,
+        }
+    }
+}
+
 /// Errors that can occur during conversion
 #[derive(Debug, thiserror::Error)]
 pub enum ConversionError {
@@ -52,6 +145,9 @@ pub struct ConversionConfig {
     /// Writer configuration
     pub writer_config: WriterConfig,
 
+    /// Streaming configuration for memory-bounded operation
+    pub streaming_config: StreamingConfig,
+
     /// Batch size for writing spectra
     pub batch_size: usize,
 
@@ -79,6 +175,7 @@ impl Default for ConversionConfig {
     fn default() -> Self {
         Self {
             writer_config: WriterConfig::default(),
+            streaming_config: StreamingConfig::default(),
             batch_size: 100,
             #[cfg(feature = "parallel-decode")]
             parallel_batch_size: 5000,
@@ -97,6 +194,7 @@ impl ConversionConfig {
     pub fn max_compression() -> Self {
         Self {
             writer_config: WriterConfig::max_compression(),
+            streaming_config: StreamingConfig::default(),
             batch_size: 500,
             #[cfg(feature = "parallel-decode")]
             parallel_batch_size: 5000,
@@ -112,9 +210,26 @@ impl ConversionConfig {
     pub fn fast_write() -> Self {
         Self {
             writer_config: WriterConfig::fast_write(),
+            streaming_config: StreamingConfig::high_throughput(),
             batch_size: 50,
             #[cfg(feature = "parallel-decode")]
             parallel_batch_size: 10000,
+            preserve_precision: true,
+            include_chromatograms: true,
+            sdrf_path: None,
+            progress_interval: 1000,
+        }
+    }
+
+    /// Configuration optimized for low memory usage
+    /// Best for memory-constrained environments or very large files
+    pub fn low_memory() -> Self {
+        Self {
+            writer_config: WriterConfig::default(),
+            streaming_config: StreamingConfig::low_memory(),
+            batch_size: 50,
+            #[cfg(feature = "parallel-decode")]
+            parallel_batch_size: 1000,
             preserve_precision: true,
             include_chromatograms: true,
             sdrf_path: None,

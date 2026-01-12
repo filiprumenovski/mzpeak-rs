@@ -1,7 +1,8 @@
 use std::fs::{self, File};
-use std::io::{BufWriter, Cursor, Seek, Write};
+use std::io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
+use tempfile::NamedTempFile;
 use zip::write::SimpleFileOptions;
 use zip::CompressionMethod;
 use zip::ZipWriter;
@@ -20,38 +21,68 @@ use super::error::DatasetError;
 use super::stats::DatasetStats;
 use super::types::OutputMode;
 
-/// Wrapper that writes Parquet data to an in-memory buffer for later ZIP inclusion.
-/// This is necessary because the ZIP writer needs to know the uncompressed size upfront
-/// for Stored entries, so we buffer the entire Parquet file.
-struct ParquetBuffer {
-    buffer: Cursor<Vec<u8>>,
+/// Buffer that writes Parquet data to a temp file for later ZIP inclusion.
+///
+/// This replaces the previous in-memory buffer approach (Issue 000 fix) to provide
+/// bounded memory usage. The temp file is automatically cleaned up when dropped.
+///
+/// # Memory Bounds
+///
+/// Memory usage is now O(buffer_size) instead of O(file_size), where buffer_size
+/// is the internal buffer of BufWriter (typically 8KB).
+struct ParquetTempFile {
+    /// The temp file holding the Parquet data
+    temp_file: NamedTempFile,
+    /// Buffered writer for efficient writes
+    writer: BufWriter<File>,
 }
 
-impl ParquetBuffer {
-    fn new() -> Self {
-        Self {
-            buffer: Cursor::new(Vec::new()),
-        }
+impl ParquetTempFile {
+    fn new() -> std::io::Result<Self> {
+        let temp_file = NamedTempFile::new()?;
+        // Clone the file handle for writing
+        let file = temp_file.reopen()?;
+        let writer = BufWriter::new(file);
+        Ok(Self { temp_file, writer })
     }
 
-    fn into_inner(self) -> Vec<u8> {
-        self.buffer.into_inner()
+    /// Get the size of the written data
+    fn size(&self) -> std::io::Result<u64> {
+        self.temp_file.as_file().metadata().map(|m| m.len())
+    }
+
+    /// Consume this buffer and return a reader for streaming the data to ZIP
+    fn into_reader(mut self) -> std::io::Result<(u64, BufReader<File>)> {
+        // Flush any buffered data
+        self.writer.flush()?;
+
+        // Get the file size before reopening
+        let size = self.size()?;
+
+        // Reopen the temp file for reading from the beginning
+        let mut file = self.temp_file.reopen()?;
+        file.seek(SeekFrom::Start(0))?;
+
+        Ok((size, BufReader::new(file)))
     }
 }
 
-impl Write for ParquetBuffer {
+impl Write for ParquetTempFile {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.buffer.write(buf)
+        self.writer.write(buf)
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
-        self.buffer.flush()
+        self.writer.flush()
     }
 }
 
-impl Seek for ParquetBuffer {
-    fn seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64> {
-        self.buffer.seek(pos)
+impl Seek for ParquetTempFile {
+    fn seek(&mut self, pos: SeekFrom) -> std::io::Result<u64> {
+        // Flush before seeking to ensure data is on disk
+        self.writer.flush()?;
+        // Get the underlying file and seek it
+        self.writer.get_mut().seek(pos)
     }
 }
 
@@ -65,12 +96,13 @@ enum DatasetSink {
         mobilogram_writer: Option<MobilogramWriter<File>>,
     },
     /// Container mode: writes to a ZIP archive
+    /// Uses temp files for bounded memory (Issue 000 fix)
     Container {
         output_path: PathBuf,
         zip_writer: ZipWriter<BufWriter<File>>,
-        peak_writer: Option<MzPeakWriter<ParquetBuffer>>,
-        chromatogram_writer: Option<ChromatogramWriter<ParquetBuffer>>,
-        mobilogram_writer: Option<MobilogramWriter<ParquetBuffer>>,
+        peak_writer: Option<MzPeakWriter<ParquetTempFile>>,
+        chromatogram_writer: Option<ChromatogramWriter<ParquetTempFile>>,
+        mobilogram_writer: Option<MobilogramWriter<ParquetTempFile>>,
     },
 }
 
@@ -174,18 +206,18 @@ impl MzPeakDatasetWriter {
         zip_writer.start_file("mimetype", options)?;
         zip_writer.write_all(MZPEAK_MIMETYPE.as_bytes())?;
 
-        // Initialize peak writer to buffer
-        let peak_buffer = ParquetBuffer::new();
+        // Initialize peak writer to temp file (bounded memory - Issue 000 fix)
+        let peak_buffer = ParquetTempFile::new()?;
         let peak_writer = MzPeakWriter::new(peak_buffer, metadata, config.clone())?;
 
-        // Initialize chromatogram writer to buffer
-        let chrom_buffer = ParquetBuffer::new();
+        // Initialize chromatogram writer to temp file
+        let chrom_buffer = ParquetTempFile::new()?;
         let chrom_config = ChromatogramWriterConfig::default();
         let chrom_writer = ChromatogramWriter::new(chrom_buffer, metadata, chrom_config)
             .map_err(|e| DatasetError::ChromatogramWriterError(e.to_string()))?;
 
-        // Initialize mobilogram writer to buffer
-        let mob_buffer = ParquetBuffer::new();
+        // Initialize mobilogram writer to temp file
+        let mob_buffer = ParquetTempFile::new()?;
         let mob_config = MobilogramWriterConfig::default();
         let mob_writer = MobilogramWriter::new(mob_buffer, metadata, mob_config)
             .map_err(|e| DatasetError::MobilogramWriterError(e.to_string()))?;
@@ -589,39 +621,44 @@ impl MzPeakDatasetWriter {
                 mut chromatogram_writer,
                 mut mobilogram_writer,
             } => {
-                // Finalize peak writer and get the buffer
-                let (peak_stats, parquet_data) = if let Some(writer) = peak_writer.take() {
-                    let buffer = writer.finish_into_inner()?;
-                    let data = buffer.into_inner();
+                // Finalize peak writer and get streaming reader (Issue 000 fix - bounded memory)
+                let (peak_stats, peak_reader) = if let Some(writer) = peak_writer.take() {
+                    let temp_file = writer.finish_into_inner()?;
+                    let (size, reader) = temp_file.into_reader()?;
                     let stats = WriterStats {
                         spectra_written: 0, // Stats not tracked in container mode buffer
                         peaks_written: 0,
                         row_groups_written: 0,
-                        file_size_bytes: data.len() as u64,
+                        file_size_bytes: size,
                     };
-                    (stats, data)
+                    (stats, reader)
                 } else {
                     return Err(DatasetError::NotInitialized);
                 };
 
-                // Finalize chromatogram writer and get the buffer
-                let (chromatogram_stats, chrom_data_opt) =
+                // Finalize chromatogram writer and get streaming reader
+                let (chromatogram_stats, chrom_reader_opt) =
                     if let Some(writer) = chromatogram_writer.take() {
                         // Check if any chromatograms were written
                         let stats = writer.stats();
                         if stats.chromatograms_written > 0 {
-                            // Extract the buffer
+                            // Extract the temp file and get a reader
                             match writer.finish_into_inner() {
-                                Ok(buffer) => {
-                                    let data = buffer.into_inner();
-                                    let final_stats = ChromatogramWriterStats {
-                                        chromatograms_written: stats.chromatograms_written,
-                                        data_points_written: stats.data_points_written,
-                                        row_groups_written: 0, // Estimated
-                                        file_size_bytes: data.len() as u64,
-                                    };
-                                    (Some(final_stats), Some(data))
-                                }
+                                Ok(temp_file) => match temp_file.into_reader() {
+                                    Ok((size, reader)) => {
+                                        let final_stats = ChromatogramWriterStats {
+                                            chromatograms_written: stats.chromatograms_written,
+                                            data_points_written: stats.data_points_written,
+                                            row_groups_written: 0, // Estimated
+                                            file_size_bytes: size,
+                                        };
+                                        (Some(final_stats), Some(reader))
+                                    }
+                                    Err(e) => {
+                                        log::warn!("Failed to read chromatogram temp file: {}", e);
+                                        (None, None)
+                                    }
+                                },
                                 Err(e) => {
                                     log::warn!("Failed to finalize chromatogram writer: {}", e);
                                     (None, None)
@@ -635,24 +672,29 @@ impl MzPeakDatasetWriter {
                         (None, None)
                     };
 
-                // Finalize mobilogram writer and get the buffer
-                let (mobilogram_stats, mob_data_opt) = if let Some(writer) = mobilogram_writer.take()
+                // Finalize mobilogram writer and get streaming reader
+                let (mobilogram_stats, mob_reader_opt) = if let Some(writer) = mobilogram_writer.take()
                 {
                     // Check if any mobilograms were written
                     let stats = writer.stats();
                     if stats.mobilograms_written > 0 {
-                        // Extract the buffer
+                        // Extract the temp file and get a reader
                         match writer.finish_into_inner() {
-                            Ok(buffer) => {
-                                let data = buffer.into_inner();
-                                let final_stats = MobilogramWriterStats {
-                                    mobilograms_written: stats.mobilograms_written,
-                                    data_points_written: stats.data_points_written,
-                                    row_groups_written: 0, // Estimated
-                                    file_size_bytes: data.len() as u64,
-                                };
-                                (Some(final_stats), Some(data))
-                            }
+                            Ok(temp_file) => match temp_file.into_reader() {
+                                Ok((size, reader)) => {
+                                    let final_stats = MobilogramWriterStats {
+                                        mobilograms_written: stats.mobilograms_written,
+                                        data_points_written: stats.data_points_written,
+                                        row_groups_written: 0, // Estimated
+                                        file_size_bytes: size,
+                                    };
+                                    (Some(final_stats), Some(reader))
+                                }
+                                Err(e) => {
+                                    log::warn!("Failed to read mobilogram temp file: {}", e);
+                                    (None, None)
+                                }
+                            },
                             Err(e) => {
                                 log::warn!("Failed to finalize mobilogram writer: {}", e);
                                 (None, None)
@@ -674,28 +716,29 @@ impl MzPeakDatasetWriter {
                 zip_writer.write_all(json_string.as_bytes())?;
 
                 // Write peaks/peaks.parquet (MUST be uncompressed/Stored for seekability)
+                // Stream from temp file to ZIP with bounded memory (Issue 000 fix)
                 let options = SimpleFileOptions::default()
                     .compression_method(CompressionMethod::Stored)
                     .unix_permissions(0o644);
                 zip_writer.start_file("peaks/peaks.parquet", options)?;
-                zip_writer.write_all(&parquet_data)?;
+                stream_copy_to_zip(peak_reader, &mut zip_writer)?;
 
                 // Write chromatograms/chromatograms.parquet if available (MUST be uncompressed/Stored for seekability)
-                if let Some(chrom_data) = chrom_data_opt {
+                if let Some(chrom_reader) = chrom_reader_opt {
                     let options = SimpleFileOptions::default()
                         .compression_method(CompressionMethod::Stored)
                         .unix_permissions(0o644);
                     zip_writer.start_file("chromatograms/chromatograms.parquet", options)?;
-                    zip_writer.write_all(&chrom_data)?;
+                    stream_copy_to_zip(chrom_reader, &mut zip_writer)?;
                 }
 
                 // Write mobilograms/mobilograms.parquet if available (MUST be uncompressed/Stored for seekability)
-                if let Some(mob_data) = mob_data_opt {
+                if let Some(mob_reader) = mob_reader_opt {
                     let options = SimpleFileOptions::default()
                         .compression_method(CompressionMethod::Stored)
                         .unix_permissions(0o644);
                     zip_writer.start_file("mobilograms/mobilograms.parquet", options)?;
-                    zip_writer.write_all(&mob_data)?;
+                    stream_copy_to_zip(mob_reader, &mut zip_writer)?;
                 }
 
                 // Finalize the ZIP archive
@@ -772,6 +815,31 @@ impl MzPeakDatasetWriter {
             DatasetSink::Container { .. } => None,
         }
     }
+}
+
+/// Copy data from a reader to a ZIP writer with bounded memory
+///
+/// Uses a fixed-size buffer (64KB) for streaming copy, ensuring memory usage
+/// is O(buffer_size) instead of O(file_size). This is the Issue 000 fix.
+const STREAM_COPY_BUFFER_SIZE: usize = 64 * 1024; // 64KB buffer
+
+fn stream_copy_to_zip<R: Read, W: Write + Seek>(
+    mut reader: R,
+    zip_writer: &mut ZipWriter<W>,
+) -> std::io::Result<u64> {
+    let mut buffer = [0u8; STREAM_COPY_BUFFER_SIZE];
+    let mut total_written = 0u64;
+
+    loop {
+        let bytes_read = reader.read(&mut buffer)?;
+        if bytes_read == 0 {
+            break;
+        }
+        zip_writer.write_all(&buffer[..bytes_read])?;
+        total_written += bytes_read as u64;
+    }
+
+    Ok(total_written)
 }
 
 /// Calculate the total size of a directory recursively

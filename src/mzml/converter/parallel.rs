@@ -48,11 +48,12 @@ impl MzMLConverter {
         // Get source file size
         let source_file_size = std::fs::metadata(input_path)?.len();
 
-        // Open the mzML/imzML file
+        // Open the mzML/imzML file with configured buffer size
+        let buffer_size = self.config.streaming_config.input_buffer_size;
         let mut streamer = if is_imzml_path(input_path) {
-            MzMLStreamer::open_imzml(input_path)?
+            MzMLStreamer::open_imzml_with_buffer_size(input_path, buffer_size)?
         } else {
-            MzMLStreamer::open(input_path)?
+            MzMLStreamer::open_with_buffer_size(input_path, buffer_size)?
         };
 
         // Read metadata first

@@ -29,16 +29,23 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Chemistry",
 ]
 requires-python = ">=3.8"
-dependencies = [
-    "pyarrow>=14.0.0",
-]
+# Core library has no mandatory dependencies - pyarrow is optional
+dependencies = []
 
 [project.optional-dependencies]
-pandas = ["pandas>=1.5.0"]
+# Arrow support for to_arrow(), to_arrow_stream() methods
+arrow = ["pyarrow>=14.0.0"]
+# Pandas integration (requires Arrow)
+pandas = ["pandas>=1.5.0", "pyarrow>=14.0.0"]
+# Polars integration (uses Arrow FFI)
 polars = ["polars>=0.19.0"]
+# Full installation with all data frame integrations
+full = ["pyarrow>=14.0.0", "pandas>=1.5.0", "polars>=0.19.0"]
+# Development dependencies
 dev = [
     "pytest>=7.0.0",
     "pytest-benchmark>=4.0.0",
+    "pyarrow>=14.0.0",
     "pandas>=1.5.0",
     "polars>=0.19.0",
 ]
@@ -61,7 +68,7 @@ strip = true
 compatibility = "manylinux2014"
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "python/tests"]
+testpaths = ["tests", "python_tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"

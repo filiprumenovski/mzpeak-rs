@@ -10,19 +10,51 @@ use super::{MzMLError, MzMLStreamer};
 use crate::mzml::ExternalBinaryReader;
 use crate::mzml::models::{IndexEntry, MzMLIndex};
 
+/// Default input buffer size for mzML parsing (64KB)
+pub const DEFAULT_INPUT_BUFFER_SIZE: usize = 64 * 1024;
+
 impl MzMLStreamer<BufReader<File>> {
-    /// Open an mzML file for streaming
+    /// Open an mzML file for streaming with default buffer size (64KB)
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Self, MzMLError> {
+        Self::open_with_buffer_size(path, DEFAULT_INPUT_BUFFER_SIZE)
+    }
+
+    /// Open an mzML file for streaming with custom buffer size
+    ///
+    /// # Arguments
+    /// * `path` - Path to the mzML file
+    /// * `buffer_size` - Size of the input buffer in bytes
+    ///
+    /// # Example
+    /// ```rust,no_run
+    /// use mzpeak::mzml::streamer::MzMLStreamer;
+    ///
+    /// // Use 256KB buffer for better throughput
+    /// let streamer = MzMLStreamer::open_with_buffer_size("data.mzML", 256 * 1024)?;
+    /// # Ok::<(), mzpeak::mzml::streamer::MzMLError>(())
+    /// ```
+    pub fn open_with_buffer_size<P: AsRef<Path>>(
+        path: P,
+        buffer_size: usize,
+    ) -> Result<Self, MzMLError> {
         let file = File::open(path.as_ref())?;
-        let reader = BufReader::with_capacity(64 * 1024, file);
+        let reader = BufReader::with_capacity(buffer_size, file);
         Self::new(reader)
     }
 
     /// Open an imzML file for streaming (with external .ibd binary data)
     pub fn open_imzml<P: AsRef<Path>>(path: P) -> Result<Self, MzMLError> {
+        Self::open_imzml_with_buffer_size(path, DEFAULT_INPUT_BUFFER_SIZE)
+    }
+
+    /// Open an imzML file for streaming with custom buffer size
+    pub fn open_imzml_with_buffer_size<P: AsRef<Path>>(
+        path: P,
+        buffer_size: usize,
+    ) -> Result<Self, MzMLError> {
         let xml_path = path.as_ref();
         let file = File::open(xml_path)?;
-        let reader = BufReader::with_capacity(64 * 1024, file);
+        let reader = BufReader::with_capacity(buffer_size, file);
         let mut streamer = Self::new(reader)?;
 
         let ibd_path = find_ibd_path(xml_path).ok_or_else(|| {
@@ -38,6 +70,14 @@ impl MzMLStreamer<BufReader<File>> {
 
     /// Open an indexed mzML file and read the index first
     pub fn open_indexed<P: AsRef<Path>>(path: P) -> Result<Self, MzMLError> {
+        Self::open_indexed_with_buffer_size(path, DEFAULT_INPUT_BUFFER_SIZE)
+    }
+
+    /// Open an indexed mzML file with custom buffer size
+    pub fn open_indexed_with_buffer_size<P: AsRef<Path>>(
+        path: P,
+        buffer_size: usize,
+    ) -> Result<Self, MzMLError> {
         let mut file = File::open(path.as_ref())?;
 
         // Try to read the index from the end of the file
@@ -46,7 +86,7 @@ impl MzMLStreamer<BufReader<File>> {
         // Reset to beginning
         file.seek(SeekFrom::Start(0))?;
 
-        let reader = BufReader::with_capacity(64 * 1024, file);
+        let reader = BufReader::with_capacity(buffer_size, file);
         let mut streamer = Self::new(reader)?;
         streamer.index = index;
 

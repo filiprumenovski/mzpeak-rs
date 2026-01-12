@@ -49,5 +49,5 @@ pub use binary::{BinaryDecoder, BinaryEncoding, CompressionType as BinaryCompres
 pub use cv_params::{CvParam, extract_cv_value, IMS_CV_ACCESSIONS, MS_CV_ACCESSIONS};
 pub(crate) use external::ExternalBinaryReader;
 pub use models::*;
-pub use streamer::{MzMLStreamer, MzMLError, SpectrumIterator, RawSpectrumIterator};
-pub use converter::{MzMLConverter, ConversionConfig, ConversionStats};
+pub use streamer::{MzMLStreamer, MzMLError, SpectrumIterator, RawSpectrumIterator, DEFAULT_INPUT_BUFFER_SIZE};
+pub use converter::{MzMLConverter, ConversionConfig, ConversionStats, StreamingConfig};

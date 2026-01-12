@@ -42,6 +42,7 @@ mod spectra;
 mod subfiles;
 mod summary;
 mod utils;
+pub mod zip_chunk_reader;
 
 #[cfg(test)]
 mod tests;
@@ -50,8 +51,9 @@ pub use batches::RecordBatchIterator;
 pub use config::ReaderConfig;
 pub use error::ReaderError;
 pub use metadata::FileMetadata;
-pub use spectra::SpectrumIterator;
+pub use spectra::{SpectrumIterator, StreamingSpectrumIterator};
 pub use summary::FileSummary;
+pub use zip_chunk_reader::{SharedZipEntryReader, ZipEntryChunkReader};
 
 use config::ReaderSource;
 

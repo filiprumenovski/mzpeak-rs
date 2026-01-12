@@ -1,4 +1,4 @@
-use bytes::Bytes;
+use super::zip_chunk_reader::SharedZipEntryReader;
 
 /// Configuration for reading mzPeak files
 #[derive(Debug, Clone)]
@@ -13,13 +13,19 @@ impl Default for ReaderConfig {
     }
 }
 
-/// Source type for the reader (stores path or bytes for re-reading)
+/// Source type for the reader
+///
+/// For ZIP containers, uses `SharedZipEntryReader` for streaming access
+/// without loading the entire file into memory (Issue 002 fix).
 pub(super) enum ReaderSource {
-    /// File path for file-based reading
+    /// File path for file-based reading (single Parquet file)
     FilePath(std::path::PathBuf),
-    /// Bytes for in-memory reading (ZIP containers), with original path for re-opening
+    /// Seekable reader for ZIP container format (.mzpeak files)
+    /// Uses `SharedZipEntryReader` for bounded memory usage
     ZipContainer {
-        peaks_bytes: Bytes,
+        /// Seekable reader for the peaks/peaks.parquet entry
+        chunk_reader: SharedZipEntryReader,
+        /// Path to the ZIP file (for subfile access and error messages)
         zip_path: std::path::PathBuf,
     },
 }

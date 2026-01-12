@@ -1,12 +1,10 @@
 use std::fs::File;
-use std::io::{BufReader, Read};
 use std::path::Path;
 
-use bytes::Bytes;
 use parquet::file::reader::SerializedFileReader;
-use zip::ZipArchive;
 
 use super::config::ReaderSource;
+use super::zip_chunk_reader::{SharedZipEntryReader, ZipEntryChunkReader};
 use super::{MzPeakReader, ReaderConfig, ReaderError};
 
 impl MzPeakReader {
@@ -47,28 +45,23 @@ impl MzPeakReader {
     }
 
     /// Open a ZIP container format file
+    ///
+    /// Uses `SharedZipEntryReader` for streaming access without loading the
+    /// entire Parquet file into memory (Issue 002 fix).
     fn open_container<P: AsRef<Path>>(path: P, config: ReaderConfig) -> Result<Self, ReaderError> {
         let zip_path = path.as_ref().to_path_buf();
-        let file = File::open(&zip_path)?;
-        let mut archive = ZipArchive::new(BufReader::new(file))?;
 
-        // Find the peaks parquet file
-        let peaks_path = "peaks/peaks.parquet";
-        let mut peaks_file = archive.by_name(peaks_path).map_err(|_| {
-            ReaderError::InvalidFormat(format!("ZIP container missing {}", peaks_path))
-        })?;
+        // Create seekable chunk reader for the peaks parquet entry
+        // This validates that the entry is Stored (uncompressed) and fails fast if not
+        let chunk_reader = ZipEntryChunkReader::new(&zip_path, "peaks/peaks.parquet")?;
+        let chunk_reader = SharedZipEntryReader::new(chunk_reader);
 
-        // Read the entire parquet file into memory
-        let mut parquet_bytes = Vec::new();
-        peaks_file.read_to_end(&mut parquet_bytes)?;
-
-        // Convert to Bytes (implements ChunkReader)
-        let peaks_bytes = Bytes::from(parquet_bytes);
-        let file_metadata = Self::extract_file_metadata_from_bytes(&peaks_bytes)?;
+        // Extract metadata using the chunk reader
+        let file_metadata = Self::extract_file_metadata_from_chunk_reader(&chunk_reader)?;
 
         Ok(Self {
             source: ReaderSource::ZipContainer {
-                peaks_bytes,
+                chunk_reader,
                 zip_path,
             },
             config,

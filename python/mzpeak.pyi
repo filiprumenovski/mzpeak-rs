@@ -5,7 +5,8 @@ Type stub file providing IDE support and static type checking.
 """
 
 from __future__ import annotations
-from typing import Optional, List, Dict, Tuple, Iterator, Any, Union
+from typing import Optional, List, Dict, Tuple, Iterator, Union
+from types import TracebackType
 from os import PathLike
 
 # Version and format constants
@@ -633,7 +634,12 @@ class MzPeakReader:
         ...
     
     def __enter__(self) -> MzPeakReader: ...
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> bool: ...
+    def __exit__(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> bool: ...
     def __repr__(self) -> str: ...
 
 # Writer classes
@@ -694,7 +700,12 @@ class MzPeakWriter:
         ...
     
     def __enter__(self) -> MzPeakWriter: ...
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> bool: ...
+    def __exit__(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> bool: ...
     def __repr__(self) -> str: ...
 
 class MzPeakDatasetWriter:
@@ -772,7 +783,12 @@ class MzPeakDatasetWriter:
         ...
     
     def __enter__(self) -> MzPeakDatasetWriter: ...
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> bool: ...
+    def __exit__(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> bool: ...
     def __repr__(self) -> str: ...
 
 class SpectrumBuilder:

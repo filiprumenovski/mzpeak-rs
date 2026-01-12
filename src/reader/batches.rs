@@ -50,8 +50,10 @@ impl MzPeakReader {
                     inner: Box::new(reader),
                 })
             }
-            ReaderSource::ZipContainer { peaks_bytes, .. } => {
-                let builder = ParquetRecordBatchReaderBuilder::try_new(peaks_bytes.clone())?
+            ReaderSource::ZipContainer { chunk_reader, .. } => {
+                // Use the seekable chunk reader for streaming access (Issue 002 fix)
+                // This avoids loading the entire Parquet file into memory
+                let builder = ParquetRecordBatchReaderBuilder::try_new(chunk_reader.clone())?
                     .with_batch_size(self.config.batch_size);
                 let reader = builder.build()?;
                 Ok(RecordBatchIterator {

@@ -2,12 +2,12 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use arrow::datatypes::Schema;
-use bytes::Bytes;
 use parquet::file::reader::{FileReader, SerializedFileReader};
 
 use crate::metadata::MzPeakMetadata;
 use crate::schema::KEY_FORMAT_VERSION;
 
+use super::zip_chunk_reader::SharedZipEntryReader;
 use super::{MzPeakReader, ReaderError};
 
 /// Metadata extracted from an mzPeak file
@@ -73,11 +73,15 @@ impl MzPeakReader {
         })
     }
 
-    /// Extract metadata from Bytes
-    pub(super) fn extract_file_metadata_from_bytes(
-        bytes: &Bytes,
+    /// Extract metadata from a SharedZipEntryReader (streaming-compatible)
+    ///
+    /// This method enables metadata extraction from seekable ZIP entries
+    /// without loading the entire file into memory (Issue 002 fix).
+    pub(super) fn extract_file_metadata_from_chunk_reader(
+        chunk_reader: &SharedZipEntryReader,
     ) -> Result<FileMetadata, ReaderError> {
-        let reader = SerializedFileReader::new(bytes.clone())?;
+        // SharedZipEntryReader implements ChunkReader
+        let reader = SerializedFileReader::new(chunk_reader.clone())?;
         Self::extract_file_metadata(&reader)
     }
 

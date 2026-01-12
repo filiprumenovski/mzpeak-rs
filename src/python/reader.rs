@@ -23,7 +23,7 @@ impl PyArrowCStream {
 
 use crate::python::exceptions::IntoPyResult;
 use crate::python::types::{PyChromatogram, PyFileMetadata, PyFileSummary, PyMobilogram, PySpectrum};
-use crate::reader::{MzPeakReader, ReaderConfig};
+use crate::reader::{MzPeakReader, ReaderConfig, StreamingSpectrumIterator};
 
 /// Reader for mzPeak format files
 ///
@@ -202,27 +202,56 @@ impl PyMzPeakReader {
         Ok(result.into_iter().map(PyMobilogram::from).collect())
     }
 
-    /// Return an iterator over all spectra
+    /// Return a streaming iterator over all spectra (truly lazy)
     ///
-    /// This is memory-efficient for large files as it reads spectra lazily.
+    /// This is memory-efficient for large files as it reads spectra lazily
+    /// from the underlying Parquet data. Memory usage is bounded by batch_size.
+    ///
+    /// **Issue 004 Fix**: This iterator is now truly streaming and does not
+    /// load all spectra into memory upfront.
     ///
     /// Returns:
     ///     Iterator yielding Spectrum objects
-    fn iter_spectra(&self, py: Python<'_>) -> PyResult<PySpectrumIterator> {
+    fn iter_spectra(&self) -> PyResult<PyStreamingSpectrumIterator> {
         let reader = self.get_reader()?;
-        // Get all spectra and create an iterator over them
-        // Note: For truly lazy iteration, we'd need to implement a streaming reader
-        let spectra = py.allow_threads(|| reader.iter_spectra().into_py_result())?;
-        Ok(PySpectrumIterator {
-            spectra: spectra.into_iter().map(PySpectrum::from).collect(),
-            index: 0,
-        })
+        let streaming_iter = reader.iter_spectra_streaming().into_py_result()?;
+        Ok(PyStreamingSpectrumIterator::new(streaming_iter))
     }
 
-    /// Export data as a PyArrow Table (zero-copy)
+    /// Export data as a streaming PyArrow RecordBatchReader (Issue 005 fix)
     ///
-    /// Uses the Arrow C Data Interface to pass memory directly to PyArrow
-    /// without serialization overhead.
+    /// Returns a streaming reader that pulls batches on-demand from the underlying
+    /// Parquet data. Memory usage is bounded by batch_size, not file size.
+    ///
+    /// This implements the Arrow C Stream protocol (`__arrow_c_stream__`) for
+    /// efficient interop with PyArrow, Polars, and other Arrow-compatible libraries.
+    ///
+    /// Returns:
+    ///     pyarrow.RecordBatchReader that streams batches on-demand
+    ///
+    /// Raises:
+    ///     ImportError: If pyarrow is not installed
+    fn to_arrow_stream(&self, py: Python<'_>) -> PyResult<PyObject> {
+        let reader = self.get_reader()?;
+        let batch_iter = reader.iter_batches().into_py_result()?;
+        let schema = reader.schema();
+
+        // Wrap in our streaming reader
+        let streaming_reader = PyStreamingArrowReader::new(batch_iter, schema);
+        let py_reader = Py::new(py, streaming_reader)?;
+
+        // Return PyArrow RecordBatchReader from our stream
+        let pa = py.import("pyarrow")?;
+        let pa_reader = pa
+            .getattr("RecordBatchReader")?
+            .call_method1("from_stream", (py_reader,))?;
+        Ok(pa_reader.into())
+    }
+
+    /// Export data as a PyArrow Table (convenience method)
+    ///
+    /// For large files, prefer `to_arrow_stream()` which doesn't materialize
+    /// all batches into memory at once.
     ///
     /// Returns:
     ///     pyarrow.Table containing all peak data
@@ -230,38 +259,9 @@ impl PyMzPeakReader {
     /// Raises:
     ///     ImportError: If pyarrow is not installed
     fn to_arrow(&self, py: Python<'_>) -> PyResult<PyObject> {
-        let reader = self.get_reader()?;
-        
-        // Get all record batches from the reader
-        let batches = py.allow_threads(|| reader.read_all_batches().into_py_result())?;
-        
-        if batches.is_empty() {
-            // Return empty table with schema
-            let pa = py.import("pyarrow")?;
-            let schema = reader.schema();
-            let empty_batch = RecordBatch::new_empty(schema);
-            let py_batch = record_batch_to_pyarrow(py, empty_batch)?;
-            let py_batches = vec![py_batch];
-            let py_list = PyList::new(py, &py_batches)?;
-            let table = pa
-                .getattr("Table")?
-                .call_method1("from_batches", (py_list,))?;
-            return Ok(table.into());
-        }
-        
-        // Convert each batch to PyArrow
-        let py_batches: Vec<PyObject> = batches
-            .into_iter()
-            .map(|batch| record_batch_to_pyarrow(py, batch))
-            .collect::<PyResult<Vec<_>>>()?;
-        
-        // Create a PyArrow Table from record batches
-        let pa = py.import("pyarrow")?;
-        let py_list = PyList::new(py, &py_batches)?;
-        let table = pa
-            .getattr("Table")?
-            .call_method1("from_batches", (py_list,))?;
-        Ok(table.into())
+        // Use streaming reader, then read all into table
+        let stream_reader = self.to_arrow_stream(py)?;
+        stream_reader.call_method0(py, "read_all")
     }
 
     /// Export data as a pandas DataFrame
@@ -453,8 +453,10 @@ unsafe extern "C" fn drop_ffi_stream(capsule: *mut pyo3::ffi::PyObject) {
     }
 }
 
-/// Iterator over spectra
-#[pyclass(name = "SpectrumIterator")]
+/// Legacy iterator over spectra (loads all into memory)
+///
+/// This is kept for backwards compatibility but is not recommended for large files.
+#[pyclass(name = "_EagerSpectrumIterator")]
 pub struct PySpectrumIterator {
     spectra: Vec<PySpectrum>,
     index: usize,
@@ -478,5 +480,172 @@ impl PySpectrumIterator {
 
     fn __len__(&self) -> usize {
         self.spectra.len()
+    }
+}
+
+/// Streaming iterator over spectra (Issue 004 fix)
+///
+/// This iterator is truly lazy and reads spectra on-demand from the underlying
+/// Parquet data. Memory usage is bounded by batch_size, not file size.
+///
+/// The GIL is released during batch reads for better Python threading performance.
+///
+/// Note: This iterator is marked `unsendable` because it holds an internal iterator
+/// that is `Send` but not `Sync`. This is safe because Python's GIL ensures
+/// single-threaded access to the iterator within a Python context.
+#[pyclass(name = "SpectrumIterator", unsendable)]
+pub struct PyStreamingSpectrumIterator {
+    inner: Option<StreamingSpectrumIterator>,
+}
+
+impl PyStreamingSpectrumIterator {
+    pub fn new(inner: StreamingSpectrumIterator) -> Self {
+        Self { inner: Some(inner) }
+    }
+}
+
+#[pymethods]
+impl PyStreamingSpectrumIterator {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
+
+    fn __next__(&mut self, py: Python<'_>) -> PyResult<Option<PySpectrum>> {
+        let inner = self.inner.as_mut().ok_or_else(|| {
+            pyo3::exceptions::PyRuntimeError::new_err("Iterator exhausted or closed")
+        })?;
+
+        // Release GIL during potentially slow batch reads
+        let result = py.allow_threads(|| inner.next());
+
+        match result {
+            Some(Ok(spectrum)) => Ok(Some(PySpectrum::from(spectrum))),
+            Some(Err(e)) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+                "Error reading spectrum: {}",
+                e
+            ))),
+            None => {
+                // Iterator exhausted, drop inner to release resources
+                self.inner = None;
+                Ok(None)
+            }
+        }
+    }
+}
+
+/// Streaming Arrow reader implementing `__arrow_c_stream__` (Issue 005 fix)
+///
+/// This wrapper holds a Rust `RecordBatchIterator` and exposes it via the
+/// Arrow C Stream protocol for efficient interop with PyArrow.
+///
+/// Memory usage is bounded by batch_size, not file size, as batches are
+/// produced on-demand rather than pre-materialized.
+#[pyclass(name = "_StreamingArrowReader", unsendable)]
+pub struct PyStreamingArrowReader {
+    /// Iterator over RecordBatches
+    batch_iter: Option<crate::reader::RecordBatchIterator>,
+    /// Schema for the stream
+    schema: std::sync::Arc<arrow::datatypes::Schema>,
+    /// Whether the stream has been consumed
+    exhausted: bool,
+}
+
+impl PyStreamingArrowReader {
+    pub fn new(
+        batch_iter: crate::reader::RecordBatchIterator,
+        schema: std::sync::Arc<arrow::datatypes::Schema>,
+    ) -> Self {
+        Self {
+            batch_iter: Some(batch_iter),
+            schema,
+            exhausted: false,
+        }
+    }
+}
+
+#[pymethods]
+impl PyStreamingArrowReader {
+    /// Implement Arrow C Stream protocol
+    ///
+    /// Returns a PyCapsule containing an FFI_ArrowArrayStream that PyArrow
+    /// can consume for streaming record batch access.
+    #[pyo3(signature = (requested_schema=None))]
+    fn __arrow_c_stream__(&mut self, py: Python<'_>, requested_schema: Option<PyObject>) -> PyResult<PyObject> {
+        let _ = requested_schema; // We don't support schema negotiation
+
+        if self.exhausted {
+            return Err(pyo3::exceptions::PyRuntimeError::new_err(
+                "Arrow stream has already been consumed"
+            ));
+        }
+
+        let batch_iter = self.batch_iter.take().ok_or_else(|| {
+            pyo3::exceptions::PyRuntimeError::new_err("Arrow stream has already been consumed")
+        })?;
+        self.exhausted = true;
+
+        // Create a RecordBatchReader from our iterator
+        let schema = self.schema.clone();
+        let reader = StreamingBatchReader::new(batch_iter, schema);
+
+        // Create FFI stream from reader
+        let ffi_stream = FFI_ArrowArrayStream::new(Box::new(reader));
+
+        // SAFETY: We box the stream and convert to raw pointer for FFI transfer.
+        // The PyCapsule takes ownership and will call our destructor when freed.
+        let stream_box = Box::new(ffi_stream);
+        let stream_ptr = Box::into_raw(stream_box);
+
+        // Capsule name must be a NUL-terminated C string
+        let capsule_name = b"arrow_array_stream\0";
+
+        // SAFETY: PyCapsule_New takes ownership of stream_ptr. The destructor
+        // (drop_ffi_stream) will be called when Python GC collects the capsule.
+        let capsule = unsafe {
+            pyo3::ffi::PyCapsule_New(
+                stream_ptr as *mut std::ffi::c_void,
+                capsule_name.as_ptr() as *const std::ffi::c_char,
+                Some(drop_ffi_stream),
+            )
+        };
+
+        if capsule.is_null() {
+            // Clean up the stream if capsule creation failed
+            // SAFETY: We still own stream_ptr since capsule creation failed
+            unsafe { drop(Box::from_raw(stream_ptr)); }
+            return Err(pyo3::exceptions::PyMemoryError::new_err(
+                "Failed to create PyCapsule for Arrow stream"
+            ));
+        }
+
+        // SAFETY: capsule is non-null and we transfer ownership to Python
+        let capsule_obj: PyObject = unsafe { PyObject::from_owned_ptr(py, capsule) };
+        Ok(capsule_obj)
+    }
+}
+
+/// Adapter that implements arrow's RecordBatchReader trait for our RecordBatchIterator
+struct StreamingBatchReader {
+    iter: crate::reader::RecordBatchIterator,
+    schema: std::sync::Arc<arrow::datatypes::Schema>,
+}
+
+impl StreamingBatchReader {
+    fn new(iter: crate::reader::RecordBatchIterator, schema: std::sync::Arc<arrow::datatypes::Schema>) -> Self {
+        Self { iter, schema }
+    }
+}
+
+impl arrow::record_batch::RecordBatchReader for StreamingBatchReader {
+    fn schema(&self) -> std::sync::Arc<arrow::datatypes::Schema> {
+        self.schema.clone()
+    }
+}
+
+impl Iterator for StreamingBatchReader {
+    type Item = Result<RecordBatch, arrow::error::ArrowError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|r| r.map_err(|e| arrow::error::ArrowError::ExternalError(Box::new(e))))
     }
 }
