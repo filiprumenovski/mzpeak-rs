@@ -34,6 +34,39 @@ pub struct MzPeakMetadata {
     /// SHA-256 checksum of the original raw file (top-level for quick access)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub raw_file_checksum: Option<String>,
+
+    /// MALDI/imaging spatial metadata (if available)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub imaging: Option<ImagingMetadata>,
+}
+
+/// MALDI/imaging grid metadata for spatial indexing.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ImagingMetadata {
+    /// Width of the pixel grid (X dimension, zero-indexed + 1)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub grid_width: Option<u32>,
+    /// Height of the pixel grid (Y dimension, zero-indexed + 1)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub grid_height: Option<u32>,
+    /// Pixel size along X in micrometers
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pixel_size_x_um: Option<f64>,
+    /// Pixel size along Y in micrometers
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pixel_size_y_um: Option<f64>,
+}
+
+impl ImagingMetadata {
+    /// Serialize imaging metadata to JSON for Parquet footer storage.
+    pub fn to_json(&self) -> Result<String, MetadataError> {
+        Ok(serde_json::to_string(self)?)
+    }
+
+    /// Deserialize imaging metadata from JSON.
+    pub fn from_json(json: &str) -> Result<Self, MetadataError> {
+        Ok(serde_json::from_str(json)?)
+    }
 }
 
 impl MzPeakMetadata {
@@ -88,6 +121,10 @@ impl MzPeakMetadata {
             metadata.insert(KEY_RAW_FILE_CHECKSUM.to_string(), checksum.clone());
         }
 
+        if let Some(ref imaging) = self.imaging {
+            metadata.insert(KEY_IMAGING_METADATA.to_string(), imaging.to_json()?);
+        }
+
         Ok(metadata)
     }
 
@@ -125,6 +162,10 @@ impl MzPeakMetadata {
 
         if let Some(checksum) = metadata.get(KEY_RAW_FILE_CHECKSUM) {
             result.raw_file_checksum = Some(checksum.clone());
+        }
+
+        if let Some(json) = metadata.get(KEY_IMAGING_METADATA) {
+            result.imaging = Some(ImagingMetadata::from_json(json)?);
         }
 
         Ok(result)

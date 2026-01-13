@@ -31,21 +31,17 @@
 //! // Convert TDF dataset to spectrum arrays
 //! let spectra = TdfConverter::try_convert("sample.d")?;
 //!
-//! println!("Spectra read: {}", spectra.spectrum_id.len());
-//! println!("Total peaks: {}", spectra.peaks.mz.len());
+//! println!("Spectra read: {}", spectra.len());
+//! let total_peaks: usize = spectra.iter().map(|s| s.peaks.len()).sum();
+//! println!("Total peaks: {}", total_peaks);
 //!
-//! // Ion mobility is always present for TIMS data
-//! match &spectra.peaks.ion_mobilities {
-//!     mzpeak::writer::types::IonMobilityArrays::AllPresent(mobilities) => {
-//!         println!("Ion mobility values: {}", mobilities.len());
-//!     }
-//!     _ => println!("No ion mobility data"),
-//! }
-//!
-//! // Check for spatial coordinates (MALDI imaging)
-//! if spectra.pixel_x.iter().any(|p| p.is_some()) {
-//!     println!("This is imaging data with {} pixels", 
-//!              spectra.pixel_x.iter().filter(|p| p.is_some()).count());
+//! // Check for imaging coordinates (MALDI)
+//! let imaging_count = spectra
+//!     .iter()
+//!     .filter(|s| s.pixel_x.is_some() && s.pixel_y.is_some())
+//!     .count();
+//! if imaging_count > 0 {
+//!     println!("Imaging pixels: {}", imaging_count);
 //! }
 //! # }
 //! # Ok::<(), Box<dyn std::error::Error>>(())

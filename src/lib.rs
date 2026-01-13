@@ -180,6 +180,9 @@ pub mod mobilogram_writer;
 pub mod mzml;
 #[cfg(feature = "tdf")]
 pub mod tdf;
+#[cfg(feature = "tdf")]
+/// TDF reader utilities (raw frames + streamers).
+pub mod readers;
 pub mod reader;
 pub mod schema;
 pub mod validator;

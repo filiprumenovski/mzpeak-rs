@@ -39,3 +39,6 @@ pub const KEY_PROCESSING_HISTORY: &str = "mzpeak:processing_history";
 
 /// Metadata key for checksum of original raw file
 pub const KEY_RAW_FILE_CHECKSUM: &str = "mzpeak:raw_file_checksum";
+
+/// Metadata key for MALDI/imaging grid parameters
+pub const KEY_IMAGING_METADATA: &str = "mzpeak:imaging_metadata";

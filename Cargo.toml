@@ -22,6 +22,8 @@ python = []
 colorized_output = ["console"]
 # mzML parsing (optional)
 mzml = ["quick-xml", "base64", "flate2", "byteorder"]
+# Bruker TDF parsing (optional)
+tdf = ["timsrust"]
 # Parallel decoding with SIMD acceleration for mzML conversion
 parallel-decode = ["mzml", "rayon", "base64-simd", "wide", "fast-float"]
 
@@ -77,6 +79,9 @@ rayon = { version = "1.10", optional = true }
 base64-simd = { version = "0.8", optional = true }
 wide = { version = "0.7", optional = true }
 fast-float = { version = "0.2", optional = true }
+
+# Bruker TDF reader (path override; subject to change to git/published crate)
+timsrust = { path = "/Users/filiprumenovski/Code/timsrust-4d", optional = true }
 
 [dev-dependencies]
 proptest = "1.5"

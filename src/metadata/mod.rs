@@ -38,7 +38,7 @@ mod tests;
 pub use error::MetadataError;
 pub use instrument::{InstrumentConfig, MassAnalyzerConfig};
 pub use lc::{ColumnInfo, GradientProgram, GradientStep, LcConfig, MobilePhase};
-pub use mzpeak::MzPeakMetadata;
+pub use mzpeak::{ImagingMetadata, MzPeakMetadata};
 pub use processing::{ProcessingHistory, ProcessingStep};
 pub use run::RunParameters;
 pub use sdrf::SdrfMetadata;
