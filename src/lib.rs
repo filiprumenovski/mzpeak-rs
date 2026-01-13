@@ -183,6 +183,9 @@ pub mod tdf;
 #[cfg(feature = "tdf")]
 /// TDF reader utilities (raw frames + streamers).
 pub mod readers;
+#[cfg(feature = "thermo")]
+/// Thermo RAW file reader (requires .NET 8 runtime).
+pub mod thermo;
 pub mod reader;
 pub mod schema;
 pub mod validator;

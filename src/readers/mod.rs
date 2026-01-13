@@ -7,4 +7,4 @@ pub mod tdf_streamer;
 #[cfg(feature = "tdf")]
 pub use raw_tdf_frame::RawTdfFrame;
 #[cfg(feature = "tdf")]
-pub use tdf_streamer::TdfStreamer;
+pub use tdf_streamer::{FramePartition, TdfStreamer};

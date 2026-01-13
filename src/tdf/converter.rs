@@ -181,7 +181,7 @@ fn decode_raw_frame(raw: IndexedRawFrame, ctx: &DecoderContext) -> Result<Ingest
 
     let mut mz_values: Vec<f64> = Vec::with_capacity(peak_count);
     let mut intensities: Vec<f32> = Vec::with_capacity(peak_count);
-    let mut ion_mobility: Vec<f64> = Vec::with_capacity(peak_count);
+    let mut ion_mobility: Vec<f64> = vec![0.0; peak_count];
 
     // Convert TOF -> m/z and intensity correction
     for (&tof_idx, &intensity) in frame.tof_indices.iter().zip(frame.intensities.iter()) {
@@ -189,21 +189,21 @@ fn decode_raw_frame(raw: IndexedRawFrame, ctx: &DecoderContext) -> Result<Ingest
         intensities.push((intensity as f64 * frame.intensity_correction_factor) as f32);
     }
 
-    // Expand scan -> ion mobility across peaks using scan offsets
+    // Expand scan -> ion mobility across peaks using scan offsets, with bounds checks
     let scan_count = frame.scan_count();
     for scan_idx in 0..scan_count {
         let start = frame.scan_offsets[scan_idx];
         let end = frame.scan_offsets[scan_idx + 1];
-        let im_val = ctx.scan_to_im.convert(scan_idx as u32);
-        let span = end.saturating_sub(start);
-        ion_mobility.extend(std::iter::repeat(im_val).take(span));
-    }
 
-    if ion_mobility.len() != peak_count {
-        return Err(TdfError::MobilityConversionError(format!(
-            "Ion mobility length {} does not match peak count {peak_count}",
-            ion_mobility.len()
-        )));
+        if end > peak_count || start > end {
+            return Err(TdfError::MobilityConversionError(format!(
+                "Scan offsets out of bounds: start={}, end={}, peaks={peak_count}",
+                start, end
+            )));
+        }
+
+        let im_val = ctx.scan_to_im.convert(scan_idx as u32);
+        ion_mobility[start..end].fill(im_val);
     }
 
     let ion_mobility = OptionalColumnBuf::AllPresent(ion_mobility);

@@ -89,8 +89,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let config = mzpeak::writer::WriterConfig::default();
                 let mut writer = MzPeakWriter::new_file(&output_path, &metadata, config)?;
                 
-                for spectrum in spectra {
-                    writer.write_spectrum_owned(spectrum)?;
+                // Write all spectra in batches - creates ONE RecordBatch per batch
+                // Uses optimized write_spectra_owned with O(1) validity tracking
+                const BATCH_SIZE: usize = 500;
+                let mut spectra_iter = spectra.into_iter().peekable();
+                while spectra_iter.peek().is_some() {
+                    let batch: Vec<_> = spectra_iter.by_ref().take(BATCH_SIZE).collect();
+                    writer.write_spectra_owned(batch)?;
                 }
                 let stats = writer.finish()?;
                 

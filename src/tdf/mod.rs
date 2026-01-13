@@ -76,6 +76,8 @@
 
 pub mod converter;
 pub mod error;
+pub mod parallel_converter;
 
 pub use converter::TdfConverter;
 pub use error::TdfError;
+pub use parallel_converter::{ParallelConversionConfig, ParallelConversionStats, ParallelTdfConverter};

@@ -204,8 +204,10 @@ impl IngestSpectrumConverter {
             peaks,
         };
 
-        // Preserve existing behavior: compute TIC/BPC from peak arrays.
-        spectrum.compute_statistics();
+        // Compute statistics only if not already provided (avoid redundant pass)
+        if spectrum.total_ion_current.is_none() {
+            spectrum.compute_statistics();
+        }
 
         Ok(spectrum)
     }

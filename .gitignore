@@ -51,3 +51,4 @@ data/*.mzpeak
 
 # Keep Cargo.lock for reproducible builds (binary)
 # !Cargo.lock
+data/

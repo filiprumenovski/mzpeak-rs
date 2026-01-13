@@ -24,6 +24,8 @@ colorized_output = ["console"]
 mzml = ["quick-xml", "base64", "flate2", "byteorder"]
 # Bruker TDF parsing (optional)
 tdf = ["timsrust"]
+# Thermo RAW parsing (optional) - requires .NET 8 runtime
+thermo = ["thermorawfilereader"]
 # Parallel decoding with SIMD acceleration for mzML conversion
 parallel-decode = ["mzml", "rayon", "base64-simd", "wide", "fast-float"]
 
@@ -83,6 +85,9 @@ fast-float = { version = "0.2", optional = true }
 # Bruker TDF reader (path override; subject to change to git/published crate)
 timsrust = { path = "/Users/filiprumenovski/Code/timsrust-4d", optional = true }
 
+# Thermo RAW reader (optional) - requires .NET 8 runtime
+thermorawfilereader = { version = "0.5", optional = true }
+
 [dev-dependencies]
 proptest = "1.5"
 criterion = { version = "0.5", features = ["html_reports"] }
@@ -107,6 +112,56 @@ harness = false
 [[bench]]
 name = "filtering"
 harness = false
+
+[[example]]
+name = "compression_benchmark"
+path = "examples/compression_benchmark.rs"
+required-features = ["tdf"]
+
+[[example]]
+name = "parallel_benchmark"
+path = "examples/parallel_benchmark.rs"
+required-features = ["tdf"]
+
+[[example]]
+name = "parallel_write_benchmark"
+path = "examples/parallel_write_benchmark.rs"
+required-features = ["tdf"]
+
+[[example]]
+name = "batch_benchmark"
+path = "examples/batch_benchmark.rs"
+required-features = ["tdf"]
+
+[[example]]
+name = "rowgroup_benchmark"
+path = "examples/rowgroup_benchmark.rs"
+required-features = ["tdf"]
+
+[[example]]
+name = "scaling_benchmark"
+path = "examples/scaling_benchmark.rs"
+required-features = ["tdf"]
+
+[[example]]
+name = "test_alphatims_dda"
+path = "examples/test_alphatims_dda.rs"
+required-features = ["tdf"]
+
+[[example]]
+name = "inspect_frame_91_binary"
+path = "examples/inspect_frame_91_binary.rs"
+required-features = ["tdf"]
+
+[[example]]
+name = "diagnose_frame_91"
+path = "examples/diagnose_frame_91.rs"
+required-features = ["tdf"]
+
+[[example]]
+name = "thermo_benchmark"
+path = "examples/thermo_benchmark.rs"
+required-features = ["thermo"]
 
 [profile.release]
 lto = true
