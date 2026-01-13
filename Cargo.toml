@@ -15,13 +15,15 @@ categories = ["science", "encoding", "parser-implementations"]
 exclude = ["*.mzML", "*.raw", "*.parquet", "mzPeak_preprint_v02.pdf"]
 
 [features]
-default = ["colorized_output"]
+default = ["colorized_output", "mzml"]
 # Python bindings are temporarily disabled in this prealpha.
 python = []
 # Colorized CLI output
 colorized_output = ["console"]
+# mzML parsing (optional)
+mzml = ["quick-xml", "base64", "flate2", "byteorder"]
 # Parallel decoding with SIMD acceleration for mzML conversion
-parallel-decode = ["rayon", "base64-simd", "wide", "fast-float"]
+parallel-decode = ["mzml", "rayon", "base64-simd", "wide", "fast-float"]
 
 [dependencies]
 # Apache Arrow and Parquet for columnar storage
@@ -58,11 +60,11 @@ bytes = "1.9"
 # Temp file for streaming container writes (Issue 000 fix)
 tempfile = "3.14"
 
-# mzML parsing
-quick-xml = { version = "0.37", features = ["encoding"] }
-base64 = "0.22"
-flate2 = "1.0"
-byteorder = "1.5"
+# mzML parsing (optional)
+quick-xml = { version = "0.37", features = ["encoding"], optional = true }
+base64 = { version = "0.22", optional = true }
+flate2 = { version = "1.0", optional = true }
+byteorder = { version = "1.5", optional = true }
 
 # CLI argument parsing
 clap = { version = "4.5", features = ["derive"] }

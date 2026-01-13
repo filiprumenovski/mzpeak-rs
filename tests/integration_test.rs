@@ -784,6 +784,7 @@ fn test_read_mobilograms_zip_container() {
 }
 
 /// Test mzML conversion with chromatograms
+#[cfg(feature = "mzml")]
 #[test]
 fn test_mzml_conversion_with_chromatograms() {
     use mzpeak::mzml::converter::{ConversionConfig, MzMLConverter};

@@ -3,8 +3,10 @@ use std::path::Path;
 use log::info;
 
 use super::{ConversionError, ConversionStats, MzMLConverter};
+use super::spectrum::DecodedRawSpectrum;
 use super::super::streamer::MzMLStreamer;
 use crate::dataset::MzPeakDatasetWriter;
+use crate::ingest::IngestSpectrumConverter;
 use crate::writer::{RollingWriter, SpectrumArrays, WriterError};
 
 impl MzMLConverter {
@@ -51,6 +53,7 @@ impl MzMLConverter {
         };
 
         let mut batch: Vec<SpectrumArrays> = Vec::with_capacity(self.config.batch_size);
+        let mut ingest_converter = IngestSpectrumConverter::new();
         let expected_count = streamer.spectrum_count();
 
         // Accumulate TIC and BPC data during spectrum processing
@@ -66,45 +69,36 @@ impl MzMLConverter {
                 .unwrap_or_else(|| "unknown".to_string())
         );
 
-        while let Some(mzml_spectrum) = streamer.next_spectrum()? {
-            let spectrum = self.convert_spectrum(&mzml_spectrum);
+        while let Some(raw_spectrum) = streamer.next_raw_spectrum()? {
+            let DecodedRawSpectrum {
+                ingest,
+                retention_time,
+                total_ion_current,
+                base_peak_intensity,
+            } = self.build_ingest_spectrum_raw(raw_spectrum)?;
+            let spectrum = ingest_converter
+                .convert(ingest)
+                .map_err(WriterError::from)?;
 
             // Update statistics
             stats.spectra_count += 1;
             stats.peak_count += spectrum.peak_count();
 
-            match mzml_spectrum.ms_level {
+            match spectrum.ms_level {
                 1 => stats.ms1_spectra += 1,
                 2 => stats.ms2_spectra += 1,
                 _ => stats.msn_spectra += 1,
             }
 
             // Accumulate TIC and BPC for MS1 spectra only
-            if mzml_spectrum.ms_level == 1 {
-                let rt = mzml_spectrum.retention_time.unwrap_or(0.0);
-
-                // Calculate TIC from spectrum
-                let tic = if let Some(tic_from_spectrum) = mzml_spectrum.total_ion_current {
-                    tic_from_spectrum as f32
-                } else {
-                    mzml_spectrum
-                        .intensity_array
-                        .iter()
-                        .map(|&i| i as f32)
-                        .sum()
-                };
-
-                // Calculate BPC from spectrum
-                let bpc = if let Some(bp_intensity) = mzml_spectrum.base_peak_intensity {
-                    bp_intensity as f32
-                } else {
-                    mzml_spectrum
-                        .intensity_array
-                        .iter()
-                        .map(|&i| i as f32)
-                        .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-                        .unwrap_or(0.0)
-                };
+            if spectrum.ms_level == 1 {
+                let rt = retention_time.unwrap_or(0.0);
+                let tic = total_ion_current
+                    .map(|value| value as f32)
+                    .unwrap_or_else(|| spectrum.total_ion_current.unwrap_or(0.0) as f32);
+                let bpc = base_peak_intensity
+                    .map(|value| value as f32)
+                    .unwrap_or_else(|| spectrum.base_peak_intensity.unwrap_or(0.0));
 
                 tic_times.push(rt);
                 tic_intensities.push(tic);
@@ -116,8 +110,8 @@ impl MzMLConverter {
 
             // Write batch if full
             if batch.len() >= self.config.batch_size {
-                writer.write_spectra_arrays(&batch)?;
-                batch.clear();
+                writer.write_spectra_owned(batch)?;
+                batch = Vec::with_capacity(self.config.batch_size);
 
                 // Progress update
                 if stats.spectra_count % self.config.progress_interval == 0 {
@@ -136,7 +130,7 @@ impl MzMLConverter {
 
         // Write remaining spectra
         if !batch.is_empty() {
-            writer.write_spectra_arrays(&batch)?;
+            writer.write_spectra_owned(batch)?;
         }
 
         // Finalize spectrum writer first
@@ -249,6 +243,7 @@ impl MzMLConverter {
         };
 
         let mut batch: Vec<SpectrumArrays> = Vec::with_capacity(self.config.batch_size);
+        let mut ingest_converter = IngestSpectrumConverter::new();
         let expected_count = streamer.spectrum_count();
 
         info!(
@@ -258,14 +253,17 @@ impl MzMLConverter {
                 .unwrap_or_else(|| "unknown".to_string())
         );
 
-        while let Some(mzml_spectrum) = streamer.next_spectrum()? {
-            let spectrum = self.convert_spectrum(&mzml_spectrum);
+        while let Some(raw_spectrum) = streamer.next_raw_spectrum()? {
+            let DecodedRawSpectrum { ingest, .. } = self.build_ingest_spectrum_raw(raw_spectrum)?;
+            let spectrum = ingest_converter
+                .convert(ingest)
+                .map_err(WriterError::from)?;
 
             // Update statistics
             stats.spectra_count += 1;
             stats.peak_count += spectrum.peak_count();
 
-            match mzml_spectrum.ms_level {
+            match spectrum.ms_level {
                 1 => stats.ms1_spectra += 1,
                 2 => stats.ms2_spectra += 1,
                 _ => stats.msn_spectra += 1,
@@ -275,8 +273,8 @@ impl MzMLConverter {
 
             // Write batch if full
             if batch.len() >= self.config.batch_size {
-                writer.write_spectra_arrays(&batch)?;
-                batch.clear();
+                writer.write_spectra_owned(batch)?;
+                batch = Vec::with_capacity(self.config.batch_size);
 
                 // Progress update
                 if stats.spectra_count % self.config.progress_interval == 0 {
@@ -295,7 +293,7 @@ impl MzMLConverter {
 
         // Write remaining spectra
         if !batch.is_empty() {
-            writer.write_spectra_arrays(&batch)?;
+            writer.write_spectra_owned(batch)?;
         }
 
         // Finalize

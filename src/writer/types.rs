@@ -73,6 +73,11 @@ impl<T> OptionalColumnBuf<T> {
         matches!(self, OptionalColumnBuf::AllNull { .. })
     }
 
+    /// Returns true if this column has no elements.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Borrow as a column view.
     pub fn as_column(&self) -> OptionalColumn<'_, T> {
         match self {
@@ -82,6 +87,320 @@ impl<T> OptionalColumnBuf<T> {
                 values,
                 validity,
             },
+        }
+    }
+}
+
+// ============================================================================
+// Owned Columnar Batch API - True Zero-Copy Ownership Transfer
+// ============================================================================
+
+/// Owned columnar batch for true zero-copy writing to Apache Arrow.
+///
+/// Unlike [`ColumnarBatch`] which holds borrowed references, this struct takes
+/// **full ownership** of all data vectors. This enables true zero-copy transfer
+/// to the Arrow backend: the underlying heap memory is handed directly to Arrow
+/// without any byte-level copying.
+///
+/// # Zero-Copy Guarantee
+///
+/// When calling [`MzPeakWriter::write_owned_batch`], the vectors in this struct
+/// are converted directly to Arrow buffers using pointer ownership transfer.
+/// The only data movement is compression performed by the Parquet engine itself.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// // Prepare owned data (e.g., from parsing or computation)
+/// let mz_values: Vec<f64> = vec![100.0, 200.0, 300.0];
+/// let intensity_values: Vec<f32> = vec![1000.0, 2000.0, 500.0];
+/// // ... other columns ...
+///
+/// let batch = OwnedColumnarBatch {
+///     mz: mz_values,
+///     intensity: intensity_values,
+///     spectrum_id: vec![0, 0, 0],
+///     scan_number: vec![1, 1, 1],
+///     ms_level: vec![1, 1, 1],
+///     retention_time: vec![60.0, 60.0, 60.0],
+///     polarity: vec![1, 1, 1],
+///     // All optional columns default to all-null
+///     ..OwnedColumnarBatch::with_required(3)
+/// };
+///
+/// // The batch is consumed; memory is transferred, not copied
+/// writer.write_owned_batch(batch)?;
+/// ```
+#[derive(Debug, Clone)]
+pub struct OwnedColumnarBatch {
+    // === Required columns (must all have same length) ===
+    /// Mass-to-charge ratios (Float64)
+    pub mz: Vec<f64>,
+    /// Peak intensities (Float32)
+    pub intensity: Vec<f32>,
+    /// Spectrum IDs (Int64) - same value repeated for all peaks in a spectrum
+    pub spectrum_id: Vec<i64>,
+    /// Scan numbers (Int64)
+    pub scan_number: Vec<i64>,
+    /// MS levels (Int16) - typically 1 or 2
+    pub ms_level: Vec<i16>,
+    /// Retention times in seconds (Float32)
+    pub retention_time: Vec<f32>,
+    /// Polarity: 1 (positive) or -1 (negative) (Int8)
+    pub polarity: Vec<i8>,
+
+    // === Optional columns ===
+    /// Ion mobility values (Float64), optional per-peak
+    pub ion_mobility: OptionalColumnBuf<f64>,
+    /// Precursor m/z (Float64), optional (MS2+ only)
+    pub precursor_mz: OptionalColumnBuf<f64>,
+    /// Precursor charge (Int16), optional
+    pub precursor_charge: OptionalColumnBuf<i16>,
+    /// Precursor intensity (Float32), optional
+    pub precursor_intensity: OptionalColumnBuf<f32>,
+    /// Isolation window lower offset (Float32), optional
+    pub isolation_window_lower: OptionalColumnBuf<f32>,
+    /// Isolation window upper offset (Float32), optional
+    pub isolation_window_upper: OptionalColumnBuf<f32>,
+    /// Collision energy in eV (Float32), optional
+    pub collision_energy: OptionalColumnBuf<f32>,
+    /// Total ion current (Float64), optional
+    pub total_ion_current: OptionalColumnBuf<f64>,
+    /// Base peak m/z (Float64), optional
+    pub base_peak_mz: OptionalColumnBuf<f64>,
+    /// Base peak intensity (Float32), optional
+    pub base_peak_intensity: OptionalColumnBuf<f32>,
+    /// Ion injection time in ms (Float32), optional
+    pub injection_time: OptionalColumnBuf<f32>,
+    /// MSI X pixel coordinate (Int32), optional
+    pub pixel_x: OptionalColumnBuf<i32>,
+    /// MSI Y pixel coordinate (Int32), optional
+    pub pixel_y: OptionalColumnBuf<i32>,
+    /// MSI Z pixel coordinate (Int32), optional
+    pub pixel_z: OptionalColumnBuf<i32>,
+}
+
+impl OwnedColumnarBatch {
+    /// Create a new batch with only required columns (all optional columns set to AllNull).
+    pub fn new(
+        mz: Vec<f64>,
+        intensity: Vec<f32>,
+        spectrum_id: Vec<i64>,
+        scan_number: Vec<i64>,
+        ms_level: Vec<i16>,
+        retention_time: Vec<f32>,
+        polarity: Vec<i8>,
+    ) -> Self {
+        let len = mz.len();
+        Self {
+            mz,
+            intensity,
+            spectrum_id,
+            scan_number,
+            ms_level,
+            retention_time,
+            polarity,
+            ion_mobility: OptionalColumnBuf::all_null(len),
+            precursor_mz: OptionalColumnBuf::all_null(len),
+            precursor_charge: OptionalColumnBuf::all_null(len),
+            precursor_intensity: OptionalColumnBuf::all_null(len),
+            isolation_window_lower: OptionalColumnBuf::all_null(len),
+            isolation_window_upper: OptionalColumnBuf::all_null(len),
+            collision_energy: OptionalColumnBuf::all_null(len),
+            total_ion_current: OptionalColumnBuf::all_null(len),
+            base_peak_mz: OptionalColumnBuf::all_null(len),
+            base_peak_intensity: OptionalColumnBuf::all_null(len),
+            injection_time: OptionalColumnBuf::all_null(len),
+            pixel_x: OptionalColumnBuf::all_null(len),
+            pixel_y: OptionalColumnBuf::all_null(len),
+            pixel_z: OptionalColumnBuf::all_null(len),
+        }
+    }
+
+    /// Create a batch template with pre-allocated required columns set to default values.
+    ///
+    /// This is useful for initializing a batch when you want to fill in specific columns
+    /// but need a starting point with all optional columns set to all-null.
+    pub fn with_required(len: usize) -> Self {
+        Self {
+            mz: Vec::with_capacity(len),
+            intensity: Vec::with_capacity(len),
+            spectrum_id: Vec::with_capacity(len),
+            scan_number: Vec::with_capacity(len),
+            ms_level: Vec::with_capacity(len),
+            retention_time: Vec::with_capacity(len),
+            polarity: Vec::with_capacity(len),
+            ion_mobility: OptionalColumnBuf::all_null(len),
+            precursor_mz: OptionalColumnBuf::all_null(len),
+            precursor_charge: OptionalColumnBuf::all_null(len),
+            precursor_intensity: OptionalColumnBuf::all_null(len),
+            isolation_window_lower: OptionalColumnBuf::all_null(len),
+            isolation_window_upper: OptionalColumnBuf::all_null(len),
+            collision_energy: OptionalColumnBuf::all_null(len),
+            total_ion_current: OptionalColumnBuf::all_null(len),
+            base_peak_mz: OptionalColumnBuf::all_null(len),
+            base_peak_intensity: OptionalColumnBuf::all_null(len),
+            injection_time: OptionalColumnBuf::all_null(len),
+            pixel_x: OptionalColumnBuf::all_null(len),
+            pixel_y: OptionalColumnBuf::all_null(len),
+            pixel_z: OptionalColumnBuf::all_null(len),
+        }
+    }
+
+    /// Build an owned batch from a single spectrum without copying peak buffers.
+    pub fn from_spectrum_arrays(spectrum: SpectrumArrays) -> Self {
+        let peak_count = spectrum.peak_count();
+
+        let SpectrumArrays {
+            spectrum_id,
+            scan_number,
+            ms_level,
+            retention_time,
+            polarity,
+            precursor_mz,
+            precursor_charge,
+            precursor_intensity,
+            isolation_window_lower,
+            isolation_window_upper,
+            collision_energy,
+            total_ion_current,
+            base_peak_mz,
+            base_peak_intensity,
+            injection_time,
+            pixel_x,
+            pixel_y,
+            pixel_z,
+            peaks,
+        } = spectrum;
+
+        let PeakArrays {
+            mz,
+            intensity,
+            ion_mobility,
+        } = peaks;
+
+        let spectrum_id = vec![spectrum_id; peak_count];
+        let scan_number = vec![scan_number; peak_count];
+        let ms_level = vec![ms_level; peak_count];
+        let retention_time = vec![retention_time; peak_count];
+        let polarity = vec![polarity; peak_count];
+
+        let precursor_mz = match precursor_mz {
+            Some(value) => OptionalColumnBuf::AllPresent(vec![value; peak_count]),
+            None => OptionalColumnBuf::all_null(peak_count),
+        };
+        let precursor_charge = match precursor_charge {
+            Some(value) => OptionalColumnBuf::AllPresent(vec![value; peak_count]),
+            None => OptionalColumnBuf::all_null(peak_count),
+        };
+        let precursor_intensity = match precursor_intensity {
+            Some(value) => OptionalColumnBuf::AllPresent(vec![value; peak_count]),
+            None => OptionalColumnBuf::all_null(peak_count),
+        };
+        let isolation_window_lower = match isolation_window_lower {
+            Some(value) => OptionalColumnBuf::AllPresent(vec![value; peak_count]),
+            None => OptionalColumnBuf::all_null(peak_count),
+        };
+        let isolation_window_upper = match isolation_window_upper {
+            Some(value) => OptionalColumnBuf::AllPresent(vec![value; peak_count]),
+            None => OptionalColumnBuf::all_null(peak_count),
+        };
+        let collision_energy = match collision_energy {
+            Some(value) => OptionalColumnBuf::AllPresent(vec![value; peak_count]),
+            None => OptionalColumnBuf::all_null(peak_count),
+        };
+        let total_ion_current = match total_ion_current {
+            Some(value) => OptionalColumnBuf::AllPresent(vec![value; peak_count]),
+            None => OptionalColumnBuf::all_null(peak_count),
+        };
+        let base_peak_mz = match base_peak_mz {
+            Some(value) => OptionalColumnBuf::AllPresent(vec![value; peak_count]),
+            None => OptionalColumnBuf::all_null(peak_count),
+        };
+        let base_peak_intensity = match base_peak_intensity {
+            Some(value) => OptionalColumnBuf::AllPresent(vec![value; peak_count]),
+            None => OptionalColumnBuf::all_null(peak_count),
+        };
+        let injection_time = match injection_time {
+            Some(value) => OptionalColumnBuf::AllPresent(vec![value; peak_count]),
+            None => OptionalColumnBuf::all_null(peak_count),
+        };
+        let pixel_x = match pixel_x {
+            Some(value) => OptionalColumnBuf::AllPresent(vec![value; peak_count]),
+            None => OptionalColumnBuf::all_null(peak_count),
+        };
+        let pixel_y = match pixel_y {
+            Some(value) => OptionalColumnBuf::AllPresent(vec![value; peak_count]),
+            None => OptionalColumnBuf::all_null(peak_count),
+        };
+        let pixel_z = match pixel_z {
+            Some(value) => OptionalColumnBuf::AllPresent(vec![value; peak_count]),
+            None => OptionalColumnBuf::all_null(peak_count),
+        };
+
+        Self {
+            mz,
+            intensity,
+            spectrum_id,
+            scan_number,
+            ms_level,
+            retention_time,
+            polarity,
+            ion_mobility,
+            precursor_mz,
+            precursor_charge,
+            precursor_intensity,
+            isolation_window_lower,
+            isolation_window_upper,
+            collision_energy,
+            total_ion_current,
+            base_peak_mz,
+            base_peak_intensity,
+            injection_time,
+            pixel_x,
+            pixel_y,
+            pixel_z,
+        }
+    }
+
+    /// Returns the batch length (number of peaks).
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.mz.len()
+    }
+
+    /// Returns true if the batch is empty.
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.mz.is_empty()
+    }
+
+    /// Borrow as a [`ColumnarBatch`] view for use with existing APIs.
+    ///
+    /// This does not perform any copying; it creates references to the owned data.
+    pub fn as_columnar_batch(&self) -> ColumnarBatch<'_> {
+        ColumnarBatch {
+            mz: &self.mz,
+            intensity: &self.intensity,
+            spectrum_id: &self.spectrum_id,
+            scan_number: &self.scan_number,
+            ms_level: &self.ms_level,
+            retention_time: &self.retention_time,
+            polarity: &self.polarity,
+            ion_mobility: self.ion_mobility.as_column(),
+            precursor_mz: self.precursor_mz.as_column(),
+            precursor_charge: self.precursor_charge.as_column(),
+            precursor_intensity: self.precursor_intensity.as_column(),
+            isolation_window_lower: self.isolation_window_lower.as_column(),
+            isolation_window_upper: self.isolation_window_upper.as_column(),
+            collision_energy: self.collision_energy.as_column(),
+            total_ion_current: self.total_ion_current.as_column(),
+            base_peak_mz: self.base_peak_mz.as_column(),
+            base_peak_intensity: self.base_peak_intensity.as_column(),
+            injection_time: self.injection_time.as_column(),
+            pixel_x: self.pixel_x.as_column(),
+            pixel_y: self.pixel_y.as_column(),
+            pixel_z: self.pixel_z.as_column(),
         }
     }
 }

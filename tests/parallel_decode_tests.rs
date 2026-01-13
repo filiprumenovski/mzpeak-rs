@@ -1,3 +1,4 @@
+#![cfg(feature = "mzml")]
 //! Comprehensive tests for the parallel decoding architecture
 //!
 //! This test suite validates:
@@ -478,6 +479,8 @@ mod parallel_conversion_tests {
     use super::*;
     use mzpeak::mzml::converter::ConversionError;
     use mzpeak::mzml::{ConversionConfig, MzMLConverter};
+    use std::fs;
+    use tempfile::tempdir;
 
     /// Test that convert_parallel produces valid output
     #[test]

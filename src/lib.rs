@@ -173,9 +173,13 @@
 pub mod controlled_vocabulary;
 pub mod chromatogram_writer;
 pub mod dataset;
+pub mod ingest;
 pub mod metadata;
 pub mod mobilogram_writer;
+#[cfg(feature = "mzml")]
 pub mod mzml;
+#[cfg(feature = "tdf")]
+pub mod tdf;
 pub mod reader;
 pub mod schema;
 pub mod validator;

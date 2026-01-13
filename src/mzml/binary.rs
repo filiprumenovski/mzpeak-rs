@@ -150,6 +150,49 @@ impl BinaryDecoder {
         Ok(values)
     }
 
+    /// Decode a Base64-encoded binary array from mzML into f32 values.
+    pub fn decode_f32(
+        base64_data: &str,
+        encoding: BinaryEncoding,
+        compression: CompressionType,
+        expected_length: Option<usize>,
+    ) -> Result<Vec<f32>, BinaryDecodeError> {
+        let trimmed = base64_data.trim();
+        if trimmed.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let decoded_bytes = BASE64_STANDARD.decode(trimmed)?;
+
+        let uncompressed = match compression {
+            CompressionType::None => decoded_bytes,
+            CompressionType::Zlib => {
+                let mut decoder = ZlibDecoder::new(&decoded_bytes[..]);
+                let mut uncompressed = Vec::new();
+                decoder.read_to_end(&mut uncompressed)?;
+                uncompressed
+            }
+            CompressionType::NumpressLinear
+            | CompressionType::NumpressPic
+            | CompressionType::NumpressSlof => {
+                return Err(BinaryDecodeError::UnsupportedCompression(compression));
+            }
+        };
+
+        let values = Self::bytes_to_f32(&uncompressed, encoding)?;
+
+        if let Some(expected) = expected_length {
+            if values.len() != expected {
+                return Err(BinaryDecodeError::InvalidLength {
+                    expected,
+                    actual: values.len(),
+                });
+            }
+        }
+
+        Ok(values)
+    }
+
     /// Decode a binary array from raw bytes (imzML external data).
     pub fn decode_bytes(
         bytes: &[u8],
@@ -214,6 +257,41 @@ impl BinaryDecoder {
                 for _ in 0..count {
                     let val = cursor.read_f64::<LittleEndian>()?;
                     values.push(val);
+                }
+            }
+        }
+
+        Ok(values)
+    }
+
+    fn bytes_to_f32(
+        bytes: &[u8],
+        encoding: BinaryEncoding,
+    ) -> Result<Vec<f32>, BinaryDecodeError> {
+        let byte_size = encoding.byte_size();
+
+        if bytes.len() % byte_size != 0 {
+            return Err(BinaryDecodeError::InvalidLength {
+                expected: bytes.len() / byte_size * byte_size,
+                actual: bytes.len(),
+            });
+        }
+
+        let count = bytes.len() / byte_size;
+        let mut values = Vec::with_capacity(count);
+        let mut cursor = std::io::Cursor::new(bytes);
+
+        match encoding {
+            BinaryEncoding::Float32 => {
+                for _ in 0..count {
+                    let val = cursor.read_f32::<LittleEndian>()?;
+                    values.push(val);
+                }
+            }
+            BinaryEncoding::Float64 => {
+                for _ in 0..count {
+                    let val = cursor.read_f64::<LittleEndian>()?;
+                    values.push(val as f32);
                 }
             }
         }

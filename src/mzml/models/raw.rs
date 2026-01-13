@@ -137,6 +137,22 @@ pub struct RawMzMLSpectrum {
 }
 
 impl RawMzMLSpectrum {
+    /// Get the scan number from the native ID.
+    pub fn scan_number(&self) -> Option<i64> {
+        if let Some(pos) = self.id.find("scan=") {
+            let start = pos + 5;
+            let end = self.id[start..]
+                .find(|c: char| !c.is_ascii_digit())
+                .map(|i| start + i)
+                .unwrap_or(self.id.len());
+            self.id[start..end].parse().ok()
+        } else if self.id.starts_with('S') {
+            self.id[1..].parse().ok()
+        } else {
+            Some(self.index + 1)
+        }
+    }
+
     /// Decode this raw spectrum into a fully decoded MzMLSpectrum
     ///
     /// This method performs the CPU-intensive Base64 decoding and

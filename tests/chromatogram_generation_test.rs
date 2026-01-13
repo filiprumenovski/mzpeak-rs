@@ -1,3 +1,4 @@
+#![cfg(feature = "mzml")]
 //! Integration test for automatic TIC/BPC chromatogram generation
 //!
 //! This test verifies that the converter automatically generates TIC and BPC

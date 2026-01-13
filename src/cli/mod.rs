@@ -2,6 +2,7 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
+#[cfg(feature = "mzml")]
 mod convert;
 mod demo;
 mod info;
@@ -23,6 +24,7 @@ pub struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Convert mzML file to mzPeak format
+    #[cfg(feature = "mzml")]
     Convert {
         /// Input mzML file path
         #[arg(value_name = "INPUT")]
@@ -96,6 +98,7 @@ pub fn init_logging(verbosity: u8) {
 
 pub fn dispatch(cli: Cli) -> Result<()> {
     match cli.command {
+        #[cfg(feature = "mzml")]
         Commands::Convert {
             input,
             output,

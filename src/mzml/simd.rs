@@ -110,6 +110,60 @@ pub fn decode_binary_array_simd(
     Ok(values)
 }
 
+/// SIMD-accelerated binary array decoding into f32 output.
+pub fn decode_binary_array_simd_f32(
+    base64_data: &str,
+    encoding: BinaryEncoding,
+    compression: CompressionType,
+    expected_length: Option<usize>,
+) -> Result<Vec<f32>, BinaryDecodeError> {
+    let trimmed = base64_data.trim();
+    if trimmed.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let clean_bytes = if trimmed.bytes().any(|b| b.is_ascii_whitespace()) {
+        simd_remove_whitespace_bytes(trimmed.as_bytes())
+    } else {
+        trimmed.as_bytes().to_vec()
+    };
+
+    let decoded_bytes = BASE64_SIMD
+        .decode_to_vec(&clean_bytes)
+        .map_err(|e| BinaryDecodeError::Base64Error(base64::DecodeError::InvalidByte(0, e.to_string().as_bytes().first().copied().unwrap_or(0))))?;
+
+    let uncompressed = match compression {
+        CompressionType::None => decoded_bytes,
+        CompressionType::Zlib => {
+            let mut decoder = flate2::read::ZlibDecoder::new(&decoded_bytes[..]);
+            let mut uncompressed = Vec::new();
+            decoder.read_to_end(&mut uncompressed)?;
+            uncompressed
+        }
+        CompressionType::NumpressLinear
+        | CompressionType::NumpressPic
+        | CompressionType::NumpressSlof => {
+            return Err(BinaryDecodeError::UnsupportedCompression(compression));
+        }
+    };
+
+    let values = match encoding {
+        BinaryEncoding::Float32 => simd_decode_f32_checked(&uncompressed)?,
+        BinaryEncoding::Float64 => simd_decode_f64_to_f32_checked(&uncompressed)?,
+    };
+
+    if let Some(expected) = expected_length {
+        if values.len() != expected {
+            return Err(BinaryDecodeError::InvalidLength {
+                expected,
+                actual: values.len(),
+            });
+        }
+    }
+
+    Ok(values)
+}
+
 /// SIMD-accelerated whitespace removal
 ///
 /// Uses 16-byte SIMD vectors to process data in parallel, comparing against
@@ -221,6 +275,40 @@ fn simd_decode_f32_to_f64_checked(data: &[u8]) -> Result<Vec<f64>, BinaryDecodeE
     Ok(result)
 }
 
+/// SIMD-accelerated f32 decoding with bounds checking.
+fn simd_decode_f32_checked(data: &[u8]) -> Result<Vec<f32>, BinaryDecodeError> {
+    let num_floats = data.len() / 4;
+    let mut result = Vec::with_capacity(num_floats);
+
+    let chunks = num_floats / 4;
+    let mut i = 0;
+
+    for _ in 0..chunks {
+        let f0 = read_f32_le(data, i)?;
+        let f1 = read_f32_le(data, i + 4)?;
+        let f2 = read_f32_le(data, i + 8)?;
+        let f3 = read_f32_le(data, i + 12)?;
+
+        let v = f32x4::from([f0, f1, f2, f3]);
+        let arr: [f32; 4] = v.into();
+
+        result.push(arr[0]);
+        result.push(arr[1]);
+        result.push(arr[2]);
+        result.push(arr[3]);
+
+        i += 16;
+    }
+
+    while i + 4 <= data.len() {
+        let f = read_f32_le(data, i)?;
+        result.push(f);
+        i += 4;
+    }
+
+    Ok(result)
+}
+
 /// Legacy unchecked version for backwards compatibility in tests
 #[allow(dead_code)]
 pub fn simd_decode_f32_to_f64(data: &[u8]) -> Vec<f64> {
@@ -263,6 +351,35 @@ fn simd_decode_f64_checked(data: &[u8]) -> Result<Vec<f64>, BinaryDecodeError> {
     while i + 8 <= data.len() {
         let f = read_f64_le(data, i)?;
         result.push(f);
+        i += 8;
+    }
+
+    Ok(result)
+}
+
+fn simd_decode_f64_to_f32_checked(data: &[u8]) -> Result<Vec<f32>, BinaryDecodeError> {
+    let num_floats = data.len() / 8;
+    let mut result = Vec::with_capacity(num_floats);
+
+    let chunks = num_floats / 2;
+    let mut i = 0;
+
+    for _ in 0..chunks {
+        let f0 = read_f64_le(data, i)?;
+        let f1 = read_f64_le(data, i + 8)?;
+
+        let v = f64x2::from([f0, f1]);
+        let arr: [f64; 2] = v.into();
+
+        result.push(arr[0] as f32);
+        result.push(arr[1] as f32);
+
+        i += 16;
+    }
+
+    while i + 8 <= data.len() {
+        let f = read_f64_le(data, i)?;
+        result.push(f as f32);
         i += 8;
     }
 

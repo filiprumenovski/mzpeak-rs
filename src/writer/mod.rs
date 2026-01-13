@@ -31,6 +31,6 @@ pub use error::WriterError;
 pub use rolling::{RollingWriter, RollingWriterStats};
 pub use stats::WriterStats;
 pub use types::{
-    ColumnarBatch, OptionalColumn, OptionalColumnBuf, PeakArrays, SpectrumArrays,
+    ColumnarBatch, OptionalColumn, OptionalColumnBuf, OwnedColumnarBatch, PeakArrays, SpectrumArrays,
 };
 pub use writer_impl::MzPeakWriter;

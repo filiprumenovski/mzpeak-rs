@@ -4,9 +4,11 @@ use std::path::Path;
 use std::sync::Arc;
 
 use arrow::array::{
-    ArrayRef, Float32Builder, Float64Builder, Int16Builder, Int32Builder, Int64Builder,
+    ArrayRef, Float32Array, Float64Array, Int16Array, Int32Array, Int64Array, Int8Array,
+    Float32Builder, Float64Builder, Int16Builder, Int32Builder, Int64Builder,
     Int8Builder,
 };
+use arrow::buffer::{NullBuffer, ScalarBuffer};
 use arrow::record_batch::RecordBatch;
 use parquet::arrow::ArrowWriter;
 
@@ -17,7 +19,7 @@ use super::config::WriterConfig;
 use super::error::WriterError;
 use super::stats::WriterStats;
 use super::types::{
-    ColumnarBatch, OptionalColumn, OptionalColumnBuf, SpectrumArrays,
+    ColumnarBatch, OptionalColumn, OptionalColumnBuf, OwnedColumnarBatch, SpectrumArrays,
 };
 
 /// Streaming writer for mzPeak Parquet files
@@ -198,6 +200,160 @@ impl<W: Write + Send> MzPeakWriter<W> {
     }
 
     // ========================================================================
+    // Zero-Copy Owned Array Constructors
+    // ========================================================================
+    //
+    // These functions accept owned vectors and transfer their underlying memory
+    // directly to Arrow buffers without copying any data bytes. The only data
+    // movement is internal compression by the Parquet engine.
+
+    /// Convert an owned Vec<f64> to an Arrow Float64Array via zero-copy pointer transfer.
+    ///
+    /// The vector's heap allocation is handed directly to Arrow's Buffer without
+    /// copying any data bytes.
+    #[inline]
+    fn vec_to_f64_array(data: Vec<f64>) -> ArrayRef {
+        let buffer = ScalarBuffer::from(data);
+        Arc::new(Float64Array::new(buffer, None))
+    }
+
+    /// Convert an owned Vec<f32> to an Arrow Float32Array via zero-copy pointer transfer.
+    #[inline]
+    fn vec_to_f32_array(data: Vec<f32>) -> ArrayRef {
+        let buffer = ScalarBuffer::from(data);
+        Arc::new(Float32Array::new(buffer, None))
+    }
+
+    /// Convert an owned Vec<i64> to an Arrow Int64Array via zero-copy pointer transfer.
+    #[inline]
+    fn vec_to_i64_array(data: Vec<i64>) -> ArrayRef {
+        let buffer = ScalarBuffer::from(data);
+        Arc::new(Int64Array::new(buffer, None))
+    }
+
+    /// Convert an owned Vec<i32> to an Arrow Int32Array via zero-copy pointer transfer.
+    #[inline]
+    fn vec_to_i32_array(data: Vec<i32>) -> ArrayRef {
+        let buffer = ScalarBuffer::from(data);
+        Arc::new(Int32Array::new(buffer, None))
+    }
+
+    /// Convert an owned Vec<i16> to an Arrow Int16Array via zero-copy pointer transfer.
+    #[inline]
+    fn vec_to_i16_array(data: Vec<i16>) -> ArrayRef {
+        let buffer = ScalarBuffer::from(data);
+        Arc::new(Int16Array::new(buffer, None))
+    }
+
+    /// Convert an owned Vec<i8> to an Arrow Int8Array via zero-copy pointer transfer.
+    #[inline]
+    fn vec_to_i8_array(data: Vec<i8>) -> ArrayRef {
+        let buffer = ScalarBuffer::from(data);
+        Arc::new(Int8Array::new(buffer, None))
+    }
+
+    /// Create a validity bitmap (NullBuffer) from a boolean validity array.
+    ///
+    /// Returns `None` if all values are valid (no nulls), which allows Arrow to
+    /// skip null checking during operations.
+    fn create_null_buffer(validity: Vec<bool>) -> Option<NullBuffer> {
+        // Check if all values are valid - if so, return None for better performance
+        if validity.iter().all(|&v| v) {
+            return None;
+        }
+        Some(NullBuffer::from(validity))
+    }
+
+    /// Convert an owned optional Float64 column to an Arrow Float64Array via zero-copy.
+    #[inline]
+    fn owned_optional_f64_to_array(col: OptionalColumnBuf<f64>, len: usize) -> ArrayRef {
+        match col {
+            OptionalColumnBuf::AllPresent(data) => {
+                let buffer = ScalarBuffer::from(data);
+                Arc::new(Float64Array::new(buffer, None))
+            }
+            OptionalColumnBuf::AllNull { len: null_len } => {
+                // For all-null columns, we need a buffer of zeros with all-null validity
+                let data = vec![0.0f64; null_len.max(len)];
+                let buffer = ScalarBuffer::from(data);
+                let null_buffer = NullBuffer::new_null(null_len.max(len));
+                Arc::new(Float64Array::new(buffer, Some(null_buffer)))
+            }
+            OptionalColumnBuf::WithValidity { values, validity } => {
+                let buffer = ScalarBuffer::from(values);
+                let null_buffer = Self::create_null_buffer(validity);
+                Arc::new(Float64Array::new(buffer, null_buffer))
+            }
+        }
+    }
+
+    /// Convert an owned optional Float32 column to an Arrow Float32Array via zero-copy.
+    #[inline]
+    fn owned_optional_f32_to_array(col: OptionalColumnBuf<f32>, len: usize) -> ArrayRef {
+        match col {
+            OptionalColumnBuf::AllPresent(data) => {
+                let buffer = ScalarBuffer::from(data);
+                Arc::new(Float32Array::new(buffer, None))
+            }
+            OptionalColumnBuf::AllNull { len: null_len } => {
+                let data = vec![0.0f32; null_len.max(len)];
+                let buffer = ScalarBuffer::from(data);
+                let null_buffer = NullBuffer::new_null(null_len.max(len));
+                Arc::new(Float32Array::new(buffer, Some(null_buffer)))
+            }
+            OptionalColumnBuf::WithValidity { values, validity } => {
+                let buffer = ScalarBuffer::from(values);
+                let null_buffer = Self::create_null_buffer(validity);
+                Arc::new(Float32Array::new(buffer, null_buffer))
+            }
+        }
+    }
+
+    /// Convert an owned optional Int32 column to an Arrow Int32Array via zero-copy.
+    #[inline]
+    fn owned_optional_i32_to_array(col: OptionalColumnBuf<i32>, len: usize) -> ArrayRef {
+        match col {
+            OptionalColumnBuf::AllPresent(data) => {
+                let buffer = ScalarBuffer::from(data);
+                Arc::new(Int32Array::new(buffer, None))
+            }
+            OptionalColumnBuf::AllNull { len: null_len } => {
+                let data = vec![0i32; null_len.max(len)];
+                let buffer = ScalarBuffer::from(data);
+                let null_buffer = NullBuffer::new_null(null_len.max(len));
+                Arc::new(Int32Array::new(buffer, Some(null_buffer)))
+            }
+            OptionalColumnBuf::WithValidity { values, validity } => {
+                let buffer = ScalarBuffer::from(values);
+                let null_buffer = Self::create_null_buffer(validity);
+                Arc::new(Int32Array::new(buffer, null_buffer))
+            }
+        }
+    }
+
+    /// Convert an owned optional Int16 column to an Arrow Int16Array via zero-copy.
+    #[inline]
+    fn owned_optional_i16_to_array(col: OptionalColumnBuf<i16>, len: usize) -> ArrayRef {
+        match col {
+            OptionalColumnBuf::AllPresent(data) => {
+                let buffer = ScalarBuffer::from(data);
+                Arc::new(Int16Array::new(buffer, None))
+            }
+            OptionalColumnBuf::AllNull { len: null_len } => {
+                let data = vec![0i16; null_len.max(len)];
+                let buffer = ScalarBuffer::from(data);
+                let null_buffer = NullBuffer::new_null(null_len.max(len));
+                Arc::new(Int16Array::new(buffer, Some(null_buffer)))
+            }
+            OptionalColumnBuf::WithValidity { values, validity } => {
+                let buffer = ScalarBuffer::from(values);
+                let null_buffer = Self::create_null_buffer(validity);
+                Arc::new(Int16Array::new(buffer, null_buffer))
+            }
+        }
+    }
+
+    // ========================================================================
     // High-Performance Columnar Batch Writing
     // ========================================================================
 
@@ -296,6 +452,177 @@ impl<W: Write + Send> MzPeakWriter<W> {
         self.peaks_written += num_peaks;
 
         Ok(())
+    }
+
+    // ========================================================================
+    // Zero-Copy Owned Batch Writing
+    // ========================================================================
+
+    /// Validate that all required column lengths match in an owned batch.
+    fn validate_owned_batch_lengths(batch: &OwnedColumnarBatch) -> Result<usize, WriterError> {
+        let expected = batch.mz.len();
+        let checks = [
+            ("intensity", batch.intensity.len()),
+            ("spectrum_id", batch.spectrum_id.len()),
+            ("scan_number", batch.scan_number.len()),
+            ("ms_level", batch.ms_level.len()),
+            ("retention_time", batch.retention_time.len()),
+            ("polarity", batch.polarity.len()),
+        ];
+        for (name, len) in checks {
+            if len != expected {
+                return Err(WriterError::InvalidData(format!(
+                    "Column '{}' has {} elements, expected {} (matching mz length)",
+                    name, len, expected
+                )));
+            }
+        }
+        Ok(expected)
+    }
+
+    /// Write an owned columnar batch using true zero-copy ownership transfer.
+    ///
+    /// This is the highest-performance path for writing mass spectrometry data.
+    /// Unlike [`write_columnar_batch`], this method **consumes** the input batch
+    /// and transfers ownership of the underlying vector memory directly to Arrow
+    /// without copying any data bytes.
+    ///
+    /// # Zero-Copy Guarantee
+    ///
+    /// The vectors in the batch are converted directly to Arrow buffers using
+    /// pointer ownership transfer via `ScalarBuffer::from(Vec<T>)`. The only
+    /// data movement is the internal compression performed by the Parquet engine.
+    ///
+    /// # Performance
+    ///
+    /// This method provides O(1) memory transfer for all required columns,
+    /// compared to O(N) memcpy operations in [`write_columnar_batch`].
+    /// For a batch with 1 million peaks:
+    /// - `write_columnar_batch`: ~7 memcpy operations × N elements
+    /// - `write_owned_batch`: 0 data copies, only pointer transfers
+    ///
+    /// # Errors
+    ///
+    /// Returns `WriterError::InvalidData` if required column lengths don't match.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// // Prepare owned data
+    /// let batch = OwnedColumnarBatch::new(
+    ///     mz_values,           // Vec<f64> - ownership transferred
+    ///     intensity_values,    // Vec<f32> - ownership transferred
+    ///     spectrum_ids,        // Vec<i64> - ownership transferred
+    ///     scan_numbers,        // Vec<i64>
+    ///     ms_levels,           // Vec<i16>
+    ///     retention_times,     // Vec<f32>
+    ///     polarities,          // Vec<i8>
+    /// );
+    ///
+    /// // Batch is consumed; memory is transferred without copying
+    /// writer.write_owned_batch(batch)?;
+    /// ```
+    pub fn write_owned_batch(&mut self, batch: OwnedColumnarBatch) -> Result<(), WriterError> {
+        let num_peaks = batch.len();
+        if num_peaks == 0 {
+            return Ok(());
+        }
+
+        // Validate all required column lengths match
+        Self::validate_owned_batch_lengths(&batch)?;
+
+        // Deconstruct the batch to take ownership of all vectors
+        let OwnedColumnarBatch {
+            mz,
+            intensity,
+            spectrum_id,
+            scan_number,
+            ms_level,
+            retention_time,
+            polarity,
+            ion_mobility,
+            precursor_mz,
+            precursor_charge,
+            precursor_intensity,
+            isolation_window_lower,
+            isolation_window_upper,
+            collision_energy,
+            total_ion_current,
+            base_peak_mz,
+            base_peak_intensity,
+            injection_time,
+            pixel_x,
+            pixel_y,
+            pixel_z,
+        } = batch;
+
+        // Build arrays using zero-copy pointer transfer for required columns
+        // and optimized optional column handling
+        let arrays: Vec<ArrayRef> = vec![
+            // Required columns - zero-copy via ScalarBuffer::from(Vec<T>) (schema order)
+            Self::vec_to_i64_array(spectrum_id),
+            Self::vec_to_i64_array(scan_number),
+            Self::vec_to_i16_array(ms_level),
+            Self::vec_to_f32_array(retention_time),
+            Self::vec_to_i8_array(polarity),
+            Self::vec_to_f64_array(mz),
+            Self::vec_to_f32_array(intensity),
+            // Optional columns - zero-copy where data is present
+            Self::owned_optional_f64_to_array(ion_mobility, num_peaks),
+            Self::owned_optional_f64_to_array(precursor_mz, num_peaks),
+            Self::owned_optional_i16_to_array(precursor_charge, num_peaks),
+            Self::owned_optional_f32_to_array(precursor_intensity, num_peaks),
+            Self::owned_optional_f32_to_array(isolation_window_lower, num_peaks),
+            Self::owned_optional_f32_to_array(isolation_window_upper, num_peaks),
+            Self::owned_optional_f32_to_array(collision_energy, num_peaks),
+            Self::owned_optional_f64_to_array(total_ion_current, num_peaks),
+            Self::owned_optional_f64_to_array(base_peak_mz, num_peaks),
+            Self::owned_optional_f32_to_array(base_peak_intensity, num_peaks),
+            Self::owned_optional_f32_to_array(injection_time, num_peaks),
+            // MSI pixel coordinates
+            Self::owned_optional_i32_to_array(pixel_x, num_peaks),
+            Self::owned_optional_i32_to_array(pixel_y, num_peaks),
+            Self::owned_optional_i32_to_array(pixel_z, num_peaks),
+        ];
+
+        let record_batch = RecordBatch::try_new(self.schema.clone(), arrays)?;
+        self.writer.write(&record_batch)?;
+        self.peaks_written += num_peaks;
+
+        Ok(())
+    }
+
+    /// Write spectra by transferring peak buffers directly into owned batches.
+    pub fn write_spectra_owned(
+        &mut self,
+        spectra: Vec<SpectrumArrays>,
+    ) -> Result<(), WriterError> {
+        if spectra.is_empty() {
+            return Ok(());
+        }
+
+        let total_peaks: usize = spectra.iter().map(|s| s.peak_count()).sum();
+        if total_peaks == 0 {
+            return Ok(());
+        }
+
+        let spectra_len = spectra.len();
+        for spectrum in spectra {
+            if spectrum.peak_count() == 0 {
+                continue;
+            }
+
+            let batch = OwnedColumnarBatch::from_spectrum_arrays(spectrum);
+            self.write_owned_batch(batch)?;
+        }
+
+        self.spectra_written += spectra_len;
+        Ok(())
+    }
+
+    /// Write a single spectrum by transferring ownership of its peak arrays.
+    pub fn write_spectrum_owned(&mut self, spectrum: SpectrumArrays) -> Result<(), WriterError> {
+        self.write_spectra_owned(vec![spectrum])
     }
 
     /// Write a batch of spectra with SoA peak layout
@@ -562,77 +889,78 @@ impl<W: Write + Send> MzPeakWriter<W> {
             );
         }
 
-        // Helper to create OptionalColumn from buffers
-        macro_rules! make_optional {
+        // Helper to create OptionalColumnBuf from owned buffers
+        macro_rules! make_optional_owned {
             ($buf:ident, $valid:ident, $has_any:ident) => {
                 if !$has_any {
-                    OptionalColumn::AllNull
+                    OptionalColumnBuf::AllNull { len: $buf.len() }
                 } else if $valid.iter().all(|&v| v) {
-                    OptionalColumn::AllPresent(&$buf)
+                    OptionalColumnBuf::AllPresent($buf)
                 } else {
-                    OptionalColumn::WithValidity {
-                        values: &$buf,
-                        validity: &$valid,
+                    OptionalColumnBuf::WithValidity {
+                        values: $buf,
+                        validity: $valid,
                     }
                 }
             };
         }
 
-        // Build ColumnarBatch with appropriate OptionalColumn variants
-        let batch = ColumnarBatch {
-            mz: &mz_buf,
-            intensity: &intensity_buf,
-            spectrum_id: &spectrum_id_buf,
-            scan_number: &scan_number_buf,
-            ms_level: &ms_level_buf,
-            retention_time: &retention_time_buf,
-            polarity: &polarity_buf,
-            ion_mobility: make_optional!(ion_mobility_buf, ion_mobility_valid, has_any_ion_mobility),
-            precursor_mz: make_optional!(precursor_mz_buf, precursor_mz_valid, has_any_precursor_mz),
-            precursor_charge: make_optional!(
+        // Build OwnedColumnarBatch with appropriate OptionalColumnBuf variants
+        // This enables zero-copy transfer to Arrow
+        let batch = OwnedColumnarBatch {
+            mz: mz_buf,
+            intensity: intensity_buf,
+            spectrum_id: spectrum_id_buf,
+            scan_number: scan_number_buf,
+            ms_level: ms_level_buf,
+            retention_time: retention_time_buf,
+            polarity: polarity_buf,
+            ion_mobility: make_optional_owned!(ion_mobility_buf, ion_mobility_valid, has_any_ion_mobility),
+            precursor_mz: make_optional_owned!(precursor_mz_buf, precursor_mz_valid, has_any_precursor_mz),
+            precursor_charge: make_optional_owned!(
                 precursor_charge_buf,
                 precursor_charge_valid,
                 has_any_precursor_charge
             ),
-            precursor_intensity: make_optional!(
+            precursor_intensity: make_optional_owned!(
                 precursor_intensity_buf,
                 precursor_intensity_valid,
                 has_any_precursor_intensity
             ),
-            isolation_window_lower: make_optional!(
+            isolation_window_lower: make_optional_owned!(
                 isolation_lower_buf,
                 isolation_lower_valid,
                 has_any_isolation_lower
             ),
-            isolation_window_upper: make_optional!(
+            isolation_window_upper: make_optional_owned!(
                 isolation_upper_buf,
                 isolation_upper_valid,
                 has_any_isolation_upper
             ),
-            collision_energy: make_optional!(
+            collision_energy: make_optional_owned!(
                 collision_energy_buf,
                 collision_energy_valid,
                 has_any_collision_energy
             ),
-            total_ion_current: make_optional!(tic_buf, tic_valid, has_any_tic),
-            base_peak_mz: make_optional!(base_peak_mz_buf, base_peak_mz_valid, has_any_base_peak_mz),
-            base_peak_intensity: make_optional!(
+            total_ion_current: make_optional_owned!(tic_buf, tic_valid, has_any_tic),
+            base_peak_mz: make_optional_owned!(base_peak_mz_buf, base_peak_mz_valid, has_any_base_peak_mz),
+            base_peak_intensity: make_optional_owned!(
                 base_peak_intensity_buf,
                 base_peak_intensity_valid,
                 has_any_base_peak_intensity
             ),
-            injection_time: make_optional!(
+            injection_time: make_optional_owned!(
                 injection_time_buf,
                 injection_time_valid,
                 has_any_injection_time
             ),
-            pixel_x: make_optional!(pixel_x_buf, pixel_x_valid, has_any_pixel_x),
-            pixel_y: make_optional!(pixel_y_buf, pixel_y_valid, has_any_pixel_y),
-            pixel_z: make_optional!(pixel_z_buf, pixel_z_valid, has_any_pixel_z),
+            pixel_x: make_optional_owned!(pixel_x_buf, pixel_x_valid, has_any_pixel_x),
+            pixel_y: make_optional_owned!(pixel_y_buf, pixel_y_valid, has_any_pixel_y),
+            pixel_z: make_optional_owned!(pixel_z_buf, pixel_z_valid, has_any_pixel_z),
         };
 
         self.spectra_written += spectra.len();
-        self.write_columnar_batch(&batch)
+        self.write_owned_batch(batch)
     }
 
     /// Write a single spectrum with SoA peak layout.

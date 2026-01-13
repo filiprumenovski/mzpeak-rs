@@ -1,5 +1,6 @@
 use super::MzMLConverter;
 use super::super::models::*;
+use crate::ingest::IngestSpectrumConverter;
 
 #[test]
 fn test_spectrum_conversion() {
@@ -15,13 +16,54 @@ fn test_spectrum_conversion() {
     };
 
     let converter = MzMLConverter::new();
-    let spectrum = converter.convert_spectrum(&mzml_spectrum);
+    let ingest = converter.build_ingest_spectrum(mzml_spectrum);
+    let mut contract = IngestSpectrumConverter::new();
+    let spectrum = contract
+        .convert(ingest)
+        .expect("mzML conversion should satisfy ingest contract");
 
     assert_eq!(spectrum.spectrum_id, 0);
     assert_eq!(spectrum.ms_level, 1);
     assert_eq!(spectrum.polarity, 1);
     assert_eq!(spectrum.retention_time, 60.0);
     assert_eq!(spectrum.peak_count(), 3);
+}
+
+#[test]
+fn test_contract_sequence_ordering() {
+    let mzml_spectrum1 = MzMLSpectrum {
+        index: 0,
+        id: "scan=1".to_string(),
+        ms_level: 1,
+        polarity: 1,
+        retention_time: Some(60.0),
+        mz_array: vec![100.0],
+        intensity_array: vec![1000.0],
+        ..Default::default()
+    };
+
+    let mzml_spectrum2 = MzMLSpectrum {
+        index: 1,
+        id: "scan=2".to_string(),
+        ms_level: 1,
+        polarity: 1,
+        retention_time: Some(61.0),
+        mz_array: vec![110.0],
+        intensity_array: vec![900.0],
+        ..Default::default()
+    };
+
+    let converter = MzMLConverter::new();
+    let ingest1 = converter.build_ingest_spectrum(mzml_spectrum1);
+    let ingest2 = converter.build_ingest_spectrum(mzml_spectrum2);
+    let mut contract = IngestSpectrumConverter::new();
+
+    contract
+        .convert(ingest1)
+        .expect("mzML conversion should satisfy ingest contract");
+    contract
+        .convert(ingest2)
+        .expect("mzML conversion should satisfy ingest contract");
 }
 
 #[test]
@@ -46,7 +88,11 @@ fn test_ms2_spectrum_conversion() {
     };
 
     let converter = MzMLConverter::new();
-    let spectrum = converter.convert_spectrum(&mzml_spectrum);
+    let ingest = converter.build_ingest_spectrum(mzml_spectrum);
+    let mut contract = IngestSpectrumConverter::new();
+    let spectrum = contract
+        .convert(ingest)
+        .expect("mzML conversion should satisfy ingest contract");
 
     assert_eq!(spectrum.ms_level, 2);
     assert_eq!(spectrum.precursor_mz, Some(500.25));

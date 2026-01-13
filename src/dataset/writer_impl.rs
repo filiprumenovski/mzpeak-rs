@@ -321,6 +321,28 @@ impl MzPeakDatasetWriter {
         Ok(())
     }
 
+    /// Write a single spectrum by transferring ownership of its peak arrays.
+    pub fn write_spectrum_owned(
+        &mut self,
+        spectrum: SpectrumArrays,
+    ) -> Result<(), DatasetError> {
+        if self.finalized {
+            return Err(DatasetError::NotInitialized);
+        }
+
+        match &mut self.sink {
+            DatasetSink::Directory { peak_writer, .. } => {
+                let writer = peak_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
+                writer.write_spectrum_owned(spectrum)?;
+            }
+            DatasetSink::Container { peak_writer, .. } => {
+                let writer = peak_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
+                writer.write_spectrum_owned(spectrum)?;
+            }
+        }
+        Ok(())
+    }
+
     /// Write multiple spectra with SoA peak layout to the dataset.
     pub fn write_spectra_arrays(
         &mut self,
@@ -338,6 +360,28 @@ impl MzPeakDatasetWriter {
             DatasetSink::Container { peak_writer, .. } => {
                 let writer = peak_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
                 writer.write_spectra_arrays(spectra)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Write multiple spectra by transferring ownership of their peak arrays.
+    pub fn write_spectra_owned(
+        &mut self,
+        spectra: Vec<SpectrumArrays>,
+    ) -> Result<(), DatasetError> {
+        if self.finalized {
+            return Err(DatasetError::NotInitialized);
+        }
+
+        match &mut self.sink {
+            DatasetSink::Directory { peak_writer, .. } => {
+                let writer = peak_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
+                writer.write_spectra_owned(spectra)?;
+            }
+            DatasetSink::Container { peak_writer, .. } => {
+                let writer = peak_writer.as_mut().ok_or(DatasetError::NotInitialized)?;
+                writer.write_spectra_owned(spectra)?;
             }
         }
         Ok(())

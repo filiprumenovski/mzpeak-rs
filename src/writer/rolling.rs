@@ -114,6 +114,51 @@ impl RollingWriter {
         Ok(())
     }
 
+    /// Write owned spectra, transferring peak buffers into the writer.
+    pub fn write_spectra_owned(
+        &mut self,
+        spectra: Vec<SpectrumArrays>,
+    ) -> Result<(), WriterError> {
+        if spectra.is_empty() {
+            return Ok(());
+        }
+
+        // Initialize first writer if needed
+        if self.current_writer.is_none() {
+            self.rotate_file()?;
+        }
+
+        let peaks_in_batch: usize = spectra.iter().map(|s| s.peak_count()).sum();
+        let spectra_len = spectra.len();
+
+        let writer = self.current_writer.as_mut().unwrap();
+
+        if let Some(max_peaks) = self.config.max_peaks_per_file {
+            if writer.peaks_written() > 0 && writer.peaks_written() + peaks_in_batch > max_peaks {
+                self.rotate_file()?;
+                let writer = self.current_writer.as_mut().unwrap();
+                writer.write_spectra_owned(spectra)?;
+            } else {
+                writer.write_spectra_owned(spectra)?;
+            }
+        } else {
+            writer.write_spectra_owned(spectra)?;
+        }
+
+        self.total_spectra_written += spectra_len;
+        self.total_peaks_written += peaks_in_batch;
+
+        Ok(())
+    }
+
+    /// Write a single spectrum by transferring ownership of its peak arrays.
+    pub fn write_spectrum_owned(
+        &mut self,
+        spectrum: SpectrumArrays,
+    ) -> Result<(), WriterError> {
+        self.write_spectra_owned(vec![spectrum])
+    }
+
     /// Write a single spectrum with SoA peak layout.
     pub fn write_spectrum_arrays(
         &mut self,

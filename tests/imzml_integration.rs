@@ -1,3 +1,4 @@
+#![cfg(feature = "mzml")]
 use byteorder::{LittleEndian, WriteBytesExt};
 use mzpeak::mzml::MzMLConverter;
 use mzpeak::reader::MzPeakReader;

@@ -40,3 +40,87 @@ fn test_write_spectrum_arrays() -> Result<(), WriterError> {
 
     Ok(())
 }
+
+#[test]
+fn test_write_owned_batch() -> Result<(), WriterError> {
+    let metadata = MzPeakMetadata::new();
+    let config = WriterConfig::default();
+
+    let buffer = Cursor::new(Vec::new());
+    let mut writer = MzPeakWriter::new(buffer, &metadata, config)?;
+
+    // Create owned batch with required columns only
+    let batch = OwnedColumnarBatch::new(
+        vec![100.0, 200.0, 300.0],     // mz
+        vec![1000.0, 2000.0, 500.0],   // intensity
+        vec![0, 0, 0],                  // spectrum_id
+        vec![1, 1, 1],                  // scan_number
+        vec![1, 1, 1],                  // ms_level
+        vec![60.0, 60.0, 60.0],         // retention_time
+        vec![1, 1, 1],                  // polarity
+    );
+
+    // The batch is consumed - ownership is transferred
+    writer.write_owned_batch(batch)?;
+
+    let stats = writer.finish()?;
+    assert_eq!(stats.peaks_written, 3);
+
+    Ok(())
+}
+
+#[test]
+fn test_write_owned_batch_with_optional_columns() -> Result<(), WriterError> {
+    let metadata = MzPeakMetadata::new();
+    let config = WriterConfig::default();
+
+    let buffer = Cursor::new(Vec::new());
+    let mut writer = MzPeakWriter::new(buffer, &metadata, config)?;
+
+    // Create owned batch with some optional columns
+    let mut batch = OwnedColumnarBatch::new(
+        vec![100.0, 200.0, 300.0, 400.0],   // mz
+        vec![1000.0, 2000.0, 500.0, 3000.0], // intensity
+        vec![0, 0, 1, 1],                    // spectrum_id (2 spectra)
+        vec![1, 1, 2, 2],                    // scan_number
+        vec![1, 1, 2, 2],                    // ms_level (MS1 and MS2)
+        vec![60.0, 60.0, 120.0, 120.0],     // retention_time
+        vec![1, 1, 1, 1],                    // polarity
+    );
+
+    // Set optional columns with mixed validity
+    batch.precursor_mz = OptionalColumnBuf::WithValidity {
+        values: vec![0.0, 0.0, 500.25, 500.25],
+        validity: vec![false, false, true, true],
+    };
+    batch.precursor_charge = OptionalColumnBuf::WithValidity {
+        values: vec![0, 0, 2, 2],
+        validity: vec![false, false, true, true],
+    };
+
+    writer.write_owned_batch(batch)?;
+
+    let stats = writer.finish()?;
+    assert_eq!(stats.peaks_written, 4);
+
+    Ok(())
+}
+
+#[test]
+fn test_owned_columnar_batch_as_columnar_batch() {
+    // Test that we can borrow an OwnedColumnarBatch as a ColumnarBatch view
+    let owned = OwnedColumnarBatch::new(
+        vec![100.0, 200.0],
+        vec![1000.0, 2000.0],
+        vec![0, 0],
+        vec![1, 1],
+        vec![1, 1],
+        vec![60.0, 60.0],
+        vec![1, 1],
+    );
+
+    let borrowed = owned.as_columnar_batch();
+    assert_eq!(borrowed.len(), 2);
+    assert_eq!(borrowed.mz, &[100.0, 200.0]);
+    assert_eq!(borrowed.intensity, &[1000.0, 2000.0]);
+}

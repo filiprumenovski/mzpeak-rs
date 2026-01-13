@@ -3,11 +3,16 @@
 //! Usage:
 //!   cargo run --release --example compare_compression -- <input.mzML>
 
+#[cfg(feature = "mzml")]
 use mzpeak::mzml::converter::{ConversionConfig, MzMLConverter};
+#[cfg(feature = "mzml")]
 use std::env;
-use std::time::Instant;
+#[cfg(feature = "mzml")]
 use std::fs;
+#[cfg(feature = "mzml")]
+use std::time::Instant;
 
+#[cfg(feature = "mzml")]
 fn format_size(bytes: u64) -> String {
     if bytes < 1024 * 1024 {
         format!("{:.2} KB", bytes as f64 / 1024.0)
@@ -18,6 +23,7 @@ fn format_size(bytes: u64) -> String {
     }
 }
 
+#[cfg(feature = "mzml")]
 fn format_duration(secs: f64) -> String {
     if secs < 60.0 {
         format!("{:.2}s", secs)
@@ -28,6 +34,7 @@ fn format_duration(secs: f64) -> String {
     }
 }
 
+#[cfg(feature = "mzml")]
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
@@ -106,4 +113,9 @@ fn main() {
     println!("  - Use 'Balanced' for general-purpose archival (default)");
     println!("  - Use 'Max' for long-term storage when size is critical");
     println!();
+}
+
+#[cfg(not(feature = "mzml"))]
+fn main() {
+    eprintln!("This example requires the `mzml` feature.");
 }
