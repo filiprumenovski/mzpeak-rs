@@ -1,8 +1,18 @@
 /// Test the TDF converter against real Bruker data
 use mzpeak::tdf::converter::TdfConverter;
+use mzpeak::writer::MzPeakWriter;
 use std::path::PathBuf;
+use std::fs;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let output_dir = PathBuf::from("/Volumes/NVMe 2TB/Test");
+    
+    // Create output directory if it doesn't exist
+    if !output_dir.exists() {
+        fs::create_dir_all(&output_dir)?;
+        println!("📁 Created output directory: {}", output_dir.display());
+    }
+
     // Try the large AlphaTims file first; fall back to smaller test data if needed
     let data_paths = vec![
         "/Users/filiprumenovski/Code/mzpeak-rs/data/20201207_tims03_Evo03_PS_SA_HeLa_200ng_EvoSep_prot_DDA_21min_8cm_S1-C10_1_22476.d",
@@ -65,6 +75,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let max_rt = rt_values.iter().copied().fold(0.0, f32::max);
                     println!("  RT range: {:.2} - {:.2} minutes", min_rt / 60.0, max_rt / 60.0);
                 }
+
+                // Write to mzpeak format
+                let file_stem = data_path
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .unwrap_or("output");
+                let output_path = output_dir.join(format!("{}.mzpeak", file_stem));
+                
+                println!("\n💾 Writing to: {}", output_path.display());
+                
+                let metadata = mzpeak::metadata::MzPeakMetadata::default();
+                let config = mzpeak::writer::WriterConfig::default();
+                let mut writer = MzPeakWriter::new_file(&output_path, &metadata, config)?;
+                
+                for spectrum in spectra {
+                    writer.write_spectrum_owned(spectrum)?;
+                }
+                let stats = writer.finish()?;
+                
+                println!("✅ Successfully wrote {} spectra, {} peaks", stats.spectra_written, stats.peaks_written);
 
                 return Ok(());
             }

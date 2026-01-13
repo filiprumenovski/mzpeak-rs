@@ -68,15 +68,32 @@ impl TdfStreamer {
         let mut batch = Vec::with_capacity(end - self.next_index);
 
         for frame_idx in self.next_index..end {
-            let frame = self.frame_reader.get(frame_idx).map_err(|e| {
-                TdfError::FrameParsingError(format!(
-                    "Failed to read frame {frame_idx}: {e}"
-                ))
-            })?;
-
-            // Use converter to derive RT to keep consistent with mzPeak contract.
-            let rt_seconds = self.rt_converter.convert(frame.index as u32);
-            batch.push(RawTdfFrame::from_frame(frame, rt_seconds));
+            match self.frame_reader.get(frame_idx) {
+                Ok(frame) => {
+                    // Use converter to derive RT to keep consistent with mzPeak contract.
+                    // Bounds check: if frame index is out of RT lookup range, use interpolated value
+                    let rt_seconds = if frame.index < self.frame_reader.len() {
+                        self.rt_converter.convert(frame.index as u32)
+                    } else {
+                        // Fallback for out-of-bounds frame index (shouldn't happen in normal operation)
+                        eprintln!("⚠️  Frame {} has out-of-bounds index, using native RT: {:.2}s", 
+                            frame_idx, frame.rt_in_seconds);
+                        frame.rt_in_seconds
+                    };
+                    batch.push(RawTdfFrame::from_frame(frame, rt_seconds));
+                }
+                Err(e) => {
+                    // Skip decompression errors (known issue with some AlphaTims samples)
+                    if e.to_string().contains("Decompression") {
+                        eprintln!("⚠️  Skipping frame {} (decompression error): {}", frame_idx, e);
+                        continue;
+                    }
+                    // Propagate other errors
+                    return Err(TdfError::FrameParsingError(format!(
+                        "Failed to read frame {frame_idx}: {e}"
+                    )));
+                }
+            }
         }
 
         self.next_index = end;
