@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="BrukerCommon.xsd">
+<generalinfo>
+<org>Bruker Daltonik</org>
+<os/>
+<hostname/>
+<author/>
+</generalinfo>
+<fileinfo>
+<contenttype>MaldiMethodDataFile</contenttype>
+<version>5</version>
+<date>2020-12-07 16:39:32+01:00</date>
+</fileinfo>
+<MaldiSource>
+<version>1</version>
+<Enabled>0</Enabled>
+</MaldiSource>
+<Laser>
+<version>1</version>
+<Shots>400</Shots>
+<PowerUV>10</PowerUV>
+<Frequency>10000</Frequency>
+<InternalFrequency>0</InternalFrequency>
+<ParmSet>Single</ParmSet>
+<ApplParmSet>MS Dried Droplet</ApplParmSet>
+<CustomParms>0</CustomParms>
+<PowerOfsBoost>0</PowerOfsBoost>
+<MovesPerGrid>5</MovesPerGrid>
+<ShotsAtRasterPos>200</ShotsAtRasterPos>
+<RasterMode>0</RasterMode>
+<ScanMode>0</ScanMode>
+<ScanSizeX>0</ScanSizeX>
+<ScanSizeY>0</ScanSizeY>
+</Laser>
+<MaldiLensSystem>
+<version>1</version>
+<MaldiPlate>
+<version>2</version>
+<DiffToNextLens>30</DiffToNextLens>
+</MaldiPlate>
+</MaldiLensSystem>
+<MaldiAcqModeConfiguration>
+<version>1</version>
+<NoAcquisitions>3</NoAcquisitions>
+<MoveIncrement>20</MoveIncrement>
+</MaldiAcqModeConfiguration>
+<PostIonization>
+<version>1</version>
+<Enable>0</Enable>
+<TriggerDelay>0.000000</TriggerDelay>
+</PostIonization>
+</root>
