@@ -63,7 +63,8 @@ impl MzPeakReader {
                 }
                 Ok(Some(batches))
             }
-            ReaderSource::ZipContainer { zip_path, .. } => {
+            ReaderSource::ZipContainer { zip_path, .. }
+            | ReaderSource::ZipContainerV2 { zip_path, .. } => {
                 // ZIP container - re-open and extract the sub-file
                 let file = File::open(zip_path)?;
                 let mut archive = ZipArchive::new(BufReader::new(file))?;
@@ -88,6 +89,27 @@ impl MzPeakReader {
                     batches.push(batch_result?);
                 }
                 Ok(Some(batches))
+            }
+            ReaderSource::DirectoryV2 { peaks_path, .. } => {
+                // v2 directory bundle - go up from peaks/ to dataset root
+                if let Some(peaks_dir) = peaks_path.parent() {
+                    if let Some(dataset_root) = peaks_dir.parent() {
+                        let sub_file_path = dataset_root.join(subpath);
+                        if !sub_file_path.exists() {
+                            return Ok(None);
+                        }
+                        let file = File::open(&sub_file_path)?;
+                        let builder = ParquetRecordBatchReaderBuilder::try_new(file)?
+                            .with_batch_size(self.config.batch_size);
+                        let reader = builder.build()?;
+                        let mut batches = Vec::new();
+                        for batch_result in reader {
+                            batches.push(batch_result?);
+                        }
+                        return Ok(Some(batches));
+                    }
+                }
+                Ok(None)
             }
         }
     }

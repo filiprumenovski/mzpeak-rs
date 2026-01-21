@@ -118,7 +118,10 @@ mzpeak = "0.1"
 
 This repository includes optional Python bindings (PyO3 + maturin) under the Cargo feature `python`. 
 
-**Note:** Python bindings are currently disabled in this prealpha and will be reintroduced once core features stabilize.
+Build locally with:
+```bash
+maturin develop -F python
+```
 
 ## Quick Start
 

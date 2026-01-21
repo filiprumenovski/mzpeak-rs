@@ -103,6 +103,11 @@ impl PySpectrumArrays {
         })
     }
 
+    /// Alias for from_arrays (used by IngestSpectrumConverter)
+    pub(crate) fn from_rust(py: Python<'_>, spectrum: SpectrumArrays) -> Self {
+        Self::from_arrays(py, spectrum)
+    }
+
     pub(crate) fn from_arrays(py: Python<'_>, spectrum: SpectrumArrays) -> Self {
         let SpectrumArrays {
             spectrum_id,

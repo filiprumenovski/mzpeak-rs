@@ -16,8 +16,8 @@ exclude = ["*.mzML", "*.raw", "*.parquet", "mzPeak_preprint_v02.pdf"]
 
 [features]
 default = ["colorized_output", "mzml"]
-# Python bindings are temporarily disabled in this prealpha.
-python = []
+# Python bindings for PyO3 extension module.
+python = ["pyo3", "pyo3-log", "numpy"]
 # Colorized CLI output
 colorized_output = ["console"]
 # mzML parsing (optional)
@@ -59,6 +59,11 @@ uuid = { version = "1.11", features = ["v4", "serde"] }
 # Logging
 log = "0.4"
 env_logger = "0.11"
+
+# Python bindings (optional)
+pyo3 = { version = "0.21", features = ["extension-module"], optional = true }
+pyo3-log = { version = "0.10", optional = true }
+numpy = { version = "0.21", optional = true }
 
 # Bytes for Parquet reader ChunkReader trait
 bytes = "1.9"

@@ -1,6 +1,7 @@
 use pyo3::prelude::*;
 use std::collections::HashMap;
 
+use crate::python::metadata::PyMzPeakMetadata;
 use crate::reader::{FileMetadata, FileSummary};
 
 /// Summary statistics for an mzPeak file
@@ -106,6 +107,24 @@ impl PyFileMetadata {
     #[getter]
     fn key_value_metadata(&self) -> HashMap<String, String> {
         self.inner.key_value_metadata.clone()
+    }
+
+    /// Get the parsed structured metadata (if available).
+    ///
+    /// Returns the MzPeakMetadata object containing instrument config,
+    /// LC config, run parameters, SDRF metadata, and other structured
+    /// information parsed from the Parquet footer.
+    ///
+    /// Returns None if the file doesn't contain structured metadata
+    /// or if parsing failed.
+    #[getter]
+    fn parsed_metadata(&self) -> Option<PyMzPeakMetadata> {
+        self.inner.mzpeak_metadata.clone().map(PyMzPeakMetadata::from)
+    }
+
+    /// Check if this file has parsed structured metadata
+    fn has_parsed_metadata(&self) -> bool {
+        self.inner.mzpeak_metadata.is_some()
     }
 
     fn __repr__(&self) -> String {

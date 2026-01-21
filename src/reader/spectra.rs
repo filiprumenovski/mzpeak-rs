@@ -106,6 +106,21 @@ impl MzPeakReader {
                 min_id,
                 max_id,
             ),
+            ReaderSource::ZipContainerV2 {
+                peaks_chunk_reader, ..
+            } => self.build_iter_for_spectrum_id_range(
+                ParquetRecordBatchReaderBuilder::try_new(peaks_chunk_reader.clone())?,
+                min_id,
+                max_id,
+            ),
+            ReaderSource::DirectoryV2 { peaks_path, .. } => {
+                let file = File::open(peaks_path)?;
+                self.build_iter_for_spectrum_id_range(
+                    ParquetRecordBatchReaderBuilder::try_new(file)?,
+                    min_id,
+                    max_id,
+                )
+            }
         }
     }
 

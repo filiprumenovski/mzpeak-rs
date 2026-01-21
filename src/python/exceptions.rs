@@ -13,6 +13,7 @@ use pyo3::exceptions::{PyException, PyValueError};
 use pyo3::prelude::*;
 
 use crate::dataset::DatasetError;
+use crate::formats::ingest::IngestError;
 use crate::mzml::converter::ConversionError;
 use crate::reader::ReaderError;
 use crate::writer::WriterError;
@@ -75,6 +76,8 @@ impl From<WriterError> for PyErr {
             WriterError::MetadataError(_) => MzPeakFormatError::new_err(msg),
             WriterError::InvalidData(_) => MzPeakValidationError::new_err(msg),
             WriterError::NotInitialized => MzPeakException::new_err(msg),
+            WriterError::BackgroundWriterError(_) => MzPeakException::new_err(msg),
+            WriterError::ThreadPanicked => MzPeakException::new_err(msg),
         }
     }
 }
@@ -111,6 +114,13 @@ impl From<ConversionError> for PyErr {
             ConversionError::MetadataError(_) => MzPeakFormatError::new_err(msg),
             ConversionError::BinaryDecodeError { .. } => MzPeakFormatError::new_err(msg),
         }
+    }
+}
+
+/// Convert IngestError to Python exception
+impl From<IngestError> for PyErr {
+    fn from(err: IngestError) -> Self {
+        MzPeakValidationError::new_err(format_error_chain(&err))
     }
 }
 
