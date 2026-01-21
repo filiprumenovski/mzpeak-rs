@@ -197,39 +197,7 @@ println!("Wrote {} spectra, {} peaks",
     stats.peak_stats.peaks_written);
 ```
 
-### SoA (SpectrumArrays) API
 
-Use the SoA API when you already have peak arrays in memory or want to avoid per-peak object allocations. It accepts columnar vectors and optional per-peak validity masks for sparse ion mobility data.
-
-```rust
-use mzpeak::prelude::*;
-
-let metadata = MzPeakMetadata::new();
-let mut writer = MzPeakWriter::new_file("output.mzpeak.parquet", &metadata, WriterConfig::default())?;
-
-let mut peaks = PeakArrays::new(vec![100.0, 200.0], vec![10.0, 20.0]);
-peaks.ion_mobility = OptionalColumnBuf::WithValidity {
-    values: vec![1.1, 1.2],
-    validity: vec![true, false],
-};
-
-let spectrum = SpectrumArrays::new_ms1(0, 1, 10.0, 1, peaks);
-writer.write_spectrum_arrays(&spectrum)?;
-writer.finish()?;
-
-let reader = MzPeakReader::open("output.mzpeak.parquet")?;
-let spectra = reader.iter_spectra_arrays()?; // view-backed
-println!("Read {} spectra", spectra.len());
-let first = spectra[0].to_owned()?;
-println!("First spectrum has {} peaks", first.peak_count());
-```
-
-Run the full example: `cargo run --example soa_roundtrip`
-
-**Or convert from mzML:**
-
-```rust
-use mzpeak::mzml::MzMLConverter;
 
 // Convert mzML to Dataset Bundle
 let converter = MzMLConverter::new()
@@ -270,19 +238,6 @@ cat output.mzpeak/metadata.json | jq .
 
 **Read peak data with any Parquet tool:**
 
-**R (arrow)**
-```r
-library(arrow)
-
-data <- read_parquet('output.mzpeak/peaks/peaks.parquet')
-ms2_spectra <- data[data$ms_level == 2, ]
-
-# Read chromatograms
-chromatograms <- read_parquet('output.mzpeak/chromatograms/chromatograms.parquet')
-tic <- chromatograms[chromatograms$chromatogram_id == 'TIC', ]
-plot(tic$time_array[[1]], tic$intensity_array[[1]], type='l',
-     xlab='Retention Time (s)', ylab='Intensity', main='TIC')
-```
 
 **DuckDB**
 ```sql
@@ -492,7 +447,6 @@ Typical compression ratios compared to mzML:
 | DDA Proteomics | 2.5 GB | 400 MB | 6.2x |
 | DIA Proteomics | 4.0 GB | 550 MB | 7.3x |
 | Metabolomics | 800 MB | 150 MB | 5.3x |
-| timsTOF PASEF (IM) | 8.0 GB | 1.2 GB | 6.7x |
 
 ### Benchmark Results
 
@@ -696,7 +650,6 @@ dataset.write_spectrum_arrays(&spectrum)?;
 **Supported Instruments:**
 - Bruker timsTOF series (TIMS)
 - Waters SYNAPT series (TWIMS)
-- Agilent 6560 IM-QTOF
 - Any mzML with ion mobility arrays (CV: MS:1002893)
 
 ### Rolling Writer (Sharding for Large Datasets)
