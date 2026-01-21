@@ -148,37 +148,6 @@ mzpeak info demo_run.mzpeak
 mzpeak validate demo_run.mzpeak
 ```
 
-### As a Library
-
-```rust
-use mzpeak::prelude::*;
-
-// Create a Dataset Bundle (recommended)
-let metadata = MzPeakMetadata::new();
-let config = WriterConfig::default();
-let mut dataset = MzPeakDatasetWriter::new("output.mzpeak", &metadata, config)?;
-
-// Write spectra (SoA)
-let peaks = PeakArrays::new(vec![400.0, 500.0], vec![10000.0, 20000.0]);
-let spectrum = SpectrumArrays::new_ms1(0, 1, 60.0, 1, peaks);
-
-dataset.write_spectrum_arrays(&spectrum)?;
-let stats = dataset.close()?;
-
-println!("Wrote {} spectra, {} peaks", 
-    stats.peak_stats.spectra_written, 
-    stats.peak_stats.peaks_written);
-```
-
-
-
-// Convert mzML to Dataset Bundle
-let converter = MzMLConverter::new()
-    .with_batch_size(1000);
-
-let stats = converter.convert("input.mzML", "output.mzpeak")?;
-println!("Converted {} spectra, {} peaks", stats.spectra_count, stats.peak_count);
-```
 
 ### Reading mzPeak Files
 
@@ -273,10 +242,6 @@ for chrom in chromatograms {
 }
 ```
 
-Run the demo:
-```bash
-cargo run --example chromatogram_generation_demo
-```
 
 ## Validation
 
@@ -556,23 +521,7 @@ println!("Wrote {} spectra", stats.peak_stats.spectra_written);
 - `metadata.json` is Deflate compressed
 - `peaks/peaks.parquet` is stored **uncompressed** within the ZIP for direct seek access
 
-### Legacy Single-File Writer
 
-```rust
-// Write to a single Parquet file (legacy format)
-let metadata = MzPeakMetadata::new();
-let config = WriterConfig::default();
-let mut writer = MzPeakWriter::new_file("output.parquet", &metadata, config)?;
-
-let peaks = PeakArrays::new(vec![150.0, 250.0], vec![1000.0, 2000.0]);
-let mut spectrum = SpectrumArrays::new_ms2(spectrum_id, scan_number, 120.5, 1, 500.25, peaks);
-spectrum.precursor_charge = Some(2);
-spectrum.precursor_intensity = Some(1e6);
-spectrum.collision_energy = Some(30.0);
-
-writer.write_spectra_arrays(&[spectrum])?;
-let stats = writer.finish()?;
-```
 
 ### mzML Conversion
 
@@ -688,12 +637,6 @@ cargo test -- --nocapture
 
 # Run specific test
 cargo test test_spectrum_conversion
-
-# Python smoke tests (after `maturin develop`)
-python -m unittest -v
-
-# Include the slow mzML conversion smoke test
-MZPEAK_RUN_SLOW=1 python -m unittest -v
 ```
 
 ## Contributing
