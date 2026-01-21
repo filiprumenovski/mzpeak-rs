@@ -232,7 +232,7 @@ fn test_validator_compliance() {
     assert!(check_names.contains(&"mimetype is first entry"));
     assert!(check_names.contains(&"mimetype is uncompressed"));
     assert!(check_names.contains(&"peaks.parquet is uncompressed (seekable)"));
-    assert!(check_names.contains(&"Valid Parquet file"));
+    assert!(check_names.contains(&"peaks.parquet is valid Parquet"));
 }
 
 #[test]

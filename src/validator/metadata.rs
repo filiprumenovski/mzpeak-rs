@@ -8,10 +8,12 @@ use parquet::file::reader::{FileReader, SerializedFileReader};
 use zip::ZipArchive;
 
 use crate::metadata::MzPeakMetadata;
+use crate::reader::ZipEntryChunkReader;
 use crate::schema::{KEY_FORMAT_VERSION, MZPEAK_FORMAT_VERSION};
+use crate::schema::manifest::Manifest;
 
 use super::structure::is_zip_file;
-use super::{ValidationCheck, ValidationReport, ValidationTarget};
+use super::{ParquetSource, SchemaVersion, ValidationCheck, ValidationReport, ValidationTarget};
 
 /// Step 2: Metadata integrity validation
 pub(crate) fn check_metadata_integrity(
@@ -45,37 +47,75 @@ pub(crate) fn check_metadata_integrity(
     }
 
     // Check Parquet footer metadata
-    let metadata = match validation_target {
-        ValidationTarget::FilePath(path) => {
-            let file = File::open(path)?;
-            let reader = SerializedFileReader::new(file)?;
-            reader.metadata().clone()
+    if validation_target.schema_version == SchemaVersion::V2 {
+        match validation_target.manifest.as_deref() {
+            Some(content) => match serde_json::from_str::<Manifest>(content) {
+                Ok(manifest) => {
+                    if manifest.format_version == "2.0" {
+                        report.add_check(ValidationCheck::ok("Manifest format version = 2.0"));
+                    } else {
+                        report.add_check(ValidationCheck::warning(
+                            "Manifest format version",
+                            format!("Expected 2.0, found {}", manifest.format_version),
+                        ));
+                    }
+                    if manifest.schema_version == "2.0" {
+                        report.add_check(ValidationCheck::ok("Manifest schema version = 2.0"));
+                    } else {
+                        report.add_check(ValidationCheck::warning(
+                            "Manifest schema version",
+                            format!("Expected 2.0, found {}", manifest.schema_version),
+                        ));
+                    }
+                }
+                Err(e) => {
+                    report.add_check(ValidationCheck::failed(
+                        "manifest.json valid JSON",
+                        format!("Failed to parse manifest.json: {}", e),
+                    ));
+                }
+            },
+            None => {
+                report.add_check(ValidationCheck::failed(
+                    "manifest.json exists",
+                    "Missing manifest.json content for v2 container",
+                ));
+            }
         }
-        ValidationTarget::InMemory(bytes) => {
-            let reader = SerializedFileReader::new(bytes.clone())?;
-            reader.metadata().clone()
-        }
+    }
+
+    let kv_map = match read_parquet_kv_metadata(&validation_target.peaks) {
+        Ok(Some(map)) => Some(map),
+        Ok(None) => None,
+        Err(_) => None,
     };
 
-    let file_metadata = metadata.file_metadata();
+    let kv_map = if kv_map.is_none() && validation_target.schema_version == SchemaVersion::V2 {
+        if let Some(spectra_source) = &validation_target.spectra {
+            read_parquet_kv_metadata(spectra_source).ok().flatten()
+        } else {
+            None
+        }
+    } else {
+        kv_map
+    };
 
-    if let Some(kv_metadata) = file_metadata.key_value_metadata() {
-        let kv_map: HashMap<String, String> = kv_metadata
-            .iter()
-            .filter_map(|kv| kv.value.as_ref().map(|v| (kv.key.clone(), v.clone())))
-            .collect();
-
-        // Check for format version
+    if let Some(kv_map) = kv_map {
         if let Some(version) = kv_map.get(KEY_FORMAT_VERSION) {
-            if version == MZPEAK_FORMAT_VERSION {
+            let expected = if validation_target.schema_version == SchemaVersion::V2 {
+                "2.0"
+            } else {
+                MZPEAK_FORMAT_VERSION
+            };
+            if version == expected {
                 report.add_check(ValidationCheck::ok(format!(
                     "Format version matches ({})",
-                    MZPEAK_FORMAT_VERSION
+                    expected
                 )));
             } else {
                 report.add_check(ValidationCheck::warning(
                     "Format version",
-                    format!("Expected {}, found {}", MZPEAK_FORMAT_VERSION, version),
+                    format!("Expected {}, found {}", expected, version),
                 ));
             }
         } else {
@@ -85,7 +125,6 @@ pub(crate) fn check_metadata_integrity(
             ));
         }
 
-        // Try to reconstruct MzPeakMetadata from Parquet footer
         match MzPeakMetadata::from_parquet_metadata(&kv_map) {
             Ok(_) => {
                 report.add_check(ValidationCheck::ok("Parquet metadata deserializes"));
@@ -135,4 +174,36 @@ fn validate_metadata_json_content(json_content: &str, report: &mut ValidationRep
         }
     }
     Ok(())
+}
+
+fn read_parquet_kv_metadata(
+    source: &ParquetSource,
+) -> Result<Option<HashMap<String, String>>> {
+    let metadata = match source {
+        ParquetSource::FilePath(path) => {
+            let file = File::open(path)?;
+            let reader = SerializedFileReader::new(file)?;
+            reader.metadata().clone()
+        }
+        ParquetSource::ZipEntry { zip_path, entry_name } => {
+            let reader = ZipEntryChunkReader::new(zip_path, entry_name)?;
+            let reader = SerializedFileReader::new(reader)?;
+            reader.metadata().clone()
+        }
+        ParquetSource::InMemory(bytes) => {
+            let reader = SerializedFileReader::new(bytes.clone())?;
+            reader.metadata().clone()
+        }
+    };
+
+    let file_metadata = metadata.file_metadata();
+    let Some(kv_metadata) = file_metadata.key_value_metadata() else {
+        return Ok(None);
+    };
+
+    let kv_map = kv_metadata
+        .iter()
+        .filter_map(|kv| kv.value.as_ref().map(|v| (kv.key.clone(), v.clone())))
+        .collect();
+    Ok(Some(kv_map))
 }

@@ -10,6 +10,81 @@ use super::sdrf::SdrfMetadata;
 use super::source::SourceFileInfo;
 use super::MetadataError;
 
+/// Vendor hints for files converted via intermediate formats (e.g., mzML).
+///
+/// When data is converted through intermediate formats like mzML, original vendor
+/// information may be lost or obscured. This struct preserves hints about the
+/// original vendor source to enable better downstream processing decisions.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct VendorHints {
+    /// Original vendor name (e.g., "Waters", "Sciex", "Agilent")
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub original_vendor: Option<String>,
+
+    /// Original file format (e.g., "waters_raw", "wiff", "agilent_d")
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub original_format: Option<String>,
+
+    /// Instrument model from original file
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub instrument_model: Option<String>,
+
+    /// Conversion path taken (e.g., ["waters_raw", "mzML", "mzpeak"])
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub conversion_path: Vec<String>,
+}
+
+impl VendorHints {
+    /// Create a new VendorHints with the specified vendor
+    pub fn new(vendor: impl Into<String>) -> Self {
+        Self {
+            original_vendor: Some(vendor.into()),
+            ..Default::default()
+        }
+    }
+
+    /// Set the original file format
+    pub fn with_format(mut self, format: impl Into<String>) -> Self {
+        self.original_format = Some(format.into());
+        self
+    }
+
+    /// Set the instrument model
+    pub fn with_instrument_model(mut self, model: impl Into<String>) -> Self {
+        self.instrument_model = Some(model.into());
+        self
+    }
+
+    /// Set the conversion path
+    pub fn with_conversion_path(mut self, path: Vec<String>) -> Self {
+        self.conversion_path = path;
+        self
+    }
+
+    /// Add a step to the conversion path
+    pub fn add_conversion_step(&mut self, step: impl Into<String>) {
+        self.conversion_path.push(step.into());
+    }
+
+    /// Check if any vendor hints are present
+    pub fn is_empty(&self) -> bool {
+        self.original_vendor.is_none()
+            && self.original_format.is_none()
+            && self.instrument_model.is_none()
+            && self.conversion_path.is_empty()
+    }
+
+    /// Serialize vendor hints to JSON for Parquet footer storage.
+    pub fn to_json(&self) -> Result<String, MetadataError> {
+        Ok(serde_json::to_string(self)?)
+    }
+
+    /// Deserialize vendor hints from JSON.
+    pub fn from_json(json: &str) -> Result<Self, MetadataError> {
+        Ok(serde_json::from_str(json)?)
+    }
+}
+
 /// Complete metadata container for an mzPeak file
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MzPeakMetadata {
@@ -38,6 +113,10 @@ pub struct MzPeakMetadata {
     /// MALDI/imaging spatial metadata (if available)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub imaging: Option<ImagingMetadata>,
+
+    /// Vendor hints for files converted via intermediate formats (e.g., mzML)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vendor_hints: Option<VendorHints>,
 }
 
 /// MALDI/imaging grid metadata for spatial indexing.
@@ -125,6 +204,10 @@ impl MzPeakMetadata {
             metadata.insert(KEY_IMAGING_METADATA.to_string(), imaging.to_json()?);
         }
 
+        if let Some(ref vendor_hints) = self.vendor_hints {
+            metadata.insert(KEY_VENDOR_HINTS.to_string(), vendor_hints.to_json()?);
+        }
+
         Ok(metadata)
     }
 
@@ -168,6 +251,21 @@ impl MzPeakMetadata {
             result.imaging = Some(ImagingMetadata::from_json(json)?);
         }
 
+        if let Some(json) = metadata.get(KEY_VENDOR_HINTS) {
+            result.vendor_hints = Some(VendorHints::from_json(json)?);
+        }
+
         Ok(result)
+    }
+
+    /// Set vendor hints for this metadata
+    pub fn with_vendor_hints(mut self, hints: VendorHints) -> Self {
+        self.vendor_hints = Some(hints);
+        self
+    }
+
+    /// Set vendor hints (mutable reference version)
+    pub fn set_vendor_hints(&mut self, hints: VendorHints) {
+        self.vendor_hints = Some(hints);
     }
 }

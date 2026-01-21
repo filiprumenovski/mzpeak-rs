@@ -70,6 +70,11 @@ pub struct WriterConfig {
     /// (mz, intensity, ion_mobility) by grouping bytes with similar values together.
     /// Default: true
     pub use_byte_stream_split: bool,
+
+    /// Buffer capacity for async writer pipeline (number of batches).
+    /// Higher values reduce backpressure but use more memory.
+    /// Default: 8
+    pub async_buffer_capacity: usize,
 }
 
 impl Default for WriterConfig {
@@ -90,6 +95,8 @@ impl Default for WriterConfig {
             max_peaks_per_file: Some(50_000_000),
             // BYTE_STREAM_SPLIT improves compression for floating-point scientific data
             use_byte_stream_split: true,
+            // Buffer 8 batches for async writer pipeline
+            async_buffer_capacity: 8,
         }
     }
 }
@@ -105,6 +112,7 @@ impl WriterConfig {
             dictionary_page_size_limit: 2 * 1024 * 1024,
             max_peaks_per_file: Some(100_000_000),
             use_byte_stream_split: true,
+            async_buffer_capacity: 8,
         }
     }
 
@@ -118,6 +126,7 @@ impl WriterConfig {
             dictionary_page_size_limit: 512 * 1024,
             max_peaks_per_file: Some(50_000_000),
             use_byte_stream_split: true,
+            async_buffer_capacity: 16, // Larger buffer for fast writes
         }
     }
 
@@ -198,6 +207,167 @@ impl WriterConfig {
         // This encoding groups bytes with similar values together (exponents, mantissas),
         // significantly improving compression ratios for correlated floating-point data.
         if self.use_byte_stream_split {
+            for col in float_columns {
+                builder = builder.set_column_encoding(
+                    ColumnPath::new(vec![col.to_string()]),
+                    Encoding::BYTE_STREAM_SPLIT,
+                );
+            }
+        }
+
+        // Add key-value metadata
+        let kv_metadata: Vec<KeyValue> = metadata
+            .iter()
+            .map(|(k, v)| KeyValue {
+                key: k.clone(),
+                value: Some(v.clone()),
+            })
+            .collect();
+
+        builder = builder.set_key_value_metadata(Some(kv_metadata));
+
+        builder.build()
+    }
+
+    /// Create writer properties for v2.0 peaks table (reduced columns).
+    ///
+    /// The v2.0 peaks table has only 3-4 columns: spectrum_id, mz, intensity,
+    /// and optionally ion_mobility. All columns are high-cardinality, so we
+    /// disable dictionary encoding and use specialized encodings:
+    /// - DELTA_BINARY_PACKED for spectrum_id (monotonic integers)
+    /// - BYTE_STREAM_SPLIT for mz, intensity, ion_mobility (floating-point)
+    pub(super) fn to_peaks_v2_writer_properties(
+        &self,
+        metadata: &HashMap<String, String>,
+    ) -> WriterProperties {
+        let compression = match self.compression {
+            CompressionType::Zstd(level) => {
+                Compression::ZSTD(ZstdLevel::try_new(level).unwrap_or(ZstdLevel::default()))
+            }
+            CompressionType::Snappy => Compression::SNAPPY,
+            CompressionType::Uncompressed => Compression::UNCOMPRESSED,
+        };
+
+        let statistics = if self.write_statistics {
+            EnabledStatistics::Chunk
+        } else {
+            EnabledStatistics::None
+        };
+
+        let mut builder = WriterProperties::builder()
+            .set_compression(compression)
+            .set_data_page_size_limit(self.data_page_size)
+            .set_statistics_enabled(statistics)
+            .set_max_row_group_size(self.row_group_size);
+
+        // Disable dictionary encoding for all columns (high-cardinality data)
+        // spectrum_id: unique per peak group, mz/intensity/ion_mobility: unique per peak
+        builder = builder.set_dictionary_enabled(false);
+
+        // Use DELTA_BINARY_PACKED for spectrum_id column
+        // This encoding is optimal for monotonically increasing integers
+        builder = builder.set_column_encoding(
+            ColumnPath::new(vec!["spectrum_id".to_string()]),
+            Encoding::DELTA_BINARY_PACKED,
+        );
+
+        // Use BYTE_STREAM_SPLIT for floating-point columns
+        // This encoding groups bytes with similar values (exponents, mantissas),
+        // significantly improving compression for scientific data
+        if self.use_byte_stream_split {
+            let float_columns = ["mz", "intensity", "ion_mobility"];
+            for col in float_columns {
+                builder = builder.set_column_encoding(
+                    ColumnPath::new(vec![col.to_string()]),
+                    Encoding::BYTE_STREAM_SPLIT,
+                );
+            }
+        }
+
+        // Add key-value metadata
+        let kv_metadata: Vec<KeyValue> = metadata
+            .iter()
+            .map(|(k, v)| KeyValue {
+                key: k.clone(),
+                value: Some(v.clone()),
+            })
+            .collect();
+
+        builder = builder.set_key_value_metadata(Some(kv_metadata));
+
+        builder.build()
+    }
+
+    /// Create writer properties for v2.0 spectra table (one row per spectrum).
+    ///
+    /// The spectra table contains metadata columns with one row per spectrum.
+    /// Most columns have unique values per spectrum, so we use:
+    /// - DELTA_BINARY_PACKED for spectrum_id (monotonic integers)
+    /// - BYTE_STREAM_SPLIT for float columns (retention_time, precursor_mz, etc.)
+    /// - Dictionary encoding only for low-cardinality columns (ms_level, polarity)
+    pub(super) fn to_spectra_writer_properties(
+        &self,
+        metadata: &HashMap<String, String>,
+    ) -> WriterProperties {
+        let compression = match self.compression {
+            CompressionType::Zstd(level) => {
+                Compression::ZSTD(ZstdLevel::try_new(level).unwrap_or(ZstdLevel::default()))
+            }
+            CompressionType::Snappy => Compression::SNAPPY,
+            CompressionType::Uncompressed => Compression::UNCOMPRESSED,
+        };
+
+        let statistics = if self.write_statistics {
+            EnabledStatistics::Chunk
+        } else {
+            EnabledStatistics::None
+        };
+
+        let mut builder = WriterProperties::builder()
+            .set_compression(compression)
+            .set_data_page_size_limit(self.data_page_size)
+            .set_dictionary_page_size_limit(self.dictionary_page_size_limit)
+            .set_statistics_enabled(statistics)
+            .set_max_row_group_size(self.row_group_size);
+
+        // Disable dictionary encoding by default (most columns are unique per spectrum)
+        builder = builder.set_dictionary_enabled(false);
+
+        // Use DELTA_BINARY_PACKED for spectrum_id (monotonic integers)
+        builder = builder.set_column_encoding(
+            ColumnPath::new(vec!["spectrum_id".to_string()]),
+            Encoding::DELTA_BINARY_PACKED,
+        );
+
+        // Use DELTA_BINARY_PACKED for scan_number (also monotonic integers)
+        builder = builder.set_column_encoding(
+            ColumnPath::new(vec!["scan_number".to_string()]),
+            Encoding::DELTA_BINARY_PACKED,
+        );
+
+        // Enable dictionary encoding only for low-cardinality columns
+        let dict_columns = ["ms_level", "polarity"];
+        for col in dict_columns {
+            builder = builder.set_column_dictionary_enabled(
+                ColumnPath::new(vec![col.to_string()]),
+                true,
+            );
+        }
+
+        // Use BYTE_STREAM_SPLIT for floating-point columns
+        if self.use_byte_stream_split {
+            let float_columns = [
+                "retention_time",
+                "precursor_mz",
+                "precursor_intensity",
+                "isolation_window_lower",
+                "isolation_window_upper",
+                "collision_energy",
+                "total_ion_current",
+                "base_peak_mz",
+                "base_peak_intensity",
+                "injection_time",
+            ];
             for col in float_columns {
                 builder = builder.set_column_encoding(
                     ColumnPath::new(vec![col.to_string()]),

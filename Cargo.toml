@@ -22,12 +22,14 @@ python = []
 colorized_output = ["console"]
 # mzML parsing (optional)
 mzml = ["quick-xml", "base64", "flate2", "byteorder"]
-# Bruker TDF parsing (optional)
-tdf = ["timsrust"]
+# Bruker TDF parsing (optional) - includes rayon for parallel conversion
+tdf = ["timsrust", "rayon"]
 # Thermo RAW parsing (optional) - requires .NET 8 runtime
 thermo = ["thermorawfilereader"]
 # Parallel decoding with SIMD acceleration for mzML conversion
-parallel-decode = ["mzml", "rayon", "base64-simd", "wide", "fast-float"]
+mzml-parallel = ["mzml", "rayon", "base64-simd", "wide", "fast-float"]
+# Deprecated alias for backwards compatibility
+parallel-decode = ["mzml-parallel"]
 
 [dependencies]
 # Apache Arrow and Parquet for columnar storage
@@ -64,6 +66,9 @@ bytes = "1.9"
 # Temp file for streaming container writes (Issue 000 fix)
 tempfile = "3.14"
 
+# Crossbeam channel for async writer pipeline
+crossbeam-channel = "0.5"
+
 # mzML parsing (optional)
 quick-xml = { version = "0.37", features = ["encoding"], optional = true }
 base64 = { version = "0.22", optional = true }
@@ -72,6 +77,9 @@ byteorder = { version = "1.5", optional = true }
 
 # CLI argument parsing
 clap = { version = "4.5", features = ["derive"] }
+
+# TOML config file parsing
+toml = "0.8"
 
 # Colorized CLI output
 console = { version = "0.15", optional = true }
@@ -83,7 +91,7 @@ wide = { version = "0.7", optional = true }
 fast-float = { version = "0.2", optional = true }
 
 # Bruker TDF reader (path override; subject to change to git/published crate)
-timsrust = { path = "/Users/filiprumenovski/Code/timsrust-4d", optional = true }
+timsrust = { path = "vendor/timsrust", optional = true }
 
 # Thermo RAW reader (optional) - requires .NET 8 runtime
 thermorawfilereader = { version = "0.5", optional = true }
@@ -115,53 +123,75 @@ harness = false
 
 [[example]]
 name = "compression_benchmark"
-path = "examples/compression_benchmark.rs"
+path = "examples/benchmarks/compression_benchmark.rs"
 required-features = ["tdf"]
 
 [[example]]
 name = "parallel_benchmark"
-path = "examples/parallel_benchmark.rs"
+path = "examples/benchmarks/parallel_benchmark.rs"
 required-features = ["tdf"]
 
 [[example]]
 name = "parallel_write_benchmark"
-path = "examples/parallel_write_benchmark.rs"
+path = "examples/benchmarks/parallel_write_benchmark.rs"
 required-features = ["tdf"]
 
 [[example]]
 name = "batch_benchmark"
-path = "examples/batch_benchmark.rs"
+path = "examples/benchmarks/batch_benchmark.rs"
 required-features = ["tdf"]
 
 [[example]]
 name = "rowgroup_benchmark"
-path = "examples/rowgroup_benchmark.rs"
+path = "examples/benchmarks/rowgroup_benchmark.rs"
 required-features = ["tdf"]
 
 [[example]]
 name = "scaling_benchmark"
-path = "examples/scaling_benchmark.rs"
+path = "examples/benchmarks/scaling_benchmark.rs"
 required-features = ["tdf"]
 
 [[example]]
 name = "test_alphatims_dda"
-path = "examples/test_alphatims_dda.rs"
-required-features = ["tdf"]
-
-[[example]]
-name = "inspect_frame_91_binary"
-path = "examples/inspect_frame_91_binary.rs"
-required-features = ["tdf"]
-
-[[example]]
-name = "diagnose_frame_91"
-path = "examples/diagnose_frame_91.rs"
+path = "examples/validation/test_alphatims_dda.rs"
 required-features = ["tdf"]
 
 [[example]]
 name = "thermo_benchmark"
-path = "examples/thermo_benchmark.rs"
+path = "examples/benchmarks/thermo_benchmark.rs"
 required-features = ["thermo"]
+
+[[example]]
+name = "mzml_benchmark"
+path = "examples/benchmarks/mzml_benchmark.rs"
+required-features = ["mzml"]
+
+[[example]]
+name = "tdf_throughput_benchmark"
+path = "examples/benchmarks/tdf_throughput_benchmark.rs"
+required-features = ["tdf"]
+
+[[example]]
+name = "quick_tdf_convert"
+path = "examples/benchmarks/quick_tdf_convert.rs"
+required-features = ["tdf"]
+
+[[example]]
+name = "chromatogram_generation_demo"
+path = "examples/guides/chromatogram_generation_demo.rs"
+
+[[example]]
+name = "container_format_demo"
+path = "examples/guides/container_format_demo.rs"
+
+[[example]]
+name = "soa_roundtrip"
+path = "examples/guides/soa_roundtrip.rs"
+
+[[example]]
+name = "validate_lossless"
+path = "examples/validation/validate_lossless.rs"
+required-features = ["mzml"]
 
 [profile.release]
 lto = true

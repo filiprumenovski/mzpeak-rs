@@ -47,6 +47,10 @@ pub mod chromatogram_columns;
 /// Peak table column name constants.
 pub mod columns;
 mod constants;
+/// Manifest schema for mzPeak v2.0 container format.
+pub mod manifest;
+/// Spectra table schema for mzPeak v2.0.
+pub mod spectra_columns;
 mod validation;
 
 #[cfg(test)]
@@ -54,9 +58,11 @@ mod tests;
 
 pub use builders::{
     create_chromatogram_schema, create_chromatogram_schema_arc, create_mzpeak_schema,
-    create_mzpeak_schema_arc,
+    create_mzpeak_schema_arc, create_peaks_schema_v2, create_peaks_schema_v2_arc,
 };
 pub use chromatogram_columns::*;
 pub use columns::*;
 pub use constants::*;
+pub use manifest::{Manifest, Modality, VendorHints};
+pub use spectra_columns::{create_spectra_schema, create_spectra_schema_arc};
 pub use validation::{validate_schema, SchemaValidationError};

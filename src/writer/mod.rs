@@ -16,9 +16,12 @@
 //!
 //! 4. **Configurable Compression**: Supports ZSTD (default), Snappy, and uncompressed.
 
+mod async_writer;
 mod config;
 mod error;
+mod peaks_writer_v2;
 mod rolling;
+mod spectra_writer;
 mod stats;
 mod types;
 mod writer_impl;
@@ -26,11 +29,16 @@ mod writer_impl;
 #[cfg(test)]
 mod tests;
 
+pub use async_writer::AsyncMzPeakWriter;
 pub use config::{CompressionType, WriterConfig};
 pub use error::WriterError;
+pub use peaks_writer_v2::{PeaksWriterV2, PeaksWriterV2Config, PeaksWriterV2Stats};
 pub use rolling::{RollingWriter, RollingWriterStats};
+pub use spectra_writer::{SpectraWriter, SpectraWriterConfig, SpectraWriterStats};
 pub use stats::WriterStats;
 pub use types::{
-    ColumnarBatch, OptionalColumn, OptionalColumnBuf, OwnedColumnarBatch, PeakArrays, SpectrumArrays,
+    ColumnarBatch, OptionalColumn, OptionalColumnBuf, OwnedColumnarBatch, PeakArrays,
+    PeakArraysV2, SpectrumArrays, SpectrumMetadata, SpectrumV2,
 };
 pub use writer_impl::MzPeakWriter;
+

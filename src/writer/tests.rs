@@ -124,3 +124,26 @@ fn test_owned_columnar_batch_as_columnar_batch() {
     assert_eq!(borrowed.mz, &[100.0, 200.0]);
     assert_eq!(borrowed.intensity, &[1000.0, 2000.0]);
 }
+
+#[test]
+fn test_spectrum_v2_try_from_rejects_mixed_ion_mobility() {
+    let mut peaks = PeakArrays::new(vec![100.0, 200.0], vec![1000.0, 2000.0]);
+    peaks.ion_mobility = OptionalColumnBuf::WithValidity {
+        values: vec![1.0, 2.0],
+        validity: vec![true, false],
+    };
+    let spectrum = SpectrumArrays::new_ms1(0, 1, 10.0, 1, peaks);
+
+    let result = SpectrumV2::try_from_spectrum_arrays(spectrum);
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_spectrum_v2_try_from_range_checks() {
+    let peaks = PeakArrays::new(vec![100.0], vec![1000.0]);
+    let mut spectrum = SpectrumArrays::new_ms1(i64::MAX, 1, 10.0, 1, peaks);
+    spectrum.precursor_charge = Some(200);
+
+    let result = SpectrumV2::try_from_spectrum_arrays(spectrum);
+    assert!(result.is_err());
+}

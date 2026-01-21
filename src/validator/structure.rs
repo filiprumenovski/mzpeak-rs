@@ -3,13 +3,14 @@ use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
-use bytes::Bytes;
 use parquet::file::reader::SerializedFileReader;
 use zip::ZipArchive;
 
+use crate::dataset::MZPEAK_V2_MIMETYPE;
+use crate::reader::ZipEntryChunkReader;
 use crate::schema::MZPEAK_MIMETYPE;
 
-use super::{ValidationCheck, ValidationError, ValidationReport, ValidationTarget};
+use super::{ParquetSource, SchemaVersion, ValidationCheck, ValidationError, ValidationReport, ValidationTarget};
 
 /// Step 1: Structure validation
 pub(crate) fn check_structure(path: &Path, report: &mut ValidationReport) -> Result<ValidationTarget> {
@@ -59,8 +60,21 @@ pub(crate) fn is_zip_file(path: &Path) -> bool {
 
 /// Validate directory bundle structure
 fn validate_directory_bundle(path: &Path, report: &mut ValidationReport) -> Result<ValidationTarget> {
-    // Check for metadata.json
+    // Detect schema version by checking for manifest.json (v2.0) or metadata.json only (v1.0)
+    let manifest_path = path.join("manifest.json");
     let metadata_path = path.join("metadata.json");
+    let spectra_dir = path.join("spectra");
+
+    let (schema_version, manifest_content) = if manifest_path.exists() {
+        report.add_check(ValidationCheck::ok("manifest.json exists (v2.0 format)"));
+        let content = std::fs::read_to_string(&manifest_path).ok();
+        (SchemaVersion::V2, content)
+    } else {
+        report.add_check(ValidationCheck::ok("No manifest.json (v1.0 format)"));
+        (SchemaVersion::V1, None)
+    };
+
+    // Check for metadata.json (required for both versions)
     if metadata_path.exists() {
         report.add_check(ValidationCheck::ok("metadata.json exists"));
     } else {
@@ -70,7 +84,52 @@ fn validate_directory_bundle(path: &Path, report: &mut ValidationReport) -> Resu
         ));
     }
 
-    // Check for peaks/peaks.parquet
+    // V2.0 specific: check for spectra/ directory
+    let mut spectra_file = None;
+    if schema_version == SchemaVersion::V2 {
+        if spectra_dir.exists() {
+            report.add_check(ValidationCheck::ok("spectra/ directory exists"));
+
+            let spectra_path = spectra_dir.join("spectra.parquet");
+            if spectra_path.exists() {
+                report.add_check(ValidationCheck::ok("spectra/spectra.parquet exists"));
+                spectra_file = Some(spectra_path.clone());
+
+                // Verify it's a valid Parquet file
+                match File::open(&spectra_path) {
+                    Ok(file) => match SerializedFileReader::new(file) {
+                        Ok(_) => {
+                            report.add_check(ValidationCheck::ok("spectra.parquet is valid Parquet"));
+                        }
+                        Err(e) => {
+                            report.add_check(ValidationCheck::failed(
+                                "Valid spectra.parquet",
+                                format!("Not a valid Parquet file: {}", e),
+                            ));
+                        }
+                    },
+                    Err(e) => {
+                        report.add_check(ValidationCheck::failed(
+                            "spectra.parquet readable",
+                            format!("Cannot open spectra.parquet: {}", e),
+                        ));
+                    }
+                }
+            } else {
+                report.add_check(ValidationCheck::failed(
+                    "spectra/spectra.parquet exists",
+                    "Missing spectra/spectra.parquet file",
+                ));
+            }
+        } else {
+            report.add_check(ValidationCheck::failed(
+                "spectra/ directory exists",
+                "Missing spectra/ directory for v2.0 format",
+            ));
+        }
+    }
+
+    // Check for peaks/peaks.parquet (required for both versions)
     let peaks_dir = path.join("peaks");
     if !peaks_dir.exists() {
         report.add_check(ValidationCheck::failed(
@@ -95,7 +154,7 @@ fn validate_directory_bundle(path: &Path, report: &mut ValidationReport) -> Resu
     match File::open(&peaks_file) {
         Ok(file) => match SerializedFileReader::new(file) {
             Ok(_) => {
-                report.add_check(ValidationCheck::ok("Valid Parquet file"));
+                report.add_check(ValidationCheck::ok("peaks.parquet is valid Parquet"));
             }
             Err(e) => {
                 report.add_check(ValidationCheck::failed(
@@ -114,7 +173,12 @@ fn validate_directory_bundle(path: &Path, report: &mut ValidationReport) -> Resu
         }
     }
 
-    Ok(ValidationTarget::FilePath(peaks_file))
+    Ok(ValidationTarget {
+        schema_version,
+        peaks: ParquetSource::FilePath(peaks_file),
+        spectra: spectra_file.map(ParquetSource::FilePath),
+        manifest: manifest_content,
+    })
 }
 
 /// Validate ZIP container structure with zero-extraction
@@ -157,15 +221,59 @@ fn validate_zip_container(path: &Path, report: &mut ValidationReport) -> Result<
     let mut mimetype_entry = archive.by_name("mimetype")?;
     let mut mimetype_content = String::new();
     mimetype_entry.read_to_string(&mut mimetype_content)?;
-    if mimetype_content != MZPEAK_MIMETYPE {
+    let schema_version = if mimetype_content == MZPEAK_MIMETYPE {
+        report.add_check(ValidationCheck::ok(format!("mimetype = {}", MZPEAK_MIMETYPE)));
+        SchemaVersion::V1
+    } else if mimetype_content == MZPEAK_V2_MIMETYPE {
+        report.add_check(ValidationCheck::ok(format!("mimetype = {}", MZPEAK_V2_MIMETYPE)));
+        SchemaVersion::V2
+    } else {
         report.add_check(ValidationCheck::failed(
             "mimetype content",
-            format!("Expected '{}', found: '{}'", MZPEAK_MIMETYPE, mimetype_content),
+            format!(
+                "Expected '{}' or '{}', found: '{}'",
+                MZPEAK_MIMETYPE, MZPEAK_V2_MIMETYPE, mimetype_content
+            ),
         ));
-    } else {
-        report.add_check(ValidationCheck::ok(format!("mimetype = {}", MZPEAK_MIMETYPE)));
-    }
+        SchemaVersion::V1
+    };
     drop(mimetype_entry);
+
+    // Detect schema version by checking for manifest.json
+    let (manifest_content, manifest_present) = match archive.by_name("manifest.json") {
+        Ok(mut entry) => {
+            report.add_check(ValidationCheck::ok("manifest.json exists (v2.0 format)"));
+            // Verify it's compressed
+            if entry.compression() != zip::CompressionMethod::Deflated {
+                report.add_check(ValidationCheck::warning(
+                    "manifest.json compression",
+                    "manifest.json should be Deflate compressed",
+                ));
+            } else {
+                report.add_check(ValidationCheck::ok("manifest.json is compressed"));
+            }
+            let mut content = String::new();
+            entry.read_to_string(&mut content)?;
+            (Some(content), true)
+        }
+        Err(_) => {
+            report.add_check(ValidationCheck::ok("No manifest.json (v1.0 format)"));
+            (None, false)
+        }
+    };
+
+    if manifest_present && schema_version != SchemaVersion::V2 {
+        report.add_check(ValidationCheck::failed(
+            "manifest/mimetype mismatch",
+            "manifest.json present but mimetype is not v2",
+        ));
+    }
+    if !manifest_present && schema_version == SchemaVersion::V2 {
+        report.add_check(ValidationCheck::failed(
+            "manifest.json exists",
+            "mimetype indicates v2 but manifest.json is missing",
+        ));
+    }
 
     // Check for metadata.json
     match archive.by_name("metadata.json") {
@@ -189,8 +297,57 @@ fn validate_zip_container(path: &Path, report: &mut ValidationReport) -> Result<
         }
     }
 
+    // V2.0 specific: check for spectra/spectra.parquet
+    let mut spectra_source = None;
+    if schema_version == SchemaVersion::V2 {
+        match archive.by_name("spectra/spectra.parquet") {
+            Ok(entry) => {
+                report.add_check(ValidationCheck::ok("spectra/spectra.parquet exists"));
+                // Verify it's uncompressed for seekability
+                if entry.compression() != zip::CompressionMethod::Stored {
+                    report.add_check(ValidationCheck::failed(
+                        "spectra.parquet compression",
+                        "spectra.parquet must be uncompressed (Stored) for seekability",
+                    ));
+                } else {
+                    report.add_check(ValidationCheck::ok("spectra.parquet is uncompressed (seekable)"));
+                }
+                spectra_source = Some(ParquetSource::ZipEntry {
+                    zip_path: path.to_path_buf(),
+                    entry_name: "spectra/spectra.parquet".to_string(),
+                });
+
+                match ZipEntryChunkReader::new(path, "spectra/spectra.parquet") {
+                    Ok(reader) => match SerializedFileReader::new(reader) {
+                        Ok(_) => {
+                            report.add_check(ValidationCheck::ok("spectra.parquet is valid Parquet"));
+                        }
+                        Err(e) => {
+                            report.add_check(ValidationCheck::failed(
+                                "Valid spectra.parquet",
+                                format!("Not a valid Parquet file: {}", e),
+                            ));
+                        }
+                    },
+                    Err(e) => {
+                        report.add_check(ValidationCheck::failed(
+                            "spectra.parquet readable",
+                            format!("Cannot open spectra.parquet: {}", e),
+                        ));
+                    }
+                }
+            }
+            Err(_) => {
+                report.add_check(ValidationCheck::failed(
+                    "spectra/spectra.parquet exists",
+                    "Missing spectra/spectra.parquet in v2.0 container",
+                ));
+            }
+        }
+    }
+
     // Check for peaks/peaks.parquet (zero-extraction validation)
-    let mut peaks_entry = archive
+    let peaks_entry = archive
         .by_name("peaks/peaks.parquet")
         .context("Missing peaks/peaks.parquet in container")?;
     report.add_check(ValidationCheck::ok("peaks/peaks.parquet exists"));
@@ -205,26 +362,38 @@ fn validate_zip_container(path: &Path, report: &mut ValidationReport) -> Result<
         report.add_check(ValidationCheck::ok("peaks.parquet is uncompressed (seekable)"));
     }
 
-    // Read Parquet data into memory for validation (zero-extraction)
-    let mut parquet_data = Vec::new();
-    peaks_entry.read_to_end(&mut parquet_data)?;
-    let bytes = Bytes::from(parquet_data);
-
     // Verify it's a valid Parquet file
-    match SerializedFileReader::new(bytes.clone()) {
-        Ok(_) => {
-            report.add_check(ValidationCheck::ok("Valid Parquet file"));
-        }
+    match ZipEntryChunkReader::new(path, "peaks/peaks.parquet") {
+        Ok(reader) => match SerializedFileReader::new(reader) {
+            Ok(_) => {
+                report.add_check(ValidationCheck::ok("peaks.parquet is valid Parquet"));
+            }
+            Err(e) => {
+                report.add_check(ValidationCheck::failed(
+                    "Valid Parquet file",
+                    format!("Not a valid Parquet file: {}", e),
+                ));
+                anyhow::bail!(ValidationError::ParquetError(e));
+            }
+        },
         Err(e) => {
             report.add_check(ValidationCheck::failed(
-                "Valid Parquet file",
-                format!("Not a valid Parquet file: {}", e),
+                "Parquet file readable",
+                format!("Cannot open Parquet file: {}", e),
             ));
-            anyhow::bail!(ValidationError::ParquetError(e));
+            anyhow::bail!(ValidationError::StructureError(e.to_string()));
         }
     }
 
-    Ok(ValidationTarget::InMemory(bytes))
+    Ok(ValidationTarget {
+        schema_version,
+        peaks: ParquetSource::ZipEntry {
+            zip_path: path.to_path_buf(),
+            entry_name: "peaks/peaks.parquet".to_string(),
+        },
+        spectra: spectra_source,
+        manifest: manifest_content,
+    })
 }
 
 /// Validate single Parquet file (legacy format)
@@ -251,5 +420,10 @@ fn validate_single_parquet_file(path: &Path, report: &mut ValidationReport) -> R
         }
     }
 
-    Ok(ValidationTarget::FilePath(PathBuf::from(path)))
+    Ok(ValidationTarget {
+        schema_version: SchemaVersion::V1,
+        peaks: ParquetSource::FilePath(PathBuf::from(path)),
+        spectra: None,
+        manifest: None,
+    })
 }

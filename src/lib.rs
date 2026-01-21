@@ -27,7 +27,7 @@
 //!
 //! ```rust,no_run
 //! use mzpeak::dataset::MzPeakDatasetWriter;
-//! use mzpeak::writer::{PeakArrays, SpectrumArrays, WriterConfig};
+//! use mzpeak::writer::{SpectrumArrays, OptionalColumnBuf, PeakArrays, WriterConfig};
 //! use mzpeak::metadata::MzPeakMetadata;
 //!
 //! // Create metadata
@@ -40,12 +40,35 @@
 //!     WriterConfig::default()
 //! )?;
 //!
-//! // Build a spectrum (SoA)
-//! let peaks = PeakArrays::new(vec![400.0, 500.0], vec![10000.0, 20000.0]);
-//! let spectrum = SpectrumArrays::new_ms1(0, 1, 60.0, 1, peaks);
+//! // Build a spectrum using SoA format
+//! let spectrum = SpectrumArrays {
+//!     spectrum_id: 0,
+//!     scan_number: 1,
+//!     ms_level: 1,
+//!     retention_time: 60.0,
+//!     polarity: 1,
+//!     precursor_mz: None,
+//!     precursor_charge: None,
+//!     precursor_intensity: None,
+//!     isolation_window_lower: None,
+//!     isolation_window_upper: None,
+//!     collision_energy: None,
+//!     total_ion_current: None,
+//!     base_peak_mz: None,
+//!     base_peak_intensity: None,
+//!     injection_time: None,
+//!     pixel_x: None,
+//!     pixel_y: None,
+//!     pixel_z: None,
+//!     peaks: PeakArrays {
+//!         mz: vec![400.0, 500.0],
+//!         intensity: vec![10000.0, 20000.0],
+//!         ion_mobility: OptionalColumnBuf::AllNull { len: 2 },
+//!     },
+//! };
 //!
 //! // Write the spectrum
-//! dataset.write_spectrum_arrays(&spectrum)?;
+//! dataset.write_spectrum_owned(spectrum)?;
 //!
 //! // Finalize
 //! let stats = dataset.close()?;
@@ -64,7 +87,7 @@
 //! ## Legacy Single-File Format
 //!
 //! ```rust,no_run
-//! use mzpeak::writer::{MzPeakWriter, PeakArrays, SpectrumArrays, WriterConfig};
+//! use mzpeak::writer::{MzPeakWriter, SpectrumArrays, OptionalColumnBuf, PeakArrays, WriterConfig};
 //! use mzpeak::metadata::MzPeakMetadata;
 //!
 //! let metadata = MzPeakMetadata::new();
@@ -74,10 +97,33 @@
 //!     WriterConfig::default()
 //! )?;
 //!
-//! let peaks = PeakArrays::new(vec![400.0], vec![10000.0]);
-//! let spectrum = SpectrumArrays::new_ms1(0, 1, 60.0, 1, peaks);
+//! let spectrum = SpectrumArrays {
+//!     spectrum_id: 0,
+//!     scan_number: 1,
+//!     ms_level: 1,
+//!     retention_time: 60.0,
+//!     polarity: 1,
+//!     precursor_mz: None,
+//!     precursor_charge: None,
+//!     precursor_intensity: None,
+//!     isolation_window_lower: None,
+//!     isolation_window_upper: None,
+//!     collision_energy: None,
+//!     total_ion_current: None,
+//!     base_peak_mz: None,
+//!     base_peak_intensity: None,
+//!     injection_time: None,
+//!     pixel_x: None,
+//!     pixel_y: None,
+//!     pixel_z: None,
+//!     peaks: PeakArrays {
+//!         mz: vec![400.0],
+//!         intensity: vec![10000.0],
+//!         ion_mobility: OptionalColumnBuf::AllNull { len: 1 },
+//!     },
+//! };
 //!
-//! writer.write_spectrum_arrays(&spectrum)?;
+//! writer.write_spectrum_owned(spectrum)?;
 //! let stats = writer.finish()?;
 //! # Ok::<(), mzpeak::writer::WriterError>(())
 //! ```
@@ -173,27 +219,35 @@
 pub mod controlled_vocabulary;
 pub mod chromatogram_writer;
 pub mod dataset;
-pub mod ingest;
 pub mod metadata;
 pub mod mobilogram_writer;
-#[cfg(feature = "mzml")]
-pub mod mzml;
-#[cfg(feature = "tdf")]
-pub mod tdf;
-#[cfg(feature = "tdf")]
-/// TDF reader utilities (raw frames + streamers).
-pub mod readers;
-#[cfg(feature = "thermo")]
-/// Thermo RAW file reader (requires .NET 8 runtime).
-pub mod thermo;
 pub mod reader;
 pub mod schema;
 pub mod validator;
 pub mod writer;
 
-// Python bindings are temporarily disabled in this prealpha.
+// Format-specific modules
+mod formats;
+
+// Re-export format modules at crate root for convenience
+#[cfg(feature = "mzml")]
+pub use formats::mzml;
+
+#[cfg(feature = "tdf")]
+pub use formats::tdf;
+
+#[cfg(feature = "tdf")]
+pub use formats::readers;
+
+#[cfg(feature = "thermo")]
+pub use formats::thermo;
+
+/// Common ingestion interface for format converters.
+pub use formats::ingest;
+
+// Python bindings module (only compiled with the "python" feature)
 #[cfg(feature = "python")]
-compile_error!("Python bindings are disabled; reintroduce after core features stabilize.");
+mod python;
 
 /// Re-export commonly used types for convenience
 pub mod prelude {
@@ -214,11 +268,9 @@ pub mod prelude {
     };
     pub use crate::validator::{validate_mzpeak_file, ValidationReport};
     pub use crate::writer::{
-        ColumnarBatch, CompressionType, MzPeakWriter, OptionalColumn, OptionalColumnBuf,
-        PeakArrays, SpectrumArrays, WriterConfig, WriterStats,
+        CompressionType, MzPeakWriter, OptionalColumnBuf, PeakArrays, SpectrumArrays, WriterConfig, WriterStats,
     };
     pub use crate::reader::{
-        FileMetadata, FileSummary, MzPeakReader, ReaderConfig, ReaderError, SpectrumArraysView,
-        StreamingSpectrumArraysViewIterator,
+        FileSummary, FileMetadata, MzPeakReader, ReaderConfig, ReaderError,
     };
 }

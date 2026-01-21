@@ -72,9 +72,44 @@ mzPeak is a reference implementation for a next-generation mass spectrometry dat
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+## v2.0 Schema (NEW)
+
+mzPeak v2.0 introduces a **normalized two-table architecture** that provides 30-40% smaller file sizes:
+
+```
+output.mzpeak (v2.0)
+├── mimetype                    # "application/vnd.mzpeak+v2"
+├── manifest.json               # Schema version and modality
+├── spectra/spectra.parquet     # One row per spectrum (metadata)
+└── peaks/peaks.parquet         # One row per peak (mz, intensity, ion_mobility)
+```
+
+**Key improvements:**
+- **30-40% smaller** files through elimination of repeated per-peak metadata
+- **Faster metadata queries** (spectra table is small and efficient)
+- **Modality-aware columns** (LC-MS, LC-IMS-MS, MSI, MSI-IMS)
+- **Optimized encodings**: DELTA_BINARY_PACKED for integers, BYTE_STREAM_SPLIT for floats
+
+See [docs/SCHEMA_V2.md](docs/SCHEMA_V2.md) for full specification.
+
+```rust
+use mzpeak::dataset::MzPeakDatasetWriterV2;
+use mzpeak::schema::manifest::Modality;
+use mzpeak::writer::{SpectrumMetadata, PeakArraysV2};
+
+let mut writer = MzPeakDatasetWriterV2::new("output.mzpeak", Modality::LcMs, None)?;
+
+let metadata = SpectrumMetadata::new_ms1(0, Some(1), 60.0, 1, 100);
+let peaks = PeakArraysV2::new(vec![400.0, 500.0], vec![1000.0, 500.0]);
+writer.write_spectrum_v2(&metadata, &peaks)?;
+
+let stats = writer.close()?;
+```
+
 ## Features
 
 - **Container format**: Single `.mzpeak` file (ZIP archive) with embedded Parquet and metadata
+- **Two schema versions**: v2.0 (normalized, recommended) and v1.0 (legacy, single table)
 - **Long table schema**: Each peak is a row, enabling efficient Run-Length Encoding (RLE) compression on spectrum metadata
 - **Ion Mobility support**: Native IM dimension for timsTOF and other IM-MS instruments
 - **Automatic TIC/BPC generation**: Total Ion Current and Base Peak Chromatograms automatically generated during mzML conversion
@@ -98,6 +133,9 @@ cargo build --release
 ```
 
 ### As a Library
+
+### Vendor Dependencies
+This repository includes a vendored copy of `timsrust` located in `vendor/timsrust`. This is a custom fork patched to support 4D MALDI imaging data, which is not yet available in the upstream crate.
 
 Add to your `Cargo.toml`:
 

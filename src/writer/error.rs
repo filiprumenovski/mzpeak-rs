@@ -24,4 +24,12 @@ pub enum WriterError {
     /// Writer was not properly initialized
     #[error("Writer not initialized")]
     NotInitialized,
+
+    /// Error from background writer thread
+    #[error("Background writer error: {0}")]
+    BackgroundWriterError(String),
+
+    /// Background writer thread panicked
+    #[error("Background writer thread panicked")]
+    ThreadPanicked,
 }

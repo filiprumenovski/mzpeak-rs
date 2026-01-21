@@ -42,3 +42,6 @@ pub const KEY_RAW_FILE_CHECKSUM: &str = "mzpeak:raw_file_checksum";
 
 /// Metadata key for MALDI/imaging grid parameters
 pub const KEY_IMAGING_METADATA: &str = "mzpeak:imaging_metadata";
+
+/// Metadata key for vendor hints (files converted via intermediate formats)
+pub const KEY_VENDOR_HINTS: &str = "mzpeak:vendor_hints";

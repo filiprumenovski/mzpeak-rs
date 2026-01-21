@@ -1,12 +1,11 @@
 //! # mzPeak Dataset Module
 //!
-//! This module provides the `MzPeakDatasetWriter` which orchestrates the creation
-//! of mzPeak datasets in two modes:
+//! This module provides dataset writers for creating mzPeak containers:
 //!
-//! ## Container Mode (`.mzpeak` file - default)
+//! - [`MzPeakDatasetWriter`]: v1.0 format writer (single peaks.parquet)
+//! - [`MzPeakDatasetWriterV2`]: v2.0 format writer (normalized two-table architecture)
 //!
-//! A single ZIP archive containing the dataset structure. This is the recommended
-//! format for distribution and archival.
+//! ## v1.0 Container Format (legacy)
 //!
 //! ```text
 //! {name}.mzpeak (ZIP archive)
@@ -15,33 +14,43 @@
 //! └── peaks/peaks.parquet       # Spectral data (uncompressed for seekability)
 //! ```
 //!
-//! ## Directory Mode (legacy)
+//! ## v2.0 Container Format (recommended)
 //!
-//! A directory-based structure for compatibility and development.
+//! The v2.0 format uses a normalized two-table architecture that provides
+//! 30-40% smaller file sizes through reduced data duplication.
 //!
 //! ```text
-//! {name}.mzpeak/
-//! ├── peaks/                    # Spectral data (managed by MzPeakWriter)
-//! │   └── peaks.parquet
-//! ├── chromatograms/            # TIC/BPC traces (managed by ChromatogramWriter)
-//! │   └── chromatograms.parquet
-//! └── metadata.json             # Human-readable run summary
+//! {name}.mzpeak (ZIP archive)
+//! ├── mimetype                    # "application/vnd.mzpeak+v2"
+//! ├── manifest.json               # Schema version and modality declaration
+//! ├── metadata.json               # Human-readable metadata
+//! ├── spectra/spectra.parquet     # Spectrum-level metadata (one row per spectrum)
+//! └── peaks/peaks.parquet         # Peak-level data (one row per peak)
 //! ```
-//!
-//! ## Mode Selection
-//!
-//! - If the path ends with `.mzpeak` and is NOT an existing directory, Container Mode is used
-//! - Otherwise, Directory Mode is used
 //!
 //! ## Performance Notes
 //!
-//! In Container Mode, the Parquet file is stored **uncompressed** within the ZIP archive.
-//! This is critical because:
+//! Parquet files are stored **uncompressed** within the ZIP archive because:
 //! 1. Parquet files already handle their own internal compression (ZSTD/Snappy)
-//! 2. Storing uncompressed allows readers to seek directly to byte offsets without
-//!    decompressing the entire archive
+//! 2. Storing uncompressed allows readers to seek directly to byte offsets
 //!
-//! ## Usage
+//! ## Usage (v2.0 - recommended)
+//!
+//! ```rust,ignore
+//! use mzpeak::dataset::MzPeakDatasetWriterV2;
+//! use mzpeak::schema::manifest::Modality;
+//! use mzpeak::writer::types::{SpectrumMetadata, PeakArraysV2};
+//!
+//! let mut writer = MzPeakDatasetWriterV2::new("output.mzpeak", Modality::LcMs, None)?;
+//!
+//! let metadata = SpectrumMetadata::new_ms1(0, Some(1), 60.0, 1, 100);
+//! let peaks = PeakArraysV2::new(vec![400.0], vec![10000.0]);
+//! writer.write_spectrum_v2(&metadata, &peaks)?;
+//!
+//! let stats = writer.close()?;
+//! ```
+//!
+//! ## Usage (v1.0 - legacy)
 //!
 //! ```rust,no_run
 //! use mzpeak::dataset::MzPeakDatasetWriter;
@@ -49,16 +58,12 @@
 //! use mzpeak::writer::{PeakArrays, SpectrumArrays, WriterConfig};
 //!
 //! let metadata = MzPeakMetadata::new();
-//! // Container mode (single .mzpeak file)
 //! let mut dataset = MzPeakDatasetWriter::new("output.mzpeak", &metadata, WriterConfig::default())?;
 //!
-//! // Write spectrum data (SoA)
 //! let peaks = PeakArrays::new(vec![400.0], vec![10000.0]);
 //! let spectrum = SpectrumArrays::new_ms1(0, 1, 60.0, 1, peaks);
-//!
 //! dataset.write_spectrum_arrays(&spectrum)?;
 //!
-//! // Finalize the dataset
 //! dataset.close()?;
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
@@ -67,6 +72,7 @@ mod error;
 mod stats;
 mod types;
 mod writer_impl;
+mod writer_v2;
 
 #[cfg(test)]
 mod tests;
@@ -75,3 +81,4 @@ pub use error::DatasetError;
 pub use stats::DatasetStats;
 pub use types::OutputMode;
 pub use writer_impl::MzPeakDatasetWriter;
+pub use writer_v2::{DatasetV2Stats, DatasetWriterV2Config, MzPeakDatasetWriterV2, MZPEAK_V2_MIMETYPE};

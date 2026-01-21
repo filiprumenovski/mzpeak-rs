@@ -43,3 +43,15 @@ pub const PIXEL_X: &str = "pixel_x";
 pub const PIXEL_Y: &str = "pixel_y";
 /// Z coordinate position for 3D imaging data (pixels, optional)
 pub const PIXEL_Z: &str = "pixel_z";
+
+// =============================================================================
+// v2.0 Schema Column Constants
+// =============================================================================
+// The v2.0 peaks schema is simplified to just 4 columns (3 for 3D datasets):
+// - spectrum_id (UInt32) - DELTA_BINARY_PACKED encoding
+// - mz (Float64) - BYTE_STREAM_SPLIT encoding
+// - intensity (Float32) - BYTE_STREAM_SPLIT encoding
+// - ion_mobility (Float64, optional) - BYTE_STREAM_SPLIT encoding
+
+/// Spectrum ID for v2.0 schema (UInt32 type, uses DELTA_BINARY_PACKED encoding)
+pub const SPECTRUM_ID_V2: &str = "spectrum_id";

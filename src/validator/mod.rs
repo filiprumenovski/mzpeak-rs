@@ -69,13 +69,36 @@ pub enum ValidationError {
     ParquetError(#[from] parquet::errors::ParquetError),
 }
 
-/// Enum to represent the validation target (file path or in-memory ZIP data)
-#[derive(Debug)]
-enum ValidationTarget {
+/// Schema version detected during validation
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SchemaVersion {
+    /// V1.0: Single peaks.parquet with all columns (Long format)
+    V1,
+    /// V2.0: Separate spectra.parquet + peaks.parquet with manifest.json
+    V2,
+}
+
+/// Parquet data source for validation
+#[derive(Debug, Clone)]
+pub(crate) enum ParquetSource {
     /// Direct Parquet file path
     FilePath(std::path::PathBuf),
-    /// In-memory Parquet data from ZIP container
+    /// ZIP container entry (uncompressed)
+    ZipEntry {
+        zip_path: std::path::PathBuf,
+        entry_name: String,
+    },
+    /// In-memory Parquet data
     InMemory(Bytes),
+}
+
+/// Validation target describing schema version and parquet sources
+#[derive(Debug)]
+pub(crate) struct ValidationTarget {
+    pub(crate) schema_version: SchemaVersion,
+    pub(crate) peaks: ParquetSource,
+    pub(crate) spectra: Option<ParquetSource>,
+    pub(crate) manifest: Option<String>,
 }
 
 /// Main validation entry point

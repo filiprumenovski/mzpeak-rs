@@ -905,8 +905,13 @@ impl<W: Write + Send + Sync> MzPeakWriter<W> {
     ///
     /// This implementation uses zero-copy transfer of peak data buffers.
     pub fn write_spectrum_owned(&mut self, spectrum: SpectrumArrays) -> Result<(), WriterError> {
+        let peak_count = spectrum.peak_count();
         let batch = OwnedColumnarBatch::from_spectrum_arrays(spectrum);
-        self.write_owned_batch(batch)
+        self.write_owned_batch(batch)?;
+        if peak_count > 0 {
+            self.spectra_written += 1;
+        }
+        Ok(())
     }
 
     /// Write a batch of spectra with SoA peak layout (Sequential Implementation)
