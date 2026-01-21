@@ -5,20 +5,6 @@
 
 A modern, scalable, and interoperable mass spectrometry data format based on Apache Parquet.
 
-## 5-Minute Quickstart
-
-```bash
-# 1. Convert - Transform mass spectrometry formats to mzPeak
-mzpeak convert input.mzML output.mzpeak
-mzpeak convert input.raw output.mzpeak
-mzpeak convert input.d output.mzpeak
-
-# 2. Query - Use any Parquet tool (DuckDB example)
-duckdb -c "SELECT spectrum_id, mz, intensity
-           FROM 'output.mzpeak/peaks/peaks.parquet'
-           WHERE ms_level = 2 AND intensity > 1000
-           LIMIT 10"
-```
 
 ## Overview
 
@@ -88,19 +74,6 @@ output.mzpeak (v2.0)
 
 See [docs/SCHEMA_V2.md](docs/SCHEMA_V2.md) for full specification.
 
-```rust
-use mzpeak::dataset::MzPeakDatasetWriterV2;
-use mzpeak::schema::manifest::Modality;
-use mzpeak::writer::{SpectrumMetadata, PeakArraysV2};
-
-let mut writer = MzPeakDatasetWriterV2::new("output.mzpeak", Modality::LcMs, None)?;
-
-let metadata = SpectrumMetadata::new_ms1(0, Some(1), 60.0, 1, 100);
-let peaks = PeakArraysV2::new(vec![400.0, 500.0], vec![1000.0, 500.0]);
-writer.write_spectrum_v2(&metadata, &peaks)?;
-
-let stats = writer.close()?;
-```
 
 ## Features
 
