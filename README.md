@@ -8,22 +8,16 @@ A modern, scalable, and interoperable mass spectrometry data format based on Apa
 ## 5-Minute Quickstart
 
 ```bash
-# 1. Convert - Transform mzML to mzPeak format
-mzpeak-convert convert input.mzML output.mzpeak
+# 1. Convert - Transform mass spectrometry formats to mzPeak
+mzpeak convert input.mzML output.mzpeak
+mzpeak convert input.raw output.mzpeak
+mzpeak convert input.d output.mzpeak
 
 # 2. Query - Use any Parquet tool (DuckDB example)
 duckdb -c "SELECT spectrum_id, mz, intensity
            FROM 'output.mzpeak/peaks/peaks.parquet'
            WHERE ms_level = 2 AND intensity > 1000
            LIMIT 10"
-
-# 3. Analyze - Zero-copy DataFrame integration
-python -c "
-import mzpeak
-with mzpeak.MzPeakReader('output.mzpeak') as r:
-    df = r.to_pandas()
-    print(df.groupby('ms_level')['intensity'].sum())
-"
 ```
 
 ## Overview
@@ -34,11 +28,13 @@ mzPeak is a reference implementation for a next-generation mass spectrometry dat
 - **Blazing fast queries** with column pruning and predicate pushdown
 - **Universal compatibility** with any Parquet-compatible tool (Python, R, DuckDB, Spark)
 - **Single-file container format** (`.mzpeak`) - ZIP archive for easy distribution
-- **Dataset Bundle architecture** (legacy) - directory-based structure for development
 - **Self-contained format** with all metadata embedded and human-readable JSON
 - **Streaming processing** for arbitrarily large files with minimal memory
+- **Multi-format support** for Thermo RAW, Bruker .d, and mzML
 
 ### Why Parquet over mzML?
+
+Parquet offers significant advantages for mass spectrometry data:
 
 | Metric | mzML | mzPeak | Improvement |
 |--------|------|--------|-------------|
@@ -112,7 +108,8 @@ let stats = writer.close()?;
 - **Two schema versions**: v2.0 (normalized, recommended) and v1.0 (legacy, single table)
 - **Long table schema**: Each peak is a row, enabling efficient Run-Length Encoding (RLE) compression on spectrum metadata
 - **Ion Mobility support**: Native IM dimension for timsTOF and other IM-MS instruments
-- **Automatic TIC/BPC generation**: Total Ion Current and Base Peak Chromatograms automatically generated during mzML conversion
+- **Multi-format input**: Convert from Thermo RAW, Bruker .d, and mzML files
+- **Automatic TIC/BPC generation**: Total Ion Current and Base Peak Chromatograms automatically generated during conversion
 - **Chromatogram storage**: Wide-format storage for instant trace visualization without peak table scanning
 - **Rolling Writer (sharding)**: Automatic file partitioning for terabyte-scale datasets
 - **HUPO-PSI CV integration**: Full controlled vocabulary support for interoperability
@@ -146,59 +143,27 @@ mzpeak = "0.1"
 
 ### Python (Extension Module)
 
-This repository also ships optional Python bindings (PyO3 + maturin) under the Cargo feature `python`.
+This repository includes optional Python bindings (PyO3 + maturin) under the Cargo feature `python`. 
 
-Note: Python bindings are currently disabled in this prealpha and will be reintroduced once core features stabilize.
-
-**Requirements**
-
-- Rust toolchain (same as building from source)
-- Python 3.8+
-
-**Build + install into a virtualenv (recommended)**
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-
-python -m pip install -U pip
-python -m pip install maturin
-
-# Builds and installs the local extension module into the active venv
-maturin develop --release
-
-python -c "import mzpeak; print(mzpeak.__version__)"
-```
-
-**Quick Python usage**
-
-```python
-import mzpeak
-
-# Convert mzML -> mzPeak
-mzpeak.convert("input.mzML", "output.mzpeak")
-
-# Read + zero-copy Arrow access
-with mzpeak.MzPeakReader("output.mzpeak") as reader:
-    summary = reader.summary()
-    table = reader.to_arrow()  # pyarrow.Table (zero-copy)
-```
-
-Notes:
-
-- `to_arrow()` uses the Arrow C Stream interface and is compatible with PyArrow 22.
-- On macOS, `cargo test --features python` can fail to link due to Python symbol resolution; building the extension via `maturin` is the supported workflow.
+**Note:** Python bindings are currently disabled in this prealpha and will be reintroduced once core features stabilize.
 
 ## Quick Start
+
+### Supported Input Formats
+
+mzPeak supports conversion from the following mass spectrometry data formats:
+
+- **Thermo RAW** - Thermo Fisher Scientific instruments (Orbitrap, Q Exactive, etc.)
+- **Bruker .d** - Bruker Daltonics instruments (timsTOF, SolariX, etc.)
+- **mzML** - Open community standard (any vendor via conversion)
 
 ### Command Line
 
 ```bash
-# Convert mzML to mzPeak Dataset Bundle
+# Convert various formats to mzPeak container
+mzpeak convert input.raw output.mzpeak
+mzpeak convert input.d output.mzpeak
 mzpeak convert input.mzML output.mzpeak
-
-# Convert to single Parquet file (legacy format)
-mzpeak convert input.mzML output.mzpeak.parquet
 
 # Generate demo data for testing
 mzpeak demo demo_run.mzpeak
@@ -305,48 +270,6 @@ cat output.mzpeak/metadata.json | jq .
 
 **Read peak data with any Parquet tool:**
 
-**Python (pyarrow)**
-```python
-import pyarrow.parquet as pq
-
-table = pq.read_table('output.mzpeak/peaks/peaks.parquet')
-df = table.to_pandas()
-
-# Query MS2 spectra only
-ms2 = df[df['ms_level'] == 2]
-
-# Query ion mobility data (timsTOF)
-im_data = df[df['ion_mobility'].notna()]
-im_filtered = im_data[
-    (im_data['ion_mobility'] > 20) & 
-    (im_data['ion_mobility'] < 30)
-]
-```
-
-**Read chromatograms:**
-
-**Python (pyarrow)**
-```python
-import pyarrow.parquet as pq
-
-# Read chromatograms (TIC/BPC)
-chrom_table = pq.read_table('output.mzpeak/chromatograms/chromatograms.parquet')
-df = chrom_table.to_pandas()
-
-# Extract TIC
-tic = df[df['chromatogram_id'] == 'TIC'].iloc[0]
-time_array = tic['time_array']
-intensity_array = tic['intensity_array']
-
-# Plot chromatogram
-import matplotlib.pyplot as plt
-plt.plot(time_array, intensity_array)
-plt.xlabel('Retention Time (s)')
-plt.ylabel('Intensity')
-plt.title('Total Ion Current')
-plt.show()
-```
-
 **R (arrow)**
 ```r
 library(arrow)
@@ -389,18 +312,6 @@ FROM read_parquet('output.mzpeak/peaks/peaks.parquet')
 WHERE ion_mobility IS NOT NULL
 GROUP BY im_bin
 ORDER BY im_bin;
-```
-
-**Polars (Python)**
-```python
-import polars as pl
-
-df = pl.scan_parquet('output.mzpeak/peaks/peaks.parquet')
-result = df.filter(pl.col('ms_level') == 2).collect()
-
-# Read chromatograms
-chroms = pl.read_parquet('output.mzpeak/chromatograms/chromatograms.parquet')
-tic = chroms.filter(pl.col('chromatogram_id') == 'TIC')
 ```
 
 ## Chromatogram Support
@@ -878,7 +789,7 @@ Contributions are welcome! Please:
 
 ## References
 
-- [mzPeak Whitepaper](./mzPeak_preprint_v02.pdf) - Design rationale and specification
+- [SCHEMA_V2.md](docs/SCHEMA_V2.md) - mzPeak v2.0 schema specification
 - [HUPO-PSI MS CV](https://www.ebi.ac.uk/ols/ontologies/ms) - Controlled vocabulary
 - [SDRF-Proteomics](https://github.com/bigbio/sdrf-pipelines) - Sample metadata standard
 - [Apache Parquet](https://parquet.apache.org/) - File format specification
