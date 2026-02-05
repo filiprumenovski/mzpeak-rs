@@ -29,7 +29,7 @@ use mzpeak::metadata::{
     SdrfMetadata, SourceFileInfo,
 };
 use mzpeak::mzml::MzMLConverter;
-use mzpeak::writer::{CompressionType, MzPeakWriter, Peak, SpectrumBuilder, WriterConfig};
+use mzpeak::writer::{CompressionType, MzPeakWriter, PeakArrays, SpectrumArrays, WriterConfig};
 
 /// mzPeak - Modern Mass Spectrometry Data Format Converter
 #[derive(Parser)]
@@ -250,7 +250,7 @@ fn run_demo(output: PathBuf, compression_level: i32) -> Result<()> {
     const BATCH_SIZE: usize = 100;
     for (batch_idx, batch) in spectra.chunks(BATCH_SIZE).enumerate() {
         writer
-            .write_spectra(batch)
+            .write_spectra_arrays(batch)
             .context("Failed to write spectrum batch")?;
 
         if (batch_idx + 1) % 10 == 0 {
@@ -579,7 +579,7 @@ fn build_demo_metadata() -> Result<MzPeakMetadata> {
 }
 
 /// Generate a mock LC-MS run with realistic data patterns
-fn generate_mock_lcms_run() -> Vec<mzpeak::writer::Spectrum> {
+fn generate_mock_lcms_run() -> Vec<SpectrumArrays> {
     let mut spectra = Vec::new();
     let mut spectrum_id: i64 = 0;
 
@@ -591,13 +591,15 @@ fn generate_mock_lcms_run() -> Vec<mzpeak::writer::Spectrum> {
     while current_time < run_duration_sec {
         // MS1 survey scan
         let ms1_peaks = generate_ms1_peaks(current_time, run_duration_sec);
-        let ms1_spectrum = SpectrumBuilder::new(spectrum_id, spectrum_id + 1)
-            .ms_level(1)
-            .retention_time(current_time as f32)
-            .polarity(1)
-            .injection_time(50.0)
-            .peaks(ms1_peaks)
-            .build();
+        let mut ms1_spectrum = SpectrumArrays::new_ms1(
+            spectrum_id,
+            spectrum_id + 1,
+            current_time as f32,
+            1,
+            ms1_peaks,
+        );
+        ms1_spectrum.injection_time = Some(50.0);
+        ms1_spectrum.compute_statistics();
 
         spectra.push(ms1_spectrum);
         spectrum_id += 1;
@@ -609,16 +611,21 @@ fn generate_mock_lcms_run() -> Vec<mzpeak::writer::Spectrum> {
         for (precursor_mz, charge) in precursors {
             let ms2_peaks = generate_ms2_peaks(precursor_mz);
 
-            let ms2_spectrum = SpectrumBuilder::new(spectrum_id, spectrum_id + 1)
-                .ms_level(2)
-                .retention_time(current_time as f32)
-                .polarity(1)
-                .precursor(precursor_mz, Some(charge), Some(1e6))
-                .isolation_window(0.8, 0.8)
-                .collision_energy(30.0)
-                .injection_time(100.0)
-                .peaks(ms2_peaks)
-                .build();
+            let mut ms2_spectrum = SpectrumArrays::new_ms2(
+                spectrum_id,
+                spectrum_id + 1,
+                current_time as f32,
+                1,
+                precursor_mz,
+                ms2_peaks,
+            );
+            ms2_spectrum.precursor_charge = Some(charge);
+            ms2_spectrum.precursor_intensity = Some(1e6f32);
+            ms2_spectrum.isolation_window_lower = Some(0.8);
+            ms2_spectrum.isolation_window_upper = Some(0.8);
+            ms2_spectrum.collision_energy = Some(30.0);
+            ms2_spectrum.injection_time = Some(100.0);
+            ms2_spectrum.compute_statistics();
 
             spectra.push(ms2_spectrum);
             spectrum_id += 1;
@@ -631,8 +638,8 @@ fn generate_mock_lcms_run() -> Vec<mzpeak::writer::Spectrum> {
 }
 
 /// Generate realistic MS1 peaks based on retention time
-fn generate_ms1_peaks(rt_sec: f64, total_duration: f64) -> Vec<Peak> {
-    let mut peaks = Vec::new();
+fn generate_ms1_peaks(rt_sec: f64, total_duration: f64) -> PeakArrays {
+    let mut peaks: Vec<(f64, f32)> = Vec::new();
 
     let gradient_position = rt_sec / total_duration;
     let intensity_modifier = 1.0 - (gradient_position - 0.5).abs() * 2.0;
@@ -645,16 +652,12 @@ fn generate_ms1_peaks(rt_sec: f64, total_duration: f64) -> Vec<Peak> {
         let mz_noise = (i as f64 * 0.123).sin() * 0.01;
         let intensity = base_intensity * (0.1 + (i as f64 * 0.456).sin().abs() * 0.9);
 
-        peaks.push(Peak {
-            mz: mz + mz_noise,
-            intensity: intensity as f32,
-            ion_mobility: None,
-        });
+        peaks.push((mz + mz_noise, intensity as f32));
     }
 
-    peaks.sort_by(|a, b| a.mz.partial_cmp(&b.mz).unwrap());
-
-    peaks
+    peaks.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+    let (mz, intensity): (Vec<f64>, Vec<f32>) = peaks.into_iter().unzip();
+    PeakArrays::new(mz, intensity)
 }
 
 /// Select precursors for MS2 fragmentation (mock DDA selection)
@@ -676,8 +679,8 @@ fn select_precursors(rt_sec: f64, total_duration: f64, num_precursors: usize) ->
 }
 
 /// Generate MS2 fragment peaks for a given precursor
-fn generate_ms2_peaks(precursor_mz: f64) -> Vec<Peak> {
-    let mut peaks = Vec::new();
+fn generate_ms2_peaks(precursor_mz: f64) -> PeakArrays {
+    let mut peaks: Vec<(f64, f32)> = Vec::new();
 
     let num_fragments = 30 + (precursor_mz / 50.0) as usize;
 
@@ -686,34 +689,18 @@ fn generate_ms2_peaks(precursor_mz: f64) -> Vec<Peak> {
         let intensity = 1e5 * (0.2 + (i as f64 * 0.321).sin().abs() * 0.8);
 
         if frag_mz < precursor_mz - 50.0 {
-            peaks.push(Peak {
-                mz: frag_mz,
-                intensity: intensity as f32,
-                ion_mobility: None,
-            });
+            peaks.push((frag_mz, intensity as f32));
         }
     }
 
     // Add some common reporter ions
-    peaks.push(Peak {
-        mz: 110.0712,
-        intensity: 5e4,
-        ion_mobility: None,
-    });
-    peaks.push(Peak {
-        mz: 120.0808,
-        intensity: 3e4,
-        ion_mobility: None,
-    });
-    peaks.push(Peak {
-        mz: 136.0757,
-        intensity: 4e4,
-        ion_mobility: None,
-    });
+    peaks.push((110.0712, 5e4f32));
+    peaks.push((120.0808, 3e4f32));
+    peaks.push((136.0757, 4e4f32));
 
-    peaks.sort_by(|a, b| a.mz.partial_cmp(&b.mz).unwrap());
-
-    peaks
+    peaks.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+    let (mz, intensity): (Vec<f64>, Vec<f32>) = peaks.into_iter().unzip();
+    PeakArrays::new(mz, intensity)
 }
 
 /// Validate mzPeak file integrity

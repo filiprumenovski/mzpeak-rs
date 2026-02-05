@@ -29,9 +29,12 @@
 //! ```
 
 mod converter;
-mod exceptions;
+mod cv;
+pub(crate) mod exceptions;
+mod metadata;
 mod reader;
 mod types;
+mod validator;
 mod writer;
 
 use pyo3::prelude::*;
@@ -53,6 +56,10 @@ fn mzpeak(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<types::PySpectrum>()?;
     m.add_class::<types::PySpectrumArrays>()?;
     m.add_class::<types::PySpectrumArraysView>()?;
+    m.add_class::<types::PySpectrumMetadata>()?;
+    m.add_class::<types::PyPeakArraysV2>()?;
+    m.add_class::<types::PySpectrumV2>()?;
+    m.add_class::<types::PySpectrumMetadataView>()?;
     m.add_class::<types::PyFileSummary>()?;
     m.add_class::<types::PyFileMetadata>()?;
     m.add_class::<types::PyChromatogram>()?;
@@ -61,20 +68,79 @@ fn mzpeak(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<types::PyWriterStats>()?;
     m.add_class::<types::PyConversionConfig>()?;
     m.add_class::<types::PyConversionStats>()?;
+    m.add_class::<types::PyDatasetV2Stats>()?;
+
+    // Register conversion enums and config types
+    m.add_class::<types::PyOutputFormat>()?;
+    m.add_class::<types::PyModality>()?;
+    m.add_class::<types::PyStreamingConfig>()?;
+
+    // Register metadata types
+    m.add_class::<metadata::PyMzPeakMetadata>()?;
+    m.add_class::<metadata::PyInstrumentConfig>()?;
+    m.add_class::<metadata::PyMassAnalyzerConfig>()?;
+    m.add_class::<metadata::PyLcConfig>()?;
+    m.add_class::<metadata::PyColumnInfo>()?;
+    m.add_class::<metadata::PyMobilePhase>()?;
+    m.add_class::<metadata::PyGradientProgram>()?;
+    m.add_class::<metadata::PyGradientStep>()?;
+    m.add_class::<metadata::PyRunParameters>()?;
+    m.add_class::<metadata::PySdrfMetadata>()?;
+    m.add_class::<metadata::PySourceFileInfo>()?;
+    m.add_class::<metadata::PyProcessingHistory>()?;
+    m.add_class::<metadata::PyProcessingStep>()?;
+    m.add_class::<metadata::PyImagingMetadata>()?;
+    m.add_class::<metadata::PyVendorHints>()?;
+
+    // Register validation types
+    m.add_class::<validator::PyCheckStatus>()?;
+    m.add_class::<validator::PyValidationCheck>()?;
+    m.add_class::<validator::PyValidationReport>()?;
+    m.add_function(wrap_pyfunction!(validator::py_validate_mzpeak_file, m)?)?;
+
+    // Register CV types
+    m.add_class::<cv::PyCvTerm>()?;
+    m.add_class::<cv::PyCvParamList>()?;
+    m.add_class::<cv::PyMsTerms>()?;
+    m.add_class::<cv::PyUnitTerms>()?;
 
     // Register reader classes
     m.add_class::<reader::PyMzPeakReader>()?;
     m.add_class::<reader::PySpectrumIterator>()?;
     m.add_class::<reader::PyStreamingSpectrumArraysIterator>()?;
     m.add_class::<reader::PyStreamingSpectrumArraysViewIterator>()?;
+    m.add_class::<reader::PySpectrumMetadataViewIterator>()?;
 
     // Register writer classes
     m.add_class::<writer::PyMzPeakWriter>()?;
     m.add_class::<writer::PyMzPeakDatasetWriter>()?;
+    m.add_class::<writer::PyMzPeakDatasetWriterV2>()?;
     m.add_class::<writer::PySpectrumBuilder>()?;
+    m.add_class::<writer::PyRollingWriter>()?;
+    m.add_class::<writer::PyRollingWriterStats>()?;
+    m.add_class::<writer::PyAsyncMzPeakWriter>()?;
+    m.add_class::<writer::PyOwnedColumnarBatch>()?;
+    m.add_class::<writer::PyIngestSpectrum>()?;
+    m.add_class::<writer::PyIngestSpectrumConverter>()?;
 
-    // Register converter class
+    // Register converter classes
     m.add_class::<converter::PyMzMLConverter>()?;
+
+    // Register TDF converter if feature enabled
+    #[cfg(feature = "tdf")]
+    {
+        m.add_class::<converter::PyTdfConverter>()?;
+        m.add_class::<converter::PyTdfConversionStats>()?;
+        m.add_function(wrap_pyfunction!(converter::convert_tdf, m)?)?;
+    }
+
+    // Register Thermo converter if feature enabled
+    #[cfg(feature = "thermo")]
+    {
+        m.add_class::<converter::PyThermoConverter>()?;
+        m.add_class::<converter::PyThermoConversionStats>()?;
+        m.add_function(wrap_pyfunction!(converter::convert_thermo, m)?)?;
+    }
 
     // Register module-level convenience functions
     m.add_function(wrap_pyfunction!(converter::convert, m)?)?;
@@ -87,3 +153,4 @@ fn mzpeak(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     Ok(())
 }
+

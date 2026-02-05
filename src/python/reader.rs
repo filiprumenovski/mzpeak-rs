@@ -23,11 +23,10 @@ impl PyArrowCStream {
 use crate::python::exceptions::IntoPyResult;
 use crate::python::types::{
     PyChromatogram, PyFileMetadata, PyFileSummary, PyMobilogram, PySpectrum, PySpectrumArrays,
-    PySpectrumArraysView,
+    PySpectrumArraysView, PySpectrumMetadataView,
 };
 use crate::reader::{
-    MzPeakReader, ReaderConfig, StreamingSpectrumArraysIterator, StreamingSpectrumArraysViewIterator,
-    StreamingSpectrumIterator,
+    MzPeakReader, ReaderConfig, SpectrumMetadataIterator, StreamingSpectrumArraysViewIterator,
 };
 
 /// Reader for mzPeak format files
@@ -116,8 +115,15 @@ impl PyMzPeakReader {
     ///     Spectrum object or None if not found
     fn get_spectrum(&self, py: Python<'_>, spectrum_id: i64) -> PyResult<Option<PySpectrum>> {
         let reader = self.get_reader()?;
-        py.allow_threads(|| reader.get_spectrum(spectrum_id).into_py_result())
-            .map(|opt| opt.map(PySpectrum::from))
+        let spectrum =
+            py.allow_threads(|| reader.get_spectrum_arrays(spectrum_id).into_py_result())?;
+        match spectrum {
+            Some(view) => {
+                let owned = view.to_owned().into_py_result()?;
+                Ok(Some(PySpectrum::from(owned)))
+            }
+            None => Ok(None),
+        }
     }
 
     /// Get a single spectrum by ID as SoA arrays
@@ -133,8 +139,15 @@ impl PyMzPeakReader {
         spectrum_id: i64,
     ) -> PyResult<Option<PySpectrumArrays>> {
         let reader = self.get_reader()?;
-        let spectrum = py.allow_threads(|| reader.get_spectrum_arrays(spectrum_id).into_py_result())?;
-        Ok(spectrum.map(|s| PySpectrumArrays::from_arrays(py, s)))
+        let spectrum =
+            py.allow_threads(|| reader.get_spectrum_arrays(spectrum_id).into_py_result())?;
+        match spectrum {
+            Some(view) => {
+                let owned = view.to_owned().into_py_result()?;
+                Ok(Some(PySpectrumArrays::from_arrays(py, owned)))
+            }
+            None => Ok(None),
+        }
     }
 
     /// Get a single spectrum by ID as SoA array views (zero-copy)
@@ -150,11 +163,8 @@ impl PyMzPeakReader {
         spectrum_id: i64,
     ) -> PyResult<Option<PySpectrumArraysView>> {
         let reader = self.get_reader()?;
-        let spectrum = py.allow_threads(|| {
-            reader
-                .get_spectrum_arrays_view(spectrum_id)
-                .into_py_result()
-        })?;
+        let spectrum =
+            py.allow_threads(|| reader.get_spectrum_arrays(spectrum_id).into_py_result())?;
         Ok(spectrum.map(PySpectrumArraysView::from_view))
     }
 
@@ -167,8 +177,14 @@ impl PyMzPeakReader {
     ///     List of Spectrum objects
     fn get_spectra(&self, py: Python<'_>, spectrum_ids: Vec<i64>) -> PyResult<Vec<PySpectrum>> {
         let reader = self.get_reader()?;
-        py.allow_threads(|| reader.get_spectra(&spectrum_ids).into_py_result())
-            .map(|spectra| spectra.into_iter().map(PySpectrum::from).collect())
+        let spectra =
+            py.allow_threads(|| reader.get_spectra_arrays(&spectrum_ids).into_py_result())?;
+        let mut out = Vec::with_capacity(spectra.len());
+        for view in spectra {
+            let owned = view.to_owned().into_py_result()?;
+            out.push(PySpectrum::from(owned));
+        }
+        Ok(out)
     }
 
     /// Get multiple spectra by their IDs as SoA arrays
@@ -186,10 +202,12 @@ impl PyMzPeakReader {
         let reader = self.get_reader()?;
         let spectra =
             py.allow_threads(|| reader.get_spectra_arrays(&spectrum_ids).into_py_result())?;
-        Ok(spectra
-            .into_iter()
-            .map(|s| PySpectrumArrays::from_arrays(py, s))
-            .collect())
+        let mut out = Vec::with_capacity(spectra.len());
+        for view in spectra {
+            let owned = view.to_owned().into_py_result()?;
+            out.push(PySpectrumArrays::from_arrays(py, owned));
+        }
+        Ok(out)
     }
 
     /// Get multiple spectra by their IDs as SoA array views (zero-copy)
@@ -206,7 +224,7 @@ impl PyMzPeakReader {
     ) -> PyResult<Vec<PySpectrumArraysView>> {
         let reader = self.get_reader()?;
         let spectra =
-            py.allow_threads(|| reader.get_spectra_arrays_views(&spectrum_ids).into_py_result())?;
+            py.allow_threads(|| reader.get_spectra_arrays(&spectrum_ids).into_py_result())?;
         Ok(spectra
             .into_iter()
             .map(PySpectrumArraysView::from_view)
@@ -222,8 +240,13 @@ impl PyMzPeakReader {
     ///     List of all Spectrum objects
     fn all_spectra(&self, py: Python<'_>) -> PyResult<Vec<PySpectrum>> {
         let reader = self.get_reader()?;
-        py.allow_threads(|| reader.iter_spectra().into_py_result())
-            .map(|spectra: Vec<crate::writer::Spectrum>| spectra.into_iter().map(PySpectrum::from).collect())
+        let spectra = py.allow_threads(|| reader.iter_spectra_arrays().into_py_result())?;
+        let mut out = Vec::with_capacity(spectra.len());
+        for view in spectra {
+            let owned = view.to_owned().into_py_result()?;
+            out.push(PySpectrum::from(owned));
+        }
+        Ok(out)
     }
 
     /// Get all spectra from the file as SoA arrays
@@ -236,10 +259,12 @@ impl PyMzPeakReader {
     fn all_spectra_arrays(&self, py: Python<'_>) -> PyResult<Vec<PySpectrumArrays>> {
         let reader = self.get_reader()?;
         let spectra = py.allow_threads(|| reader.iter_spectra_arrays().into_py_result())?;
-        Ok(spectra
-            .into_iter()
-            .map(|s| PySpectrumArrays::from_arrays(py, s))
-            .collect())
+        let mut out = Vec::with_capacity(spectra.len());
+        for view in spectra {
+            let owned = view.to_owned().into_py_result()?;
+            out.push(PySpectrumArrays::from_arrays(py, owned));
+        }
+        Ok(out)
     }
 
     /// Get all spectra from the file as SoA array views (zero-copy)
@@ -251,7 +276,7 @@ impl PyMzPeakReader {
     ///     List of SpectrumArraysView objects
     fn all_spectra_arrays_views(&self, py: Python<'_>) -> PyResult<Vec<PySpectrumArraysView>> {
         let reader = self.get_reader()?;
-        let spectra = py.allow_threads(|| reader.iter_spectra_arrays_views().into_py_result())?;
+        let spectra = py.allow_threads(|| reader.iter_spectra_arrays().into_py_result())?;
         Ok(spectra
             .into_iter()
             .map(PySpectrumArraysView::from_view)
@@ -273,8 +298,14 @@ impl PyMzPeakReader {
         max_rt: f32,
     ) -> PyResult<Vec<PySpectrum>> {
         let reader = self.get_reader()?;
-        py.allow_threads(|| reader.spectra_by_rt_range(min_rt, max_rt).into_py_result())
-            .map(|spectra| spectra.into_iter().map(PySpectrum::from).collect())
+        let spectra =
+            py.allow_threads(|| reader.spectra_by_rt_range_arrays(min_rt, max_rt).into_py_result())?;
+        let mut out = Vec::with_capacity(spectra.len());
+        for view in spectra {
+            let owned = view.to_owned().into_py_result()?;
+            out.push(PySpectrum::from(owned));
+        }
+        Ok(out)
     }
 
     /// Get spectra within a retention time range as SoA arrays
@@ -294,10 +325,12 @@ impl PyMzPeakReader {
         let reader = self.get_reader()?;
         let spectra =
             py.allow_threads(|| reader.spectra_by_rt_range_arrays(min_rt, max_rt).into_py_result())?;
-        Ok(spectra
-            .into_iter()
-            .map(|s| PySpectrumArrays::from_arrays(py, s))
-            .collect())
+        let mut out = Vec::with_capacity(spectra.len());
+        for view in spectra {
+            let owned = view.to_owned().into_py_result()?;
+            out.push(PySpectrumArrays::from_arrays(py, owned));
+        }
+        Ok(out)
     }
 
     /// Get spectra by MS level
@@ -309,8 +342,14 @@ impl PyMzPeakReader {
     ///     List of Spectrum objects with the specified MS level
     fn spectra_by_ms_level(&self, py: Python<'_>, ms_level: i16) -> PyResult<Vec<PySpectrum>> {
         let reader = self.get_reader()?;
-        py.allow_threads(|| reader.spectra_by_ms_level(ms_level).into_py_result())
-            .map(|spectra| spectra.into_iter().map(PySpectrum::from).collect())
+        let spectra =
+            py.allow_threads(|| reader.spectra_by_ms_level_arrays(ms_level).into_py_result())?;
+        let mut out = Vec::with_capacity(spectra.len());
+        for view in spectra {
+            let owned = view.to_owned().into_py_result()?;
+            out.push(PySpectrum::from(owned));
+        }
+        Ok(out)
     }
 
     /// Get spectra by MS level as SoA arrays
@@ -328,10 +367,12 @@ impl PyMzPeakReader {
         let reader = self.get_reader()?;
         let spectra =
             py.allow_threads(|| reader.spectra_by_ms_level_arrays(ms_level).into_py_result())?;
-        Ok(spectra
-            .into_iter()
-            .map(|s| PySpectrumArrays::from_arrays(py, s))
-            .collect())
+        let mut out = Vec::with_capacity(spectra.len());
+        for view in spectra {
+            let owned = view.to_owned().into_py_result()?;
+            out.push(PySpectrumArrays::from_arrays(py, owned));
+        }
+        Ok(out)
     }
 
     /// Get all spectrum IDs in the file
@@ -375,7 +416,7 @@ impl PyMzPeakReader {
     ///     Iterator yielding Spectrum objects
     fn iter_spectra(&self) -> PyResult<PyStreamingSpectrumIterator> {
         let reader = self.get_reader()?;
-        let streaming_iter = reader.iter_spectra_streaming().into_py_result()?;
+        let streaming_iter = reader.iter_spectra_arrays_streaming().into_py_result()?;
         Ok(PyStreamingSpectrumIterator::new(streaming_iter))
     }
 
@@ -395,7 +436,7 @@ impl PyMzPeakReader {
     ///     Iterator yielding SpectrumArraysView objects
     fn iter_spectra_arrays_views(&self) -> PyResult<PyStreamingSpectrumArraysViewIterator> {
         let reader = self.get_reader()?;
-        let streaming_iter = reader.iter_spectra_arrays_views_streaming().into_py_result()?;
+        let streaming_iter = reader.iter_spectra_arrays_streaming().into_py_result()?;
         Ok(PyStreamingSpectrumArraysViewIterator::new(streaming_iter))
     }
 
@@ -472,6 +513,177 @@ impl PyMzPeakReader {
         let table = self.to_arrow(py)?;
         let polars = py.import("polars")?;
         polars.call_method1("from_arrow", (table,)).map(|df| df.into())
+    }
+
+    // =========================================================================
+    // v2 Format Reader Methods
+    // =========================================================================
+
+    /// Check if this is a v2 format container with separate spectra table.
+    ///
+    /// Returns `True` if the container has a `spectra/spectra.parquet` table.
+    ///
+    /// Returns:
+    ///     bool: True if v2 format with spectra table
+    fn has_spectra_table(&self) -> PyResult<bool> {
+        let reader = self.get_reader()?;
+        Ok(reader.has_spectra_table())
+    }
+
+    /// Check if this is a v2 format container.
+    ///
+    /// Alias for `has_spectra_table()` for clarity.
+    ///
+    /// Returns:
+    ///     bool: True if v2 format
+    fn is_v2_format(&self) -> PyResult<bool> {
+        let reader = self.get_reader()?;
+        Ok(reader.is_v2_format())
+    }
+
+    /// Get total number of spectra in a v2 container.
+    ///
+    /// Returns the row count from the spectra table.
+    /// Only available for v2 format containers.
+    ///
+    /// Returns:
+    ///     int: Total number of spectra
+    ///
+    /// Raises:
+    ///     MzPeakFormatError: If not a v2 format container
+    fn total_spectra(&self, py: Python<'_>) -> PyResult<i64> {
+        let reader = self.get_reader()?;
+        py.allow_threads(|| reader.total_spectra().into_py_result())
+    }
+
+    /// Iterate over spectrum metadata from the v2 spectra table.
+    ///
+    /// Returns a streaming iterator that yields spectrum metadata one at a time.
+    /// This is memory-efficient as it doesn't load all spectra at once.
+    /// Only available for v2 format containers.
+    ///
+    /// Returns:
+    ///     Iterator[SpectrumMetadataView]: Iterator over spectrum metadata
+    ///
+    /// Raises:
+    ///     MzPeakFormatError: If not a v2 format container
+    ///
+    /// Example:
+    ///     >>> for meta in reader.iter_spectra_metadata():
+    ///     ...     print(f"Spectrum {meta.spectrum_id}: {meta.peak_count} peaks")
+    fn iter_spectra_metadata(&self) -> PyResult<PySpectrumMetadataViewIterator> {
+        let reader = self.get_reader()?;
+        let iter = reader.iter_spectra_metadata().into_py_result()?;
+        Ok(PySpectrumMetadataViewIterator::new(iter))
+    }
+
+    /// Read a batch of spectrum metadata from the v2 spectra table.
+    ///
+    /// Returns up to `batch_size` spectrum metadata records starting from `offset`.
+    /// Only available for v2 format containers.
+    ///
+    /// Args:
+    ///     offset: The starting spectrum index (0-based)
+    ///     batch_size: Maximum number of spectra to return
+    ///
+    /// Returns:
+    ///     List[SpectrumMetadataView]: Batch of spectrum metadata
+    ///
+    /// Raises:
+    ///     MzPeakFormatError: If not a v2 format container
+    ///
+    /// Example:
+    ///     >>> # Read spectra 100-199
+    ///     >>> batch = reader.read_spectra_batch(100, 100)
+    ///     >>> print(f"Read {len(batch)} spectra")
+    fn read_spectra_batch(
+        &self,
+        py: Python<'_>,
+        offset: usize,
+        batch_size: usize,
+    ) -> PyResult<Vec<PySpectrumMetadataView>> {
+        let reader = self.get_reader()?;
+        let batch = py.allow_threads(|| {
+            reader.read_spectra_batch(offset, batch_size).into_py_result()
+        })?;
+        Ok(batch.into_iter().map(PySpectrumMetadataView::from).collect())
+    }
+
+    /// Get spectrum metadata by ID (v2 format only).
+    ///
+    /// Returns the spectrum metadata for the given spectrum_id, or None if not found.
+    /// Only available for v2 format containers.
+    ///
+    /// Args:
+    ///     spectrum_id: The spectrum identifier (0-indexed)
+    ///
+    /// Returns:
+    ///     Optional[SpectrumMetadataView]: Spectrum metadata or None if not found
+    ///
+    /// Raises:
+    ///     MzPeakFormatError: If not a v2 format container
+    fn get_spectrum_metadata(
+        &self,
+        py: Python<'_>,
+        spectrum_id: u32,
+    ) -> PyResult<Option<PySpectrumMetadataView>> {
+        let reader = self.get_reader()?;
+        let result = py.allow_threads(|| {
+            reader.get_spectrum_metadata(spectrum_id).into_py_result()
+        })?;
+        Ok(result.map(PySpectrumMetadataView::from))
+    }
+
+    /// Query spectrum metadata by retention time range (v2 format only).
+    ///
+    /// Returns all spectrum metadata within the given RT range (inclusive).
+    /// Only available for v2 format containers.
+    ///
+    /// Args:
+    ///     start_rt: Start retention time in seconds (inclusive)
+    ///     end_rt: End retention time in seconds (inclusive)
+    ///
+    /// Returns:
+    ///     List[SpectrumMetadataView]: Spectrum metadata within the RT range
+    ///
+    /// Raises:
+    ///     MzPeakFormatError: If not a v2 format container
+    fn spectra_metadata_by_rt_range(
+        &self,
+        py: Python<'_>,
+        start_rt: f32,
+        end_rt: f32,
+    ) -> PyResult<Vec<PySpectrumMetadataView>> {
+        let reader = self.get_reader()?;
+        let results = py.allow_threads(|| {
+            reader.spectra_metadata_by_rt_range(start_rt, end_rt).into_py_result()
+        })?;
+        Ok(results.into_iter().map(PySpectrumMetadataView::from).collect())
+    }
+
+    /// Query spectrum metadata by MS level (v2 format only).
+    ///
+    /// Returns all spectrum metadata with the given MS level.
+    /// Only available for v2 format containers.
+    ///
+    /// Args:
+    ///     ms_level: MS level (1 for MS1, 2 for MS2, etc.)
+    ///
+    /// Returns:
+    ///     List[SpectrumMetadataView]: Spectrum metadata with the specified MS level
+    ///
+    /// Raises:
+    ///     MzPeakFormatError: If not a v2 format container
+    fn spectra_metadata_by_ms_level(
+        &self,
+        py: Python<'_>,
+        ms_level: u8,
+    ) -> PyResult<Vec<PySpectrumMetadataView>> {
+        let reader = self.get_reader()?;
+        let results = py.allow_threads(|| {
+            reader.spectra_metadata_by_ms_level(ms_level).into_py_result()
+        })?;
+        Ok(results.into_iter().map(PySpectrumMetadataView::from).collect())
     }
 
     /// Context manager entry
@@ -676,11 +888,11 @@ impl PySpectrumIterator {
 /// single-threaded access to the iterator within a Python context.
 #[pyclass(name = "SpectrumIterator", unsendable)]
 pub struct PyStreamingSpectrumIterator {
-    inner: Option<StreamingSpectrumIterator>,
+    inner: Option<StreamingSpectrumArraysViewIterator>,
 }
 
 impl PyStreamingSpectrumIterator {
-    pub fn new(inner: StreamingSpectrumIterator) -> Self {
+    pub fn new(inner: StreamingSpectrumArraysViewIterator) -> Self {
         Self { inner: Some(inner) }
     }
 }
@@ -688,11 +900,11 @@ impl PyStreamingSpectrumIterator {
 /// Streaming iterator over spectra with SoA arrays
 #[pyclass(name = "SpectrumArraysIterator", unsendable)]
 pub struct PyStreamingSpectrumArraysIterator {
-    inner: Option<StreamingSpectrumArraysIterator>,
+    inner: Option<StreamingSpectrumArraysViewIterator>,
 }
 
 impl PyStreamingSpectrumArraysIterator {
-    pub fn new(inner: StreamingSpectrumArraysIterator) -> Self {
+    pub fn new(inner: StreamingSpectrumArraysViewIterator) -> Self {
         Self { inner: Some(inner) }
     }
 }
@@ -724,7 +936,10 @@ impl PyStreamingSpectrumArraysIterator {
         let result = py.allow_threads(|| inner.next());
 
         match result {
-            Some(Ok(spectrum)) => Ok(Some(PySpectrumArrays::from_arrays(py, spectrum))),
+            Some(Ok(view)) => {
+                let owned = view.to_owned().into_py_result()?;
+                Ok(Some(PySpectrumArrays::from_arrays(py, owned)))
+            }
             Some(Err(e)) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
                 "Error reading spectrum arrays: {}",
                 e
@@ -780,9 +995,56 @@ impl PyStreamingSpectrumIterator {
         let result = py.allow_threads(|| inner.next());
 
         match result {
-            Some(Ok(spectrum)) => Ok(Some(PySpectrum::from(spectrum))),
+            Some(Ok(view)) => {
+                let owned = view.to_owned().into_py_result()?;
+                Ok(Some(PySpectrum::from(owned)))
+            }
             Some(Err(e)) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
                 "Error reading spectrum: {}",
+                e
+            ))),
+            None => {
+                // Iterator exhausted, drop inner to release resources
+                self.inner = None;
+                Ok(None)
+            }
+        }
+    }
+}
+
+/// Streaming iterator over spectrum metadata from v2 spectra table
+///
+/// This iterator is memory-efficient and reads spectrum metadata on-demand
+/// from the underlying Parquet spectra table in v2 format containers.
+#[pyclass(name = "SpectrumMetadataViewIterator", unsendable)]
+pub struct PySpectrumMetadataViewIterator {
+    inner: Option<SpectrumMetadataIterator>,
+}
+
+impl PySpectrumMetadataViewIterator {
+    pub fn new(inner: SpectrumMetadataIterator) -> Self {
+        Self { inner: Some(inner) }
+    }
+}
+
+#[pymethods]
+impl PySpectrumMetadataViewIterator {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
+
+    fn __next__(&mut self, py: Python<'_>) -> PyResult<Option<PySpectrumMetadataView>> {
+        let inner = self.inner.as_mut().ok_or_else(|| {
+            pyo3::exceptions::PyRuntimeError::new_err("Iterator exhausted or closed")
+        })?;
+
+        // Release GIL during potentially slow batch reads
+        let result = py.allow_threads(|| inner.next());
+
+        match result {
+            Some(Ok(view)) => Ok(Some(PySpectrumMetadataView::from(view))),
+            Some(Err(e)) => Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+                "Error reading spectrum metadata: {}",
                 e
             ))),
             None => {

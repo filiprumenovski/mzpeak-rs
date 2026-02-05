@@ -34,7 +34,7 @@ impl Iterator for RecordBatchIterator {
 }
 
 impl MzPeakReader {
-    /// Returns a streaming iterator over record batches
+    /// Returns a streaming iterator over record batches from the peaks table
     ///
     /// This is the preferred API for large files as it avoids loading all data into memory.
     /// Memory usage is bounded by `batch_size * row_size`.
@@ -63,6 +63,22 @@ impl MzPeakReader {
                 // Use the seekable chunk reader for streaming access (Issue 002 fix)
                 // This avoids loading the entire Parquet file into memory
                 let builder = ParquetRecordBatchReaderBuilder::try_new(chunk_reader.clone())?
+                    .with_batch_size(self.config.batch_size);
+                let reader = builder.build()?;
+                Ok(RecordBatchIterator::new(reader))
+            }
+            ReaderSource::ZipContainerV2 {
+                peaks_chunk_reader, ..
+            } => {
+                // v2 format - read peaks table
+                let builder = ParquetRecordBatchReaderBuilder::try_new(peaks_chunk_reader.clone())?
+                    .with_batch_size(self.config.batch_size);
+                let reader = builder.build()?;
+                Ok(RecordBatchIterator::new(reader))
+            }
+            ReaderSource::DirectoryV2 { peaks_path, .. } => {
+                let file = File::open(peaks_path)?;
+                let builder = ParquetRecordBatchReaderBuilder::try_new(file)?
                     .with_batch_size(self.config.batch_size);
                 let reader = builder.build()?;
                 Ok(RecordBatchIterator::new(reader))

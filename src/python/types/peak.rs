@@ -1,12 +1,12 @@
 use pyo3::prelude::*;
 
-use crate::writer::Peak;
-
 /// A single mass spectrometry peak (m/z, intensity pair)
 #[pyclass(name = "Peak")]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PyPeak {
-    pub(crate) inner: Peak,
+    mz: f64,
+    intensity: f32,
+    ion_mobility: Option<f64>,
 }
 
 #[pymethods]
@@ -21,41 +21,39 @@ impl PyPeak {
     #[pyo3(signature = (mz, intensity, ion_mobility=None))]
     fn new(mz: f64, intensity: f32, ion_mobility: Option<f64>) -> Self {
         Self {
-            inner: Peak {
-                mz,
-                intensity,
-                ion_mobility,
-            },
+            mz,
+            intensity,
+            ion_mobility,
         }
     }
 
     /// Mass-to-charge ratio
     #[getter]
     fn mz(&self) -> f64 {
-        self.inner.mz
+        self.mz
     }
 
     /// Signal intensity
     #[getter]
     fn intensity(&self) -> f32 {
-        self.inner.intensity
+        self.intensity
     }
 
     /// Ion mobility value (if available)
     #[getter]
     fn ion_mobility(&self) -> Option<f64> {
-        self.inner.ion_mobility
+        self.ion_mobility
     }
 
     fn __repr__(&self) -> String {
-        match self.inner.ion_mobility {
+        match self.ion_mobility {
             Some(im) => format!(
                 "Peak(mz={:.4}, intensity={:.1}, ion_mobility={:.4})",
-                self.inner.mz, self.inner.intensity, im
+                self.mz, self.intensity, im
             ),
             None => format!(
                 "Peak(mz={:.4}, intensity={:.1})",
-                self.inner.mz, self.inner.intensity
+                self.mz, self.intensity
             ),
         }
     }
@@ -65,14 +63,24 @@ impl PyPeak {
     }
 }
 
-impl From<Peak> for PyPeak {
-    fn from(peak: Peak) -> Self {
-        Self { inner: peak }
+impl PyPeak {
+    pub(crate) fn from_values(mz: f64, intensity: f32, ion_mobility: Option<f64>) -> Self {
+        Self {
+            mz,
+            intensity,
+            ion_mobility,
+        }
     }
-}
 
-impl From<PyPeak> for Peak {
-    fn from(py_peak: PyPeak) -> Self {
-        py_peak.inner
+    pub(crate) fn mz_value(&self) -> f64 {
+        self.mz
+    }
+
+    pub(crate) fn intensity_value(&self) -> f32 {
+        self.intensity
+    }
+
+    pub(crate) fn ion_mobility_value(&self) -> Option<f64> {
+        self.ion_mobility
     }
 }

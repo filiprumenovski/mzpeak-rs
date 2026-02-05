@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
 
-use crate::writer::Spectrum;
+use crate::writer::{OptionalColumnBuf, PeakArrays, SpectrumArrays};
 
 use super::peak::PyPeak;
 
@@ -8,7 +8,7 @@ use super::peak::PyPeak;
 #[pyclass(name = "Spectrum")]
 #[derive(Clone)]
 pub struct PySpectrum {
-    pub(crate) inner: Spectrum,
+    pub(crate) inner: SpectrumArrays,
 }
 
 #[pymethods]
@@ -24,16 +24,16 @@ impl PySpectrum {
         polarity: i8,
         peaks: Option<Vec<PyPeak>>,
     ) -> Self {
+        let peak_list = peaks.unwrap_or_default();
+        let peak_arrays = build_peak_arrays(&peak_list);
+
         Self {
-            inner: Spectrum {
+            inner: SpectrumArrays {
                 spectrum_id,
                 scan_number,
                 ms_level,
                 retention_time,
                 polarity,
-                peaks: peaks
-                    .map(|p| p.into_iter().map(|pp| pp.inner).collect())
-                    .unwrap_or_default(),
                 precursor_mz: None,
                 precursor_charge: None,
                 precursor_intensity: None,
@@ -47,6 +47,7 @@ impl PySpectrum {
                 pixel_x: None,
                 pixel_y: None,
                 pixel_z: None,
+                peaks: peak_arrays,
             },
         }
     }
@@ -84,13 +85,44 @@ impl PySpectrum {
     /// List of peaks in this spectrum
     #[getter]
     fn peaks(&self) -> Vec<PyPeak> {
-        self.inner.peaks.iter().cloned().map(PyPeak::from).collect()
+        let mut out = Vec::with_capacity(self.inner.peaks.len());
+        let mz = &self.inner.peaks.mz;
+        let intensity = &self.inner.peaks.intensity;
+
+        match &self.inner.peaks.ion_mobility {
+            OptionalColumnBuf::AllNull { .. } => {
+                for (mz_val, intensity_val) in mz.iter().zip(intensity.iter()) {
+                    out.push(PyPeak::from_values(*mz_val, *intensity_val, None));
+                }
+            }
+            OptionalColumnBuf::AllPresent(values) => {
+                for ((mz_val, intensity_val), im_val) in mz
+                    .iter()
+                    .zip(intensity.iter())
+                    .zip(values.iter())
+                {
+                    out.push(PyPeak::from_values(*mz_val, *intensity_val, Some(*im_val)));
+                }
+            }
+            OptionalColumnBuf::WithValidity { values, validity } => {
+                for i in 0..mz.len() {
+                    let im = if validity.get(i).copied().unwrap_or(false) {
+                        values.get(i).copied()
+                    } else {
+                        None
+                    };
+                    out.push(PyPeak::from_values(mz[i], intensity[i], im));
+                }
+            }
+        }
+
+        out
     }
 
     /// Number of peaks in this spectrum
     #[getter]
     fn num_peaks(&self) -> usize {
-        self.inner.peaks.len()
+        self.inner.peak_count()
     }
 
     /// Precursor m/z (for MS2+ spectra)
@@ -178,7 +210,7 @@ impl PySpectrum {
             self.inner.scan_number,
             self.inner.ms_level,
             self.inner.retention_time,
-            self.inner.peaks.len()
+            self.inner.peak_count()
         )
     }
 
@@ -187,18 +219,66 @@ impl PySpectrum {
     }
 
     fn __len__(&self) -> usize {
-        self.inner.peaks.len()
+        self.inner.peak_count()
     }
 }
 
-impl From<Spectrum> for PySpectrum {
-    fn from(spectrum: Spectrum) -> Self {
+impl PySpectrum {
+    pub(crate) fn into_arrays(self) -> SpectrumArrays {
+        self.inner
+    }
+
+    pub(crate) fn to_arrays(&self) -> SpectrumArrays {
+        self.inner.clone()
+    }
+}
+
+impl From<SpectrumArrays> for PySpectrum {
+    fn from(spectrum: SpectrumArrays) -> Self {
         Self { inner: spectrum }
     }
 }
 
-impl From<PySpectrum> for Spectrum {
-    fn from(py_spectrum: PySpectrum) -> Self {
-        py_spectrum.inner
+pub(crate) fn build_peak_arrays(peaks: &[PyPeak]) -> PeakArrays {
+    let len = peaks.len();
+    let mut mz = Vec::with_capacity(len);
+    let mut intensity = Vec::with_capacity(len);
+    let mut ion_mobility_values = Vec::with_capacity(len);
+    let mut validity = Vec::with_capacity(len);
+    let mut any_im = false;
+    let mut all_im = true;
+
+    for peak in peaks {
+        mz.push(peak.mz_value());
+        intensity.push(peak.intensity_value());
+        match peak.ion_mobility_value() {
+            Some(im) => {
+                any_im = true;
+                ion_mobility_values.push(im);
+                validity.push(true);
+            }
+            None => {
+                all_im = false;
+                ion_mobility_values.push(0.0);
+                validity.push(false);
+            }
+        }
+    }
+
+    let ion_mobility = if !any_im {
+        OptionalColumnBuf::AllNull { len }
+    } else if all_im {
+        OptionalColumnBuf::AllPresent(ion_mobility_values)
+    } else {
+        OptionalColumnBuf::WithValidity {
+            values: ion_mobility_values,
+            validity,
+        }
+    };
+
+    PeakArrays {
+        mz,
+        intensity,
+        ion_mobility,
     }
 }
