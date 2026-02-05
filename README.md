@@ -1,5 +1,7 @@
 # mzPeak
 
+> Disclaimer: This repository is an independent Rust implementation. The official mzPeak implementation is maintained at https://github.com/HUPO-PSI/mzPeak — many thanks to the HUPO-PSI team for their leadership and work on the format.
+
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](#license)
 
