@@ -19,10 +19,7 @@ fn native_raw_roundtrip() {
         stats.peak_count
     );
     assert!(stats.peak_count > 0);
-    assert_eq!(
-        reader.total_spectra().unwrap() as usize,
-        stats.spectra_count
-    );
+    assert_eq!(reader.total_spectra() as usize, stats.spectra_count);
 }
 
 #[test]
@@ -136,15 +133,19 @@ mod process {
         assert_eq!(spectra.len(), 2);
         let first = spectra[0].to_owned().unwrap();
         assert_eq!(
-            (first.spectrum_id, first.scan_number, first.ms_level),
-            (0, 41, 1)
+            (
+                first.metadata.spectrum_id,
+                first.metadata.scan_number,
+                first.metadata.ms_level
+            ),
+            (0, Some(41), 1)
         );
-        assert_eq!(first.retention_time, 30.0);
+        assert_eq!(first.metadata.retention_time, 30.0);
         assert_eq!(first.peaks.mz, [400.123456789, 500.987654321]);
         assert_eq!(first.peaks.intensity, [10.5, 20.25]);
-        assert_eq!(first.total_ion_current, Some(1234.5));
-        assert_eq!(first.base_peak_intensity, Some(777.0));
-        assert_eq!(first.injection_time, Some(12.5));
+        assert_eq!(first.metadata.total_ion_current, Some(1234.5));
+        assert_eq!(first.metadata.base_peak_intensity, Some(777.0));
+        assert_eq!(first.metadata.injection_time, Some(12.5));
         let empty = reader
             .get_spectrum_arrays(1)
             .unwrap()
@@ -152,16 +153,20 @@ mod process {
             .to_owned()
             .unwrap();
         assert_eq!(
-            (empty.scan_number, empty.ms_level, empty.polarity),
-            (42, 2, -1)
+            (
+                empty.metadata.scan_number,
+                empty.metadata.ms_level,
+                empty.metadata.polarity
+            ),
+            (Some(42), 2, -1)
         );
-        assert_eq!(empty.retention_time, 45.0);
+        assert_eq!(empty.metadata.retention_time, 45.0);
         assert_eq!(empty.peak_count(), 0);
-        assert_eq!(empty.precursor_mz, Some(500.0));
-        assert_eq!(empty.precursor_charge, Some(2));
-        assert_eq!(empty.isolation_window_lower, Some(1.5));
-        assert_eq!(empty.isolation_window_upper, Some(2.5));
-        assert_eq!(empty.collision_energy, Some(30.0));
+        assert_eq!(empty.metadata.precursor_mz, Some(500.0));
+        assert_eq!(empty.metadata.precursor_charge, Some(2));
+        assert_eq!(empty.metadata.isolation_window_lower, Some(1.5));
+        assert_eq!(empty.metadata.isolation_window_upper, Some(2.5));
+        assert_eq!(empty.metadata.collision_energy, Some(30.0));
         assert_eq!(reader.get_spectra_arrays(&[1, 0]).unwrap().len(), 2);
         assert!(reader.get_spectrum_arrays(999).unwrap().is_none());
         assert_eq!(std::fs::read(input).unwrap(), b"source remains intact");
@@ -189,19 +194,6 @@ mod process {
             .unwrap_err()
             .to_string();
         assert!(error.contains("expected 3 spectra, received 2"), "{error}");
-        assert!(!output.exists());
-    }
-
-    #[test]
-    fn legacy_output_rejects_empty_scans_without_silent_loss() {
-        let dir = tempfile::tempdir().unwrap();
-        let (input, mut config) = setup(dir.path(), 2, 0);
-        config.legacy_format = true;
-        let output = dir.path().join("legacy.parquet");
-        let error = convert_thermo(input, &output, &config)
-            .unwrap_err()
-            .to_string();
-        assert!(error.contains("cannot preserve empty scan"), "{error}");
         assert!(!output.exists());
     }
 

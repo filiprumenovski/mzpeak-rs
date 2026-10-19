@@ -3,15 +3,11 @@ use super::ConversionError;
 use super::MzMLConverter;
 use crate::ingest::IngestSpectrum;
 use crate::mzml::binary::BinaryDecodeError;
-#[cfg(not(feature = "mzml-parallel"))]
 use crate::mzml::binary::BinaryDecoder;
-#[cfg(feature = "mzml-parallel")]
-use crate::mzml::simd::{decode_binary_array_simd, decode_binary_array_simd_f32};
 use crate::writer::{OptionalColumnBuf, PeakArrays};
 
 pub(crate) struct DecodedRawSpectrum {
     pub ingest: IngestSpectrum,
-    pub retention_time: Option<f64>,
     pub total_ion_current: Option<f64>,
     pub base_peak_intensity: Option<f64>,
 }
@@ -140,7 +136,6 @@ impl MzMLConverter {
 
         Ok(DecodedRawSpectrum {
             ingest: spectrum,
-            retention_time,
             total_ion_current,
             base_peak_intensity,
         })
@@ -148,53 +143,18 @@ impl MzMLConverter {
 }
 
 fn decode_f64(data: &RawBinaryData, expected_len: usize) -> Result<Vec<f64>, BinaryDecodeError> {
-    if data.base64.trim().is_empty() {
-        return Ok(Vec::new());
-    }
-
-    #[cfg(feature = "mzml-parallel")]
-    {
-        decode_binary_array_simd(
-            &data.base64,
-            data.encoding,
-            data.compression,
-            Some(expected_len),
-        )
-    }
-
-    #[cfg(not(feature = "mzml-parallel"))]
-    {
-        BinaryDecoder::decode(
-            &data.base64,
-            data.encoding,
-            data.compression,
-            Some(expected_len),
-        )
-    }
+    BinaryDecoder::decode(
+        &data.base64,
+        data.encoding,
+        data.compression,
+        Some(expected_len),
+    )
 }
-
 fn decode_f32(data: &RawBinaryData, expected_len: usize) -> Result<Vec<f32>, BinaryDecodeError> {
-    if data.base64.trim().is_empty() {
-        return Ok(Vec::new());
-    }
-
-    #[cfg(feature = "mzml-parallel")]
-    {
-        decode_binary_array_simd_f32(
-            &data.base64,
-            data.encoding,
-            data.compression,
-            Some(expected_len),
-        )
-    }
-
-    #[cfg(not(feature = "mzml-parallel"))]
-    {
-        BinaryDecoder::decode_f32(
-            &data.base64,
-            data.encoding,
-            data.compression,
-            Some(expected_len),
-        )
-    }
+    BinaryDecoder::decode_f32(
+        &data.base64,
+        data.encoding,
+        data.compression,
+        Some(expected_len),
+    )
 }

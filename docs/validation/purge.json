@@ -1,0 +1,210 @@
+{
+  "package_version": "0.2.0",
+  "code_snapshot": {
+    "baseline_revision": "f05e84ce8e2eb41910e565fa7dadd73c21ff64a8",
+    "scope": "Tracked Rust/Python source, tests, examples, benchmarks, stubs and tools; vendor submodules excluded; physical lines including comments/blanks",
+    "before": 46952,
+    "after": 13773,
+    "source_sha256": "06f168fd68628c191541b11ced7e713a422f24ce53b5f4a0074ff653bc05aefd",
+    "largest_files": [
+      {
+        "path": "src/writer/spectra_writer.rs",
+        "lines": 862
+      },
+      {
+        "path": "src/writer/peaks_writer_v2.rs",
+        "lines": 673
+      },
+      {
+        "path": "src/writer/types.rs",
+        "lines": 574
+      },
+      {
+        "path": "src/formats/mzml/streamer/metadata.rs",
+        "lines": 552
+      },
+      {
+        "path": "src/formats/tdf/converter.rs",
+        "lines": 535
+      },
+      {
+        "path": "tests/chromatogram_generation_test.rs",
+        "lines": 530
+      },
+      {
+        "path": "src/reader/mod.rs",
+        "lines": 523
+      },
+      {
+        "path": "src/schema/spectra_columns.rs",
+        "lines": 466
+      },
+      {
+        "path": "src/formats/mzml/binary.rs",
+        "lines": 462
+      },
+      {
+        "path": "src/chromatogram_writer.rs",
+        "lines": 451
+      }
+    ],
+    "net_removed": 33179,
+    "reduction_percent": 70.67
+  },
+  "input": {
+    "project": "PXD019848",
+    "file": "500ng_HeLa_350_1150mz_nonFAIMS_Rs30000_200ms_Rep2.raw",
+    "bytes": 714378661,
+    "sha1": "8db1205e317bdc8120f8c0b0d085a97a015424f0",
+    "checksum_verified": true,
+    "instrument": "Q Exactive HF",
+    "public_source": "ftp://ftp.pride.ebi.ac.uk/pride/data/archive/2021/02/PXD019848/500ng_HeLa_350_1150mz_nonFAIMS_Rs30000_200ms_Rep2.raw",
+    "representation": "source-saved centroid arrays; profile arrays are outside this bridge"
+  },
+  "rawr": {
+    "revision": "4c353b70f82b4edb01abbe1a433762541c2676ef",
+    "binary_sha256": "b32ae9688590dc5b22429fa01a23f685f989c69b3a9d39c9c7f586b1e825b30a",
+    "target": "aarch64-apple-darwin",
+    "packet_check": {
+      "scans": 38419,
+      "peaks": 13510675,
+      "failed": 0
+    }
+  },
+  "environment": {
+    "cpu": "Apple M4",
+    "architecture": "arm64",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "python": "3.11.15",
+    "numpy": "1.26.4",
+    "pyarrow": "18.1.0",
+    "release_profile": {
+      "opt_level": 3,
+      "lto": true,
+      "codegen_units": 1
+    }
+  },
+  "conversion": {
+    "chromatograms_converted": 0,
+    "compression_ratio": 8.582791613530723,
+    "ms1_spectra": 5531,
+    "ms2_spectra": 32888,
+    "msn_spectra": 0,
+    "output_file_size": 83233835,
+    "peak_count": 13510675,
+    "source_file_size": 714378661,
+    "spectra_count": 38419
+  },
+  "release_timing": {
+    "command": "/usr/bin/time -l target/release/mzpeak-convert convert sample.raw converted.mzpeak",
+    "elapsed_seconds": 2.4,
+    "user_seconds": 1.47,
+    "system_seconds": 0.31,
+    "maximum_resident_set_bytes_reported_by_time": 303202304,
+    "samples": 1,
+    "cache": "warm; input previously checked and exported by rawr",
+    "scope": "rawr process, mzML pipe, ingestion, Parquet compression, ZIP assembly and output writes; excludes subsequent validation/comparison",
+    "limitation": "One local sample; no cross-machine, cold-storage or cross-instrument throughput claim"
+  },
+  "fidelity": {
+    "spectra": 38419,
+    "peaks": 13510675,
+    "peak_fidelity": "bit exact at f64 m/z and f32 intensity",
+    "scan_metadata": "matched all exported fields"
+  },
+  "integrity": {
+    "chromatograms": 0,
+    "peaks": 13510675,
+    "spectra": 38419
+  },
+  "python_readback": {
+    "spectra": 38419,
+    "peaks": 13510675,
+    "ms_levels": {
+      "1": 5531,
+      "2": 32888
+    },
+    "scan_number_mapping": "checked every spectrum"
+  },
+  "historical_v2_readback": {
+    "spectra": 225,
+    "peaks": 156181,
+    "full_integrity": "passed"
+  },
+  "microbenchmark": {
+    "command": "target/release/examples/io_hotpath",
+    "repetitions": 5,
+    "statistic": "median",
+    "fixture": "65,536 deterministic f64 values for decode; 256 spectra x 4,096 peaks for serialization",
+    "scope": "in-memory decode/Parquet serialization; excludes RAW, ZIP and disk I/O",
+    "benchmark_sha256": "43d797435ae6ebf23b327b71c3f4256645a15ad2db2d2910feb4df10a2729fc8",
+    "results": [
+      {
+        "backend": "reference",
+        "median_seconds": 0.015711375,
+        "phase": "decode_plain",
+        "values": 6553600
+      },
+      {
+        "backend": "native",
+        "median_seconds": 0.015617291,
+        "phase": "decode_plain",
+        "values": 6553600
+      },
+      {
+        "backend": "reference",
+        "median_seconds": 0.128558625,
+        "phase": "decode_zlib",
+        "values": 6553600
+      },
+      {
+        "backend": "native",
+        "median_seconds": 0.095100541,
+        "phase": "decode_zlib",
+        "values": 6553600
+      },
+      {
+        "median_seconds": 0.017907,
+        "output_bytes": 12637216,
+        "peaks": 1048576,
+        "phase": "write_plain"
+      },
+      {
+        "median_seconds": 0.021464375,
+        "output_bytes": 782887,
+        "peaks": 1048576,
+        "phase": "write_zstd3"
+      },
+      {
+        "median_seconds": 0.038103042,
+        "output_bytes": 776679,
+        "peaks": 1048576,
+        "phase": "write_zstd9"
+      }
+    ],
+    "interpretation": "ZSTD 3 versus 9 compares compression settings, not an isolated writer-kernel improvement"
+  },
+  "validation_commands": [
+    "cargo test --locked",
+    "cargo test --locked --no-default-features",
+    "cargo test --locked --features mzml-parallel,tdf",
+    "PYO3_PYTHON=/path/to/python3.11 cargo check --locked --all-features --all-targets",
+    "cargo clippy --locked --all-targets --features mzml-parallel,tdf -- -D clippy::correctness -D clippy::suspicious",
+    "RUSTDOCFLAGS=\"-D warnings\" cargo doc --locked --no-deps --features mzml-parallel,tdf",
+    "cargo fmt --package mzpeak -- --check",
+    "maturin develop --locked --features python",
+    "python -m pytest python_tests -q",
+    "rawr --color never check sample.raw",
+    "rawr --color never convert --format mzml --plain --output reference.mzML sample.raw",
+    "target/release/mzpeak-convert validate converted.mzpeak",
+    "python tools/verify_raw_export.py reference.mzML converted.mzpeak"
+  ],
+  "limits": [
+    "Breaking v2-only Rust/Python API; v1/directory bundles removed",
+    "Independent experimental layout, not current HUPO-PSI interchange",
+    "Saved RAW centroids only; full vendor metadata, profiles and auxiliary controllers omitted",
+    "Real TDF corpus and multi-window precursor fidelity unverified",
+    "Python 3.8\u20133.12 and NumPy 1.x; native bundle only for macOS arm64",
+    "Hosted cross-platform CI separate from these local results; no fuzz campaign performed"
+  ]
+}

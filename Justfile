@@ -1,5 +1,3 @@
-# Portable commands; pass local data paths explicitly.
-
 default:
     @just --list
 
@@ -16,12 +14,6 @@ check:
     cargo clippy --locked --all-targets --features mzml-parallel,tdf
     just test
     cargo doc --locked --no-deps --features mzml-parallel,tdf
-
-thermo input output:
-    cargo run --locked --release --bin mzpeak-convert -- -v convert-thermo "{{input}}" "{{output}}"
-
-mzml input output:
-    cargo run --locked --release --bin mzpeak-convert -- -v convert "{{input}}" "{{output}}"
 
 bench:
     cargo run --locked --release --example io_hotpath

@@ -143,6 +143,7 @@ impl ThermoStreamer {
             let Some(raw) = self.xml.next_raw_spectrum()? else {
                 // Drain the document trailer before waiting for a piped writer.
                 while self.xml.next_chromatogram()?.is_some() {}
+                self.xml.finish_document()?;
                 self.process.check()?;
                 if self.next_index + batch.len() != self.total_spectra {
                     return Err(ThermoError::Process(format!(

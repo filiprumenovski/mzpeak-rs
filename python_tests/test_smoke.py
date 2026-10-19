@@ -1,40 +1,57 @@
-"""Installed-wheel checks; Rust tests cover data paths in detail."""
+import numpy as np
 import pytest
 import mzpeak
 
 
-def test_version_and_public_api():
-    assert mzpeak.__version__ == "0.1.0"
-    assert mzpeak.MzMLConverter()
-    assert mzpeak.ThermoConverter()
+def test_current_api():
+    assert mzpeak.FORMAT_VERSION == '2.0'
+    assert mzpeak.Reader and mzpeak.Writer and mzpeak.convert and mzpeak.validate
 
 
-def test_missing_raw_is_a_python_io_error(tmp_path):
-    with pytest.raises(mzpeak.MzPeakIOError):
-        mzpeak.convert_thermo(str(tmp_path / "missing.raw"), str(tmp_path / "out.mzpeak"))
-    assert not (tmp_path / "out.mzpeak").exists()
-
-
-def test_profile_request_fails_explicitly(tmp_path):
-    converter = mzpeak.ThermoConverter(centroid_spectra=False)
-    with pytest.raises(mzpeak.MzPeakValidationError, match="profile output"):
-        converter.convert(str(tmp_path / "input.raw"), str(tmp_path / "out.mzpeak"))
-
-
-def test_v2_writer_and_reader_preserve_values_and_empty_spectra(tmp_path):
-    import numpy as np
-    output = str(tmp_path / "roundtrip.mzpeak")
-    writer = mzpeak.MzPeakDatasetWriterV2(output)
-    metadata = mzpeak.SpectrumMetadata(0, 41, 1, 30.0, 1, 2)
-    peaks = mzpeak.PeakArraysV2(np.array([400.123456789, 500.987654321]), np.array([10.5, 20.25], dtype=np.float32))
-    writer.write_spectrum_v2(metadata, peaks)
-    writer.write_spectrum_v2(mzpeak.SpectrumMetadata(1, 42, 2, 45.0, -1, 0), mzpeak.PeakArraysV2(np.array([], dtype=np.float64), np.array([], dtype=np.float32)))
-    writer.close()
-    reader = mzpeak.MzPeakReader(output)
-    spectra = list(reader.iter_spectra_arrays())
+def test_writer_reader_empty_scan_metadata_and_exact_values(tmp_path):
+    path = str(tmp_path / 'roundtrip.mzpeak')
+    mz = np.array([400.123456789, 500.987654321], dtype=np.float64)
+    intensity = np.array([10.5, 20.25], dtype=np.float32)
+    with mzpeak.Writer(path) as writer:
+        writer.set_metadata({'provenance': {'method': 'manual test'}})
+        writer.write({'scan_number': 41, 'retention_time': 30.0}, mz, intensity)
+        writer.write({'scan_number': 42, 'ms_level': 2, 'precursor_mz': 500.0}, np.array([], dtype=np.float64), np.array([], dtype=np.float32))
+    reader = mzpeak.Reader(path, batch_size=1)
+    spectra = list(reader)
     assert len(spectra) == 2
-    assert spectra[0].scan_number == 41
-    np.testing.assert_array_equal(spectra[0].mz_array, peaks.mz_array)
-    np.testing.assert_array_equal(spectra[0].intensity_array, peaks.intensity_array)
-    assert spectra[1].scan_number == 42
-    assert len(spectra[1]) == 0
+    assert spectra[0].metadata['scan_number'] == 41
+    np.testing.assert_array_equal(spectra[0].mz, mz)
+    np.testing.assert_array_equal(spectra[0].intensity, intensity)
+    assert len(spectra[1]) == 0 and spectra[1].metadata['precursor_mz'] == 500.0
+    assert reader.manifest()['spectrum_count'] == 2
+    assert reader.metadata()['provenance']['method'] == 'manual test'
+    assert mzpeak.validate(path) == {'spectra': 2, 'peaks': 2, 'chromatograms': 0}
+
+
+def test_imaging_mobility_and_empty_arrays(tmp_path):
+    path = str(tmp_path / 'imaging.mzpeak')
+    with mzpeak.Writer(path, ion_mobility=True, imaging=True) as writer:
+        writer.write({'pixel_x': 1, 'pixel_y': 2}, np.array([], dtype=np.float64), np.array([], dtype=np.float32), np.array([], dtype=np.float64))
+    spectrum = next(iter(mzpeak.Reader(path)))
+    assert spectrum.metadata['pixel_y'] == 2
+    assert spectrum.ion_mobility is not None and len(spectrum.ion_mobility) == 0
+
+
+def test_failed_or_abandoned_write_publishes_nothing(tmp_path):
+    path = str(tmp_path / 'failed.mzpeak')
+    with pytest.raises(RuntimeError):
+        with mzpeak.Writer(path) as writer:
+            writer.write({}, np.array([np.nan]), np.array([1], dtype=np.float32))
+    assert not (tmp_path / 'failed.mzpeak').exists()
+    with pytest.raises(ValueError):
+        with mzpeak.Writer(path):
+            raise ValueError('caller failure')
+    assert not (tmp_path / 'failed.mzpeak').exists()
+
+
+def test_missing_input_and_invalid_compression(tmp_path):
+    with pytest.raises(RuntimeError):
+        mzpeak.convert(str(tmp_path / 'missing.raw'), str(tmp_path / 'out.mzpeak'))
+    with pytest.raises(RuntimeError):
+        mzpeak.Writer(str(tmp_path / 'out.mzpeak'), compression_level=100)
+    assert not (tmp_path / 'out.mzpeak').exists()

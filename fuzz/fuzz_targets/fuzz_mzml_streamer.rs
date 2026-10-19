@@ -9,11 +9,11 @@ fuzz_target!(|data: &[u8]| {
     
     // Try to parse as mzML - we expect this to either succeed or fail gracefully
     // The key is that it should NEVER panic
-    let _ = mzpeak::mzml::streamer::MzMLStreamer::new(cursor);
+    let _ = mzpeak::mzml::MzMLStreamer::new(cursor);
     
     // If parsing succeeded, try to iterate through spectra
     // This will catch panics during actual data processing
-    if let Ok(mut streamer) = mzpeak::mzml::streamer::MzMLStreamer::new(Cursor::new(data)) {
+    if let Ok(mut streamer) = mzpeak::mzml::MzMLStreamer::new(Cursor::new(data)) {
         // Try to read up to 100 spectra to catch parsing errors
         for _ in 0..100 {
             match streamer.next_spectrum() {

@@ -1,6 +1,6 @@
 [package]
 name = "mzpeak"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.98"
 authors = ["mzPeak Contributors"]
@@ -15,11 +15,9 @@ categories = ["science", "encoding", "parser-implementations"]
 exclude = ["*.mzML", "*.raw", "*.parquet", "mzPeak_preprint_v02.pdf"]
 
 [features]
-default = ["colorized_output", "mzml", "thermo"]
+default = ["mzml", "thermo"]
 # Python bindings for PyO3 extension module.
-python = ["dep:pyo3", "dep:pyo3-log", "dep:numpy", "mzml"]
-# Colorized CLI output
-colorized_output = ["console"]
+python = ["dep:pyo3", "dep:numpy", "mzml"]
 # mzML parsing (optional)
 mzml = ["quick-xml", "base64", "flate2", "dep:libdeflater"]
 # Bruker TDF parsing (optional) - includes rayon for parallel conversion
@@ -28,13 +26,11 @@ tdf = ["timsrust", "rayon"]
 thermo = ["mzml"]
 # Parallel mzML conversion
 mzml-parallel = ["mzml", "rayon"]
-# Deprecated alias for backwards compatibility
-parallel-decode = ["mzml-parallel"]
 
 [dependencies]
 # Apache Arrow and Parquet for columnar storage
-arrow = { version = "54", default-features = false, features = ["ffi"] }
-parquet = { version = "54", features = ["arrow", "zstd", "snap"] }
+arrow = { version = "54", default-features = false }
+parquet = { version = "54", default-features = false, features = ["arrow", "zstd", "snap"] }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -53,26 +49,15 @@ chrono = { version = "0.4", features = ["serde"] }
 # ZIP container support for single-file .mzpeak format
 zip = { version = "2.2", default-features = false, features = ["deflate"] }
 
-# UUID for unique identifiers
-uuid = { version = "1.11", features = ["v4", "serde"] }
-
-# Logging
-log = "0.4"
-env_logger = "0.11"
-
 # Python bindings (optional)
 pyo3 = { version = "0.21", features = ["extension-module"], optional = true }
-pyo3-log = { version = "0.10", optional = true }
 numpy = { version = "0.21", optional = true }
 
 # Bytes for Parquet reader ChunkReader trait
 bytes = "1.9"
 
-# Temp file for streaming container writes (Issue 000 fix)
+# Staging for atomic container writes
 tempfile = "3.14"
-
-# Crossbeam channel for async writer pipeline
-crossbeam-channel = "0.5"
 
 # mzML parsing (optional)
 quick-xml = { version = "0.37", features = ["encoding"], optional = true }
@@ -83,21 +68,12 @@ libdeflater = { version = "1.26", optional = true }
 # CLI argument parsing
 clap = { version = "4.5", features = ["derive"] }
 
-# TOML config file parsing
-toml = "0.8"
-
-# Colorized CLI output
-console = { version = "0.15", optional = true }
 
 # Parallel conversion (optional)
 rayon = { version = "1.10", optional = true }
 
 # Bruker TDF reader (path override; subject to change to git/published crate)
 timsrust = { path = "vendor/timsrust", optional = true }
-
-[dev-dependencies]
-proptest = "1.5"
-criterion = { version = "0.5", features = ["html_reports"] }
 
 [lib]
 name = "mzpeak"
@@ -108,102 +84,13 @@ crate-type = ["lib", "cdylib"]
 name = "mzpeak-convert"
 path = "src/main.rs"
 
-[[bench]]
-name = "conversion"
-harness = false
-
-[[bench]]
-name = "query_performance"
-harness = false
-
-[[bench]]
-name = "filtering"
-harness = false
-
-[[example]]
-name = "compression_benchmark"
-path = "examples/benchmarks/compression_benchmark.rs"
-required-features = ["tdf"]
-
-[[example]]
-name = "parallel_benchmark"
-path = "examples/benchmarks/parallel_benchmark.rs"
-required-features = ["tdf"]
-
-[[example]]
-name = "parallel_write_benchmark"
-path = "examples/benchmarks/parallel_write_benchmark.rs"
-required-features = ["tdf"]
-
-[[example]]
-name = "batch_benchmark"
-path = "examples/benchmarks/batch_benchmark.rs"
-required-features = ["tdf"]
-
-[[example]]
-name = "rowgroup_benchmark"
-path = "examples/benchmarks/rowgroup_benchmark.rs"
-required-features = ["tdf"]
-
-[[example]]
-name = "scaling_benchmark"
-path = "examples/benchmarks/scaling_benchmark.rs"
-required-features = ["tdf"]
-
-[[example]]
-name = "test_alphatims_dda"
-path = "examples/validation/test_alphatims_dda.rs"
-required-features = ["tdf"]
-
-[[example]]
-name = "thermo_benchmark"
-path = "examples/benchmarks/thermo_benchmark.rs"
-required-features = ["thermo"]
-
-[[example]]
-name = "mzml_benchmark"
-path = "examples/benchmarks/mzml_benchmark.rs"
-required-features = ["mzml"]
-
-[[example]]
-name = "tdf_throughput_benchmark"
-path = "examples/benchmarks/tdf_throughput_benchmark.rs"
-required-features = ["tdf"]
-
-[[example]]
-name = "quick_tdf_convert"
-path = "examples/benchmarks/quick_tdf_convert.rs"
-required-features = ["tdf"]
-
-[[example]]
-name = "chromatogram_generation_demo"
-path = "examples/guides/chromatogram_generation_demo.rs"
-
-[[example]]
-name = "container_format_demo"
-path = "examples/guides/container_format_demo.rs"
-
-[[example]]
-name = "soa_roundtrip"
-path = "examples/guides/soa_roundtrip.rs"
-
-[[example]]
-name = "validate_lossless"
-path = "examples/validation/validate_lossless.rs"
-required-features = ["mzml"]
-
 [profile.release]
 lto = true
 codegen-units = 1
 opt-level = 3
 
-# Lint configuration - Issue 007: Prevent unwrap() in production code
 [lints.clippy]
-# Deny unwrap() calls in non-test code to prevent panics on malformed data.
-# This is critical for enterprise-grade scientific software.
-unwrap_used = "warn"  # Start as warning, upgrade to "deny" after audit
-# Also prevent expect() with non-descriptive messages
-# expect_used = "warn"
+unwrap_used = "warn"
 
 [[example]]
 name = "io_hotpath"

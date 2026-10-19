@@ -323,6 +323,9 @@ impl<W: Write + Seek + Send> PeaksWriterV2<W> {
         has_ion_mobility: bool,
     ) -> Result<Self, WriterError> {
         let schema = create_peaks_schema_v2_arc(has_ion_mobility);
+        if let CompressionType::Zstd(level) = config.compression {
+            ZstdLevel::try_new(level)?;
+        }
         if config.row_group_size == 0 {
             return Err(WriterError::InvalidData(
                 "row_group_size must be positive".into(),

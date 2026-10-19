@@ -1,140 +1,68 @@
-//! # mzPeak Validation Module
-//!
-//! Deep integrity validation for .mzpeak files (both Directory bundles and ZIP containers).
-//! This module ensures compliance with the mzPeak format specification and helps avoid
-//! the "fragmented implementation" issues seen in mzML.
-//!
-//! ## Validation Checklist
-//!
-//! 1. **Structure Check**: Validates file/directory structure, checks for required files
-//! 2. **Metadata Integrity**: Deserializes and validates metadata.json against schema
-//! 3. **Schema Contract**: Verifies Parquet schema matches the mzPeak specification
-//! 4. **Data Sanity**: Performs semantic checks on data values
-//!
-//! ## Usage
-//!
-//! ```rust,no_run
-//! use mzpeak::validator::validate_mzpeak_file;
-//! use std::path::Path;
-//!
-//! let result = validate_mzpeak_file(Path::new("data.mzpeak"));
-//! match result {
-//!     Ok(report) => {
-//!         println!("{}", report);
-//!     }
-//!     Err(e) => {
-//!         eprintln!("Validation failed: {}", e);
-//!     }
-//! }
-//! ```
-
+//! Full archive CRC, schema, row-link and numerical validation.
+use crate::reader::MzPeakReader;
 use std::path::Path;
-
-use anyhow::Result;
-
-pub use report::{CheckStatus, ValidationCheck, ValidationReport};
-
-mod data;
-mod metadata;
-mod report;
-mod schema;
-mod structure;
-
-/// Validation error types
-#[derive(Debug, thiserror::Error)]
-pub enum ValidationError {
-    /// Error in file or directory structure
-    #[error("Structure error: {0}")]
-    StructureError(String),
-
-    /// Error in metadata format or content
-    #[error("Metadata error: {0}")]
-    MetadataError(String),
-
-    /// Error in Parquet schema
-    #[error("Schema error: {0}")]
-    SchemaError(String),
-
-    /// Data sanity check failure
-    #[error("Data sanity error: {0}")]
-    DataSanityError(String),
-
-    /// I/O error during file operations
-    #[error("I/O error: {0}")]
-    IoError(#[from] std::io::Error),
-
-    /// Error from the Parquet library
-    #[error("Parquet error: {0}")]
-    ParquetError(#[from] parquet::errors::ParquetError),
+#[derive(Debug, serde::Serialize)]
+pub struct ValidationReport {
+    pub spectra: u64,
+    pub peaks: u64,
+    pub chromatograms: usize,
 }
-
-/// Schema version detected during validation
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum SchemaVersion {
-    /// V1.0: Single peaks.parquet with all columns (Long format)
-    V1,
-    /// V2.0: Separate spectra.parquet + peaks.parquet with manifest.json
-    V2,
-}
-
-/// Parquet data source for validation
-#[derive(Debug, Clone)]
-pub(crate) enum ParquetSource {
-    /// Direct Parquet file path
-    FilePath(std::path::PathBuf),
-    /// ZIP container entry (uncompressed)
-    ZipEntry {
-        zip_path: std::path::PathBuf,
-        entry_name: String,
-    },
-}
-
-/// Validation target describing schema version and parquet sources
-#[derive(Debug)]
-pub(crate) struct ValidationTarget {
-    pub(crate) schema_version: SchemaVersion,
-    pub(crate) peaks: ParquetSource,
-    pub(crate) spectra: Option<ParquetSource>,
-    pub(crate) manifest: Option<String>,
-}
-
-/// Main validation entry point
-pub fn validate_mzpeak_file(path: &Path) -> Result<ValidationReport> {
-    let mut report = ValidationReport::new(path.display().to_string());
-
-    // 1. Structure Check
-    let validation_target = structure::check_structure(path, &mut report)?;
-
-    // 2. Metadata Integrity Check
-    metadata::check_metadata_integrity(path, &validation_target, &mut report)?;
-
-    // 3. Schema Contract Check
-    schema::check_schema_contract(&validation_target, &mut report)?;
-
-    // 4. Data Sanity Check
-    data::check_data_sanity(&validation_target, &mut report)?;
-
-    Ok(report)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_validation_report_display() {
-        let mut report = ValidationReport::new("test.mzpeak");
-        report.add_check(ValidationCheck::ok("Test check 1"));
-        report.add_check(ValidationCheck::warning(
-            "Test check 2",
-            "This is a warning",
-        ));
-        report.add_check(ValidationCheck::failed("Test check 3", "This failed"));
-
-        let output = format!("{}", report);
-        assert!(output.contains("✓"));
-        assert!(output.contains("⚠"));
-        assert!(output.contains("✗"));
-        assert!(output.contains("1 passed, 1 warnings, 1 failed"));
+pub fn validate_mzpeak_file(path: impl AsRef<Path>) -> anyhow::Result<ValidationReport> {
+    let reader = MzPeakReader::open(path)?;
+    reader.verify_archive_crc()?;
+    let mut spectra = 0;
+    let mut peaks = 0;
+    for spectrum in reader.iter_spectra_arrays_streaming()? {
+        let spectrum = spectrum?;
+        let metadata = &spectrum.metadata;
+        anyhow::ensure!(
+            metadata.ms_level > 0
+                && metadata.retention_time.is_finite()
+                && metadata.retention_time >= 0.0
+                && matches!(metadata.polarity, -1..=1),
+            "invalid spectrum metadata for {}",
+            metadata.spectrum_id
+        );
+        anyhow::ensure!(
+            spectrum.mz().all(|v| v.is_finite() && v > 0.0),
+            "invalid m/z in spectrum {}",
+            metadata.spectrum_id
+        );
+        anyhow::ensure!(
+            spectrum.intensity().all(|v| v.is_finite() && v >= 0.0),
+            "invalid intensity in spectrum {}",
+            metadata.spectrum_id
+        );
+        anyhow::ensure!(
+            spectrum.ion_mobility().all(|v| v.is_finite() && v >= 0.0),
+            "invalid mobility in spectrum {}",
+            metadata.spectrum_id
+        );
+        anyhow::ensure!(
+            reader.manifest().has_imaging
+                == (metadata.pixel_x.is_some() && metadata.pixel_y.is_some())
+                && metadata.pixel_x.is_some() == metadata.pixel_y.is_some()
+                && (reader.manifest().has_imaging || metadata.pixel_z.is_none()),
+            "imaging coordinates disagree with modality"
+        );
+        spectra += 1;
+        peaks += spectrum.peak_count() as u64;
     }
+    anyhow::ensure!(
+        spectra == reader.total_spectra() && peaks == reader.total_peaks(),
+        "manifest counts disagree with data"
+    );
+    let chromatograms = reader.read_chromatograms()?.unwrap_or_default();
+    for c in &chromatograms {
+        anyhow::ensure!(
+            c.time_array.iter().all(|v| v.is_finite() && *v >= 0.0)
+                && c.intensity_array.iter().all(|v| v.is_finite() && *v >= 0.0),
+            "invalid chromatogram values"
+        );
+    }
+    Ok(ValidationReport {
+        spectra,
+        peaks,
+        chromatograms: chromatograms.len(),
+    })
 }

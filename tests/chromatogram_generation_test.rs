@@ -161,7 +161,7 @@ fn test_automatic_tic_bpc_generation() {
 
     // Read back and verify chromatograms
     let reader = MzPeakReader::open(&output_path).unwrap();
-    let chromatograms = reader.read_chromatograms().unwrap();
+    let chromatograms = reader.read_chromatograms().unwrap().unwrap();
 
     assert_eq!(
         chromatograms.len(),
@@ -324,7 +324,7 @@ fn test_tic_bpc_calculation_from_peaks() {
 
     // Read and verify calculated values
     let reader = MzPeakReader::open(&output_path).unwrap();
-    let chromatograms = reader.read_chromatograms().unwrap();
+    let chromatograms = reader.read_chromatograms().unwrap().unwrap();
 
     let tic = chromatograms
         .iter()
@@ -512,7 +512,7 @@ fn test_ms2_ignored_in_chromatogram_generation() {
 
     // Read and verify - should only have 2 data points (from 2 MS1 spectra)
     let reader = MzPeakReader::open(&output_path).unwrap();
-    let chromatograms = reader.read_chromatograms().unwrap();
+    let chromatograms = reader.read_chromatograms().unwrap().unwrap();
 
     let tic = chromatograms
         .iter()

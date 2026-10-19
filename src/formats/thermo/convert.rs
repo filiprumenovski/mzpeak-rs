@@ -8,9 +8,7 @@ use crate::metadata::{
     MzPeakMetadata, ProcessingHistory, ProcessingStep, SourceFileInfo, VendorHints,
 };
 use crate::schema::manifest::Modality;
-use crate::writer::{
-    MzPeakWriter, PeaksWriterV2Config, SpectraWriterConfig, SpectrumV2, WriterConfig,
-};
+use crate::writer::{SpectrumV2, WriterConfig};
 
 use super::{ThermoError, ThermoStreamer};
 
@@ -26,8 +24,6 @@ pub struct ThermoConversionConfig {
     pub rawr_binary: Option<std::path::PathBuf>,
     /// Parquet compression and row group settings.
     pub writer_config: WriterConfig,
-    /// Write legacy v1 Parquet instead of the default v2 container.
-    pub legacy_format: bool,
 }
 
 impl Default for ThermoConversionConfig {
@@ -36,31 +32,11 @@ impl Default for ThermoConversionConfig {
             batch_size: 1000,
             rawr_binary: None,
             writer_config: WriterConfig::default(),
-            legacy_format: false,
         }
     }
 }
 
-/// Counts and sizes from a completed conversion.
-#[derive(Debug, Clone, Default)]
-pub struct ThermoConversionStats {
-    /// Spectra written, including empty spectra in v2.
-    pub spectra_count: usize,
-    /// Source-saved centroids written.
-    pub peak_count: usize,
-    /// MS1 spectra written.
-    pub ms1_spectra: usize,
-    /// MS2 spectra written.
-    pub ms2_spectra: usize,
-    /// Higher-order spectra written.
-    pub msn_spectra: usize,
-    /// Input bytes.
-    pub source_file_size: u64,
-    /// Output bytes.
-    pub output_file_size: u64,
-    /// Input bytes divided by output bytes.
-    pub compression_ratio: f64,
-}
+pub type ThermoConversionStats = crate::mzml::ConversionStats;
 
 /// Converts saved RAW centroids into mzPeak with source provenance.
 ///
@@ -87,50 +63,13 @@ pub fn convert_thermo(
         && config.rawr_binary.is_none()
         && std::env::var_os("MZPEAK_RAWR").is_none();
     let metadata = build_metadata(input, bundled);
-    let parent = output
-        .parent()
-        .filter(|p| !p.as_os_str().is_empty())
-        .unwrap_or(Path::new("."));
-    std::fs::create_dir_all(parent)?;
-    let staging = tempfile::tempdir_in(parent)?;
-    let staged_output = staging.path().join("output");
-    let mut legacy_writer = if config.legacy_format {
-        Some(MzPeakWriter::new_file(
-            &staged_output,
-            &metadata,
-            config.writer_config.clone(),
-        )?)
-    } else {
-        None
-    };
-    let mut dataset_writer = if config.legacy_format {
-        None
-    } else {
-        let mut writer = MzPeakDatasetWriterV2::with_config(
-            &staged_output,
-            Modality::LcMs,
-            metadata.vendor_hints.clone(),
-            DatasetWriterV2Config {
-                spectra_config: SpectraWriterConfig {
-                    compression: config.writer_config.compression,
-                    data_page_size: config.writer_config.data_page_size,
-                    write_statistics: config.writer_config.write_statistics,
-                    dictionary_page_size_limit: config.writer_config.dictionary_page_size_limit,
-                    ..Default::default()
-                },
-                peaks_config: PeaksWriterV2Config {
-                    compression: config.writer_config.compression,
-                    row_group_size: config.writer_config.row_group_size,
-                    data_page_size: config.writer_config.data_page_size,
-                    write_statistics: config.writer_config.write_statistics,
-                    use_byte_stream_split: config.writer_config.use_byte_stream_split,
-                    ..Default::default()
-                },
-            },
-        )?;
-        writer.set_metadata(metadata);
-        Some(writer)
-    };
+    let mut writer = MzPeakDatasetWriterV2::with_config(
+        output,
+        Modality::LcMs,
+        metadata.vendor_hints.clone(),
+        DatasetWriterV2Config::from(&config.writer_config),
+    )?;
+    writer.set_metadata(metadata);
     let mut stats = ThermoConversionStats {
         source_file_size: std::fs::metadata(input)?.len(),
         ..Default::default()
@@ -148,32 +87,11 @@ pub fn convert_thermo(
                 2 => stats.ms2_spectra += 1,
                 _ => stats.msn_spectra += 1,
             }
-            if let Some(writer) = legacy_writer.as_mut() {
-                if spectrum.peak_count() == 0 {
-                    return Err(ThermoError::UnsupportedRepresentation(format!(
-                        "legacy v1 cannot preserve empty scan {}; use v2",
-                        spectrum.scan_number
-                    )));
-                }
-                writer.write_spectra_owned(vec![spectrum])?;
-            } else if let Some(writer) = dataset_writer.as_mut() {
-                writer.write_spectrum(&SpectrumV2::try_from_spectrum_arrays(spectrum)?)?;
-            }
+            writer.write_spectrum(&SpectrumV2::try_from_spectrum_arrays(spectrum)?)?;
         }
     }
-    if let Some(writer) = legacy_writer {
-        writer.finish()?;
-    }
-    if let Some(writer) = dataset_writer {
-        writer.close()?;
-    }
-    stats.output_file_size = std::fs::metadata(&staged_output)?.len();
-    if stats.output_file_size > 0 {
-        stats.compression_ratio = stats.source_file_size as f64 / stats.output_file_size as f64;
-    }
-    tempfile::TempPath::try_from_path(staged_output)?
-        .persist_noclobber(output)
-        .map_err(|error| error.error)?;
+    stats.output_file_size = writer.close()?.output_file_size;
+    stats.compression_ratio = stats.source_file_size as f64 / stats.output_file_size as f64;
     Ok(stats)
 }
 

@@ -5,7 +5,7 @@ use quick_xml::events::{BytesStart, Event};
 
 use super::helpers::{get_attribute, parse_cv_param};
 use super::{MzMLError, MzMLStreamer};
-use crate::mzml::binary::{BinaryDecoder, BinaryEncoding, CompressionType};
+use crate::mzml::binary::{BinaryEncoding, CompressionType};
 use crate::mzml::cv_params::{
     normalize_retention_time, CvParam, IMS_CV_ACCESSIONS, MS_CV_ACCESSIONS,
 };
@@ -14,38 +14,9 @@ use crate::mzml::models::{MzMLSpectrum, Precursor, RawBinaryData, RawMzMLSpectru
 impl<R: BufRead> MzMLStreamer<R> {
     /// Read the next spectrum from the stream
     pub fn next_spectrum(&mut self) -> Result<Option<MzMLSpectrum>, MzMLError> {
-        if !self.in_spectrum_list {
-            // Try to find spectrumList if we haven't read metadata
-            self.read_metadata()?;
-            if !self.in_spectrum_list {
-                return Ok(None);
-            }
-        }
-
-        self.event_buf.clear();
-        loop {
-            let event = self.reader.read_event_into(&mut self.event_buf);
-            match event {
-                Ok(Event::Start(ref e)) => {
-                    if e.name().as_ref() == b"spectrum" {
-                        let e_owned = e.to_owned();
-                        let spectrum = self.parse_spectrum(&e_owned)?;
-                        self.current_spectrum_index += 1;
-                        return Ok(Some(spectrum));
-                    }
-                }
-                Ok(Event::End(ref e)) => {
-                    if e.name().as_ref() == b"spectrumList" {
-                        self.in_spectrum_list = false;
-                        return Ok(None);
-                    }
-                }
-                Ok(Event::Eof) => return Ok(None),
-                Err(e) => return Err(MzMLError::XmlError(e)),
-                _ => {}
-            }
-            self.event_buf.clear();
-        }
+        self.next_raw_spectrum()?
+            .map(|raw| raw.decode().map_err(Into::into))
+            .transpose()
     }
 
     /// Read the next spectrum from the stream WITHOUT decoding binary data
@@ -76,6 +47,9 @@ impl<R: BufRead> MzMLStreamer<R> {
     /// ```
     pub fn next_raw_spectrum(&mut self) -> Result<Option<RawMzMLSpectrum>, MzMLError> {
         if !self.in_spectrum_list {
+            if self.in_chromatogram_list || self.document_closed {
+                return Ok(None);
+            }
             // Try to find spectrumList if we haven't read metadata
             self.read_metadata()?;
             if !self.in_spectrum_list {
@@ -109,153 +83,6 @@ impl<R: BufRead> MzMLStreamer<R> {
         }
     }
 
-    /// Parse a single spectrum element
-    fn parse_spectrum(&mut self, start_event: &BytesStart) -> Result<MzMLSpectrum, MzMLError> {
-        let mut spectrum = MzMLSpectrum::default();
-
-        // Get attributes from spectrum element
-        spectrum.index = get_attribute(start_event, "index")?
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(self.current_spectrum_index);
-        spectrum.id = get_attribute(start_event, "id")?.unwrap_or_default();
-        spectrum.default_array_length = get_attribute(start_event, "defaultArrayLength")?
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(0);
-
-        let mut depth = 1;
-        let mut in_scan_list = false;
-        let mut in_precursor_list = false;
-        let mut in_binary_data_array_list = false;
-        let mut in_binary_array = false;
-        let mut current_precursor: Option<Precursor> = None;
-
-        self.binary_array_ctx.cv_params.clear();
-        self.binary_array_ctx.base64_data.clear();
-        self.element_buf.clear();
-
-        loop {
-            match self.reader.read_event_into(&mut self.element_buf) {
-                Ok(Event::Start(ref e)) => {
-                    depth += 1;
-                    match e.name().as_ref() {
-                        b"cvParam" => {
-                            let cv_param = parse_cv_param(e)?;
-                            if in_binary_data_array_list && in_binary_array {
-                                self.binary_array_ctx.cv_params.push(cv_param);
-                            } else if in_precursor_list {
-                                if let Some(ref mut prec) = current_precursor {
-                                    prec.cv_params.push(cv_param);
-                                }
-                            } else {
-                                spectrum.cv_params.push(cv_param);
-                            }
-                        }
-                        b"scanList" => {
-                            in_scan_list = true;
-                        }
-                        b"precursorList" => {
-                            in_precursor_list = true;
-                        }
-                        b"precursor" => {
-                            let mut prec = Precursor::default();
-                            prec.spectrum_ref = get_attribute(e, "spectrumRef")?;
-                            current_precursor = Some(prec);
-                        }
-                        b"isolationWindow" => {}
-                        b"selectedIon" => {}
-                        b"activation" => {}
-                        b"binaryDataArrayList" => {
-                            in_binary_data_array_list = true;
-                        }
-                        b"binaryDataArray" => {
-                            in_binary_array = true;
-                            self.binary_array_ctx.cv_params.clear();
-                            self.binary_array_ctx.base64_data.clear();
-                        }
-                        b"binary" => {}
-                        _ => {}
-                    }
-                }
-                Ok(Event::Empty(ref e)) => {
-                    if e.name().as_ref() == b"cvParam" {
-                        let cv_param = parse_cv_param(e)?;
-
-                        if in_binary_data_array_list && in_binary_array {
-                            self.binary_array_ctx.cv_params.push(cv_param);
-                        } else if in_precursor_list {
-                            if let Some(ref mut prec) = current_precursor {
-                                Self::apply_precursor_cv_param(prec, &cv_param);
-                                prec.cv_params.push(cv_param);
-                            }
-                        } else if in_scan_list {
-                            Self::apply_scan_cv_param(&mut spectrum, &cv_param);
-                            spectrum.cv_params.push(cv_param);
-                        } else {
-                            Self::apply_spectrum_cv_param(&mut spectrum, &cv_param);
-                            spectrum.cv_params.push(cv_param);
-                        }
-                    } else if e.name().as_ref() == b"userParam" {
-                        let name = get_attribute(e, "name")?.unwrap_or_default();
-                        let value = get_attribute(e, "value")?.unwrap_or_default();
-                        spectrum.user_params.insert(name, value);
-                    }
-                }
-                Ok(Event::Text(ref t)) => {
-                    if in_binary_array {
-                        self.binary_array_ctx.base64_data = t.unescape()?.into_owned();
-                    }
-                }
-                Ok(Event::End(ref e)) => {
-                    depth -= 1;
-                    match e.name().as_ref() {
-                        b"spectrum" => {
-                            if depth == 0 {
-                                break;
-                            }
-                        }
-                        b"scanList" => {
-                            in_scan_list = false;
-                        }
-                        b"precursorList" => {
-                            in_precursor_list = false;
-                        }
-                        b"precursor" => {
-                            if let Some(prec) = current_precursor.take() {
-                                spectrum.precursors.push(prec);
-                            }
-                        }
-                        b"binaryDataArrayList" => {
-                            in_binary_data_array_list = false;
-                        }
-                        b"binaryDataArray" => {
-                            if in_binary_array {
-                                let ctx = std::mem::take(&mut self.binary_array_ctx);
-                                let ctx = self.decode_binary_array(&mut spectrum, ctx)?;
-                                self.binary_array_ctx = ctx;
-                                in_binary_array = false;
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-                Ok(Event::Eof) => {
-                    return Err(MzMLError::InvalidStructure(
-                        "Unexpected EOF in spectrum".to_string(),
-                    ));
-                }
-                Err(e) => return Err(MzMLError::XmlError(e)),
-                _ => {}
-            }
-            self.element_buf.clear();
-        }
-
-        Ok(spectrum)
-    }
-
-    /// Parse a single spectrum element WITHOUT decoding binary data
-    ///
-    /// This is the core of the deferred decoding architecture. It captures
-    /// all metadata and raw Base64 strings, allowing parallel decoding later.
     fn parse_raw_spectrum(
         &mut self,
         start_event: &BytesStart,
@@ -553,91 +380,6 @@ impl<R: BufRead> MzMLStreamer<R> {
     }
 
     /// Apply CV param to spectrum properties
-    fn apply_spectrum_cv_param(spectrum: &mut MzMLSpectrum, cv: &CvParam) {
-        match cv.accession.as_str() {
-            IMS_CV_ACCESSIONS::POSITION_X => {
-                spectrum.pixel_x = cv.value_as_i32();
-            }
-            IMS_CV_ACCESSIONS::POSITION_Y => {
-                spectrum.pixel_y = cv.value_as_i32();
-            }
-            IMS_CV_ACCESSIONS::POSITION_Z => {
-                spectrum.pixel_z = cv.value_as_i32();
-            }
-            MS_CV_ACCESSIONS::MS_LEVEL => {
-                spectrum.ms_level = cv.value_as_i64().unwrap_or(1) as i16;
-            }
-            MS_CV_ACCESSIONS::CENTROID_SPECTRUM => {
-                spectrum.centroided = true;
-            }
-            MS_CV_ACCESSIONS::PROFILE_SPECTRUM => {
-                spectrum.centroided = false;
-            }
-            MS_CV_ACCESSIONS::POSITIVE_SCAN => {
-                spectrum.polarity = 1;
-            }
-            MS_CV_ACCESSIONS::NEGATIVE_SCAN => {
-                spectrum.polarity = -1;
-            }
-            MS_CV_ACCESSIONS::TOTAL_ION_CURRENT => {
-                spectrum.total_ion_current = cv.value_as_f64();
-            }
-            MS_CV_ACCESSIONS::BASE_PEAK_MZ => {
-                spectrum.base_peak_mz = cv.value_as_f64();
-            }
-            MS_CV_ACCESSIONS::BASE_PEAK_INTENSITY => {
-                spectrum.base_peak_intensity = cv.value_as_f64();
-            }
-            MS_CV_ACCESSIONS::LOWEST_OBSERVED_MZ => {
-                spectrum.lowest_mz = cv.value_as_f64();
-            }
-            MS_CV_ACCESSIONS::HIGHEST_OBSERVED_MZ => {
-                spectrum.highest_mz = cv.value_as_f64();
-            }
-            MS_CV_ACCESSIONS::FILTER_STRING => {
-                spectrum.filter_string = cv.value.clone();
-            }
-            MS_CV_ACCESSIONS::PRESET_SCAN_CONFIGURATION => {
-                spectrum.preset_scan_configuration = cv.value_as_i32();
-            }
-            _ => {}
-        }
-    }
-
-    /// Apply CV param to scan properties
-    fn apply_scan_cv_param(spectrum: &mut MzMLSpectrum, cv: &CvParam) {
-        match cv.accession.as_str() {
-            IMS_CV_ACCESSIONS::POSITION_X => {
-                spectrum.pixel_x = cv.value_as_i32();
-            }
-            IMS_CV_ACCESSIONS::POSITION_Y => {
-                spectrum.pixel_y = cv.value_as_i32();
-            }
-            IMS_CV_ACCESSIONS::POSITION_Z => {
-                spectrum.pixel_z = cv.value_as_i32();
-            }
-            MS_CV_ACCESSIONS::SCAN_START_TIME => {
-                if let Some(val) = cv.value_as_f64() {
-                    spectrum.retention_time =
-                        Some(normalize_retention_time(val, cv.unit_accession.as_deref()));
-                }
-            }
-            MS_CV_ACCESSIONS::ION_INJECTION_TIME => {
-                spectrum.ion_injection_time = cv.value_as_f64();
-            }
-            MS_CV_ACCESSIONS::SCAN_WINDOW_LOWER_LIMIT => {
-                spectrum.scan_window_lower = cv.value_as_f64();
-            }
-            MS_CV_ACCESSIONS::SCAN_WINDOW_UPPER_LIMIT => {
-                spectrum.scan_window_upper = cv.value_as_f64();
-            }
-            _ => {
-                Self::apply_spectrum_cv_param(spectrum, cv);
-            }
-        }
-    }
-
-    /// Apply CV param to precursor properties
     fn apply_precursor_cv_param(precursor: &mut Precursor, cv: &CvParam) {
         match cv.accession.as_str() {
             MS_CV_ACCESSIONS::ISOLATION_WINDOW_TARGET_MZ => {
@@ -672,75 +414,6 @@ impl<R: BufRead> MzMLStreamer<R> {
     }
 
     /// Decode binary array and add to spectrum
-    fn decode_binary_array(
-        &mut self,
-        spectrum: &mut MzMLSpectrum,
-        mut ctx: BinaryArrayContext,
-    ) -> Result<BinaryArrayContext, MzMLError> {
-        let mut encoding = BinaryEncoding::Float64;
-        let mut compression = CompressionType::None;
-        let mut is_mz = false;
-        let mut is_intensity = false;
-        let mut is_ion_mobility = false;
-        let mut external_offset: Option<u64> = None;
-        let mut external_length: Option<usize> = None;
-
-        for cv in &ctx.cv_params {
-            match cv.accession.as_str() {
-                IMS_CV_ACCESSIONS::EXTERNAL_OFFSET => {
-                    external_offset = cv.value_as_i64().and_then(|v| u64::try_from(v).ok());
-                }
-                IMS_CV_ACCESSIONS::EXTERNAL_ARRAY_LENGTH => {
-                    external_length = cv.value_as_i64().and_then(|v| usize::try_from(v).ok());
-                }
-                MS_CV_ACCESSIONS::FLOAT_32_BIT => encoding = BinaryEncoding::Float32,
-                MS_CV_ACCESSIONS::FLOAT_64_BIT => encoding = BinaryEncoding::Float64,
-                MS_CV_ACCESSIONS::ZLIB_COMPRESSION => compression = CompressionType::Zlib,
-                MS_CV_ACCESSIONS::NO_COMPRESSION => compression = CompressionType::None,
-                MS_CV_ACCESSIONS::MZ_ARRAY => is_mz = true,
-                MS_CV_ACCESSIONS::INTENSITY_ARRAY => is_intensity = true,
-                MS_CV_ACCESSIONS::ION_MOBILITY_ARRAY => is_ion_mobility = true,
-                _ => {}
-            }
-        }
-
-        let values = if !ctx.base64_data.trim().is_empty() {
-            BinaryDecoder::decode(
-                &ctx.base64_data,
-                encoding,
-                compression,
-                Some(spectrum.default_array_length),
-            )?
-        } else if let (Some(offset), Some(length)) = (external_offset, external_length) {
-            let byte_len = external_length_bytes(length, spectrum.default_array_length, encoding);
-            let bytes = self.read_external_bytes(offset, byte_len)?;
-            BinaryDecoder::decode_bytes(
-                &bytes,
-                encoding,
-                compression,
-                Some(spectrum.default_array_length),
-            )?
-        } else {
-            ctx.cv_params.clear();
-            ctx.base64_data.clear();
-            return Ok(ctx);
-        };
-
-        if is_mz {
-            spectrum.mz_array = values;
-            spectrum.mz_precision_64bit = encoding == BinaryEncoding::Float64;
-        } else if is_intensity {
-            spectrum.intensity_array = values;
-            spectrum.intensity_precision_64bit = encoding == BinaryEncoding::Float64;
-        } else if is_ion_mobility {
-            spectrum.ion_mobility_array = values;
-        }
-
-        ctx.cv_params.clear();
-        ctx.base64_data.clear();
-        Ok(ctx)
-    }
-
     fn read_external_bytes(&mut self, offset: u64, length: usize) -> Result<Vec<u8>, MzMLError> {
         match self.external_binary.as_mut() {
             Some(reader) => reader.read_bytes(offset, length),

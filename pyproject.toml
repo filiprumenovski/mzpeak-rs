@@ -4,8 +4,8 @@ build-backend = "maturin"
 
 [project]
 name = "mzpeak"
-version = "0.1.0"
-description = "High-performance mass spectrometry data format with zero-copy Arrow integration"
+version = "0.2.0"
+description = "Streaming conversion and v2 Parquet mass spectrometry datasets"
 readme = "README.md"
 license = { text = "MIT OR Apache-2.0" }
 authors = [
@@ -28,30 +28,12 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Topic :: Scientific/Engineering :: Chemistry",
 ]
-requires-python = ">=3.8"
-# Core library has no mandatory dependencies - pyarrow is optional
-dependencies = []
+requires-python = ">=3.8,<3.13"
+# NumPy backs the spectrum arrays; pyarrow is only needed for independent checks
+dependencies = ["numpy>=1.23,<2"]
 
 [project.optional-dependencies]
-# NumPy support for SpectrumArrays APIs
-numpy = ["numpy>=1.23.0"]
-# Arrow support for to_arrow(), to_arrow_stream() methods
-arrow = ["pyarrow>=14.0.0"]
-# Pandas integration (requires Arrow)
-pandas = ["pandas>=1.5.0", "pyarrow>=14.0.0"]
-# Polars integration (uses Arrow FFI)
-polars = ["polars>=0.19.0"]
-# Full installation with all data frame integrations
-full = ["numpy>=1.23.0", "pyarrow>=14.0.0", "pandas>=1.5.0", "polars>=0.19.0"]
-# Development dependencies
-dev = [
-    "pytest>=7.0.0",
-    "pytest-benchmark>=4.0.0",
-    "numpy>=1.23.0",
-    "pyarrow>=14.0.0",
-    "pandas>=1.5.0",
-    "polars>=0.19.0",
-]
+dev = ["pytest>=7", "maturin>=1.5,<2", "pyarrow==18.1.0"]
 
 [project.urls]
 Homepage = "https://github.com/filiprumenovski/mzpeak-rs"

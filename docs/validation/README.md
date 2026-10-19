@@ -1,5 +1,26 @@
 # Rebuild validation
 
+The v2-only purge is recorded in `purge.json` with the replacement HeLa RAW
+run, full integrity scan and exact centroid comparison. Earlier JSON files
+below document their recorded revisions before the API purge; their timing
+and validator report shapes must not be treated as current results.
+
+The purge removes 33,179 Rust/Python lines net (46,952 → 13,773, including
+stubs/tests/examples/tools and excluding vendor submodules). Its verified
+714,378,661-byte Q Exactive HF HeLa RAW produced 38,419 spectra and 13,510,675
+saved-centroid peaks in a single warm-cache 2.40-second release run on Apple M4.
+Every represented peak bit and exported scan metadata field matched rawr's
+mzML; full CRC/data validation and Python streaming readback passed. Output was
+83,233,835 bytes. These figures do not describe profile-array preservation.
+
+The current five-sample synthetic medians are 95.1 ms for compressed decode
+versus 128.6 ms for the scalar reference (1.35x), and 21.5 ms for ZSTD 3
+serialization versus 38.1 ms at level 9. The latter compares compression
+settings, not an isolated writer-kernel speedup. See `purge.json` for commands,
+source fingerprint, exact values and limits.
+
+## Earlier revision measurements
+
 `performance.json` records the compiler, CPU, fixture and command for the
 reproducible in-memory benchmark. The reference is the previous scalar
 Base64 → inflate → float-copy shape, run alongside the shared decoder with the

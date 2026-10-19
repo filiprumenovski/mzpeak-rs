@@ -389,6 +389,9 @@ impl<W: Write + Seek + Send> SpectraWriter<W> {
     ///
     /// A new SpectraWriter ready to write spectrum metadata.
     pub fn new(writer: W, config: &SpectraWriterConfig) -> Result<Self, WriterError> {
+        if let CompressionType::Zstd(level) = config.compression {
+            ZstdLevel::try_new(level)?;
+        }
         if config.row_group_size == 0 {
             return Err(WriterError::InvalidData(
                 "row_group_size must be positive".into(),

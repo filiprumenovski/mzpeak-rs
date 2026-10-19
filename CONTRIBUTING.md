@@ -1,27 +1,21 @@
 # Contributing
 
-Use Rust 1.98+ and initialize the pinned Bruker dependency with
-`git submodule update --init --recursive` before running Cargo.
+Initialize submodules and use Rust 1.98+. Run the test matrix and formatting
+commands in the README. Format the root package with `cargo fmt --package
+mzpeak`; do not reformat the pinned vendor checkout.
 
-Changes must preserve peak precision, explicit nulls, units, empty spectra,
-source provenance and bounded streaming behavior. Failed conversion must not
-publish a successful-looking output. Never silently skip a malformed scan.
+A change must preserve numerical widths, explicit nulls, source units,
+calibration, empty spectra, provenance and bounded streaming behavior. Decode
+failures must not skip scans or publish a completed-looking output. Regressions
+must exercise the data or failure contract, rather than matching the code's
+implementation. Python changes need an installed-wheel smoke test on Python
+3.11 with NumPy 1.x.
 
-Run `just check` or the equivalent commands in the README. Python changes also
-need `PYO3_PYTHON=python3.11 cargo check --all-targets --all-features` and a
-maturin build in a Python 3.11 virtual environment. The bundled rawr binary is
-an independent component; its update procedure is in `vendor/rawr-ms/README.md`.
+Keep performance claims reproducible: record the input identity, compiler,
+machine, compression, cache state, timing scope and fidelity. Check real RAW
+input against an independent export reader. Source-saved centroids are not a
+claim of preserving an entire RAW file. Do not commit instrument data.
 
-Keep performance experiments reproducible. Record the machine, compiler,
-input shape, command, output fidelity, compression and median timing. Measure
-decoding separately from serialization and report complete conversion time
-when claiming a workflow improvement. A synthetic benchmark alone does not
-establish throughput on an instrument corpus.
-
-Existing style and deprecation warnings are visible in Clippy output; fix them
-where they affect your change. Format the mzpeak package rather than its pinned
-vendored dependency. Add regression tests for changed data or failure semantics.
-
-This repository's experimental layouts differ from the current HUPO-PSI mzPeak
-specification. Do not claim interchange compatibility without an independent
-cross-reader test.
+There is no v1 compatibility layer. Extend the one v2 pipeline instead of adding
+another writer, reader, conversion branch or Python wrapper hierarchy. These
+experimental layouts do not claim current HUPO-PSI interchange compatibility.

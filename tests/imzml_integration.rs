@@ -124,17 +124,17 @@ fn test_imzml_conversion_roundtrip() {
     assert_eq!(spectra.len(), 2);
 
     let s1 = spectra[0].to_owned().unwrap();
-    assert_eq!(s1.pixel_x, Some(1));
-    assert_eq!(s1.pixel_y, Some(1));
-    assert_eq!(s1.pixel_z, None);
+    assert_eq!(s1.metadata.pixel_x, Some(1));
+    assert_eq!(s1.metadata.pixel_y, Some(1));
+    assert_eq!(s1.metadata.pixel_z, None);
     assert_eq!(s1.peak_count(), 3);
     assert!((s1.peaks.mz[0] - 100.0).abs() < 1e-6);
     assert!((s1.peaks.intensity[0] - 10.0).abs() < 1e-6);
 
     let s2 = spectra[1].to_owned().unwrap();
-    assert_eq!(s2.pixel_x, Some(1));
-    assert_eq!(s2.pixel_y, Some(2));
-    assert_eq!(s2.pixel_z, Some(3));
+    assert_eq!(s2.metadata.pixel_x, Some(1));
+    assert_eq!(s2.metadata.pixel_y, Some(2));
+    assert_eq!(s2.metadata.pixel_z, Some(3));
     assert_eq!(s2.peak_count(), 2);
     assert!((s2.peaks.mz[1] - 250.0).abs() < 1e-6);
     assert!((s2.peaks.intensity[1] - 25.0).abs() < 1e-6);

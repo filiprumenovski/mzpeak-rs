@@ -14,10 +14,7 @@ use crate::ingest::{IngestSpectrum, IngestSpectrumConverter};
 use crate::metadata::{MzPeakMetadata, SourceFileInfo, VendorHints};
 use crate::readers::{RawTdfFrame, TdfStreamer};
 use crate::schema::manifest::Modality;
-use crate::writer::{
-    OptionalColumnBuf, PeakArrays, PeaksWriterV2Config, SpectraWriterConfig, SpectrumArrays,
-    SpectrumV2, WriterConfig,
-};
+use crate::writer::{OptionalColumnBuf, PeakArrays, SpectrumV2, WriterConfig};
 
 use super::error::TdfError;
 
@@ -83,85 +80,6 @@ impl TdfConverter {
         Self { config }
     }
 
-    /// Convert a Bruker TDF dataset to SpectrumArrays.
-    pub fn try_convert<P: AsRef<Path>>(path: P) -> Result<Vec<SpectrumArrays>, TdfError> {
-        let converter = Self::new();
-        converter.convert(path)
-    }
-
-    /// Convert a Bruker TDF dataset to SpectrumArrays.
-    pub fn convert<P: AsRef<Path>>(&self, path: P) -> Result<Vec<SpectrumArrays>, TdfError> {
-        let path = path.as_ref();
-
-        // Validate path
-        if !path.exists() {
-            return Err(TdfError::InvalidPath(format!(
-                "Path does not exist: {}",
-                path.display()
-            )));
-        }
-
-        if !path.is_dir() {
-            return Err(TdfError::InvalidPath(format!(
-                "Not a directory: {}",
-                path.display()
-            )));
-        }
-
-        let mut streamer = TdfStreamer::new(path, self.config.batch_size)?;
-        let (tof_to_mz, scan_to_im, _rt_conv) = streamer.converters();
-
-        // Build precursor lookup (best-effort; absence is tolerated)
-        let precursors_by_frame = PrecursorReader::new(path)
-            .ok()
-            .map(|reader| build_precursor_map(&reader))
-            .unwrap_or_default();
-
-        let ctx = DecoderContext {
-            tof_to_mz: *tof_to_mz,
-            scan_to_im: *scan_to_im,
-            include_extended_metadata: self.config.include_extended_metadata,
-            precursors_by_frame,
-        };
-
-        let mut ingest_converter = IngestSpectrumConverter::new();
-        let mut next_spectrum_id: i64 = 0;
-        let mut spectra: Vec<SpectrumArrays> = Vec::new();
-
-        while let Some(raw_batch) = streamer.next_batch()? {
-            let mut indexed: Vec<IndexedRawFrame> = Vec::with_capacity(raw_batch.len());
-            for frame in raw_batch.into_iter() {
-                indexed.push(IndexedRawFrame {
-                    spectrum_id: next_spectrum_id,
-                    frame,
-                });
-                next_spectrum_id += 1;
-            }
-
-            // Parallel decode if available
-            #[cfg(feature = "mzml-parallel")]
-            let decoded: Vec<IngestSpectrum> = indexed
-                .into_par_iter()
-                .map(|raw| decode_raw_frame(raw, &ctx))
-                .collect::<Result<_, _>>()?;
-
-            #[cfg(not(feature = "mzml-parallel"))]
-            let decoded: Vec<IngestSpectrum> = indexed
-                .into_iter()
-                .map(|raw| decode_raw_frame(raw, &ctx))
-                .collect::<Result<_, _>>()?;
-
-            for ingest in decoded {
-                let spec = ingest_converter
-                    .convert(ingest)
-                    .map_err(|e| TdfError::PeakConversionError(format!("{e}")))?;
-                spectra.push(spec);
-            }
-        }
-
-        Ok(spectra)
-    }
-
     /// Convert a Bruker TDF dataset directly to an mzPeak v2.0 container.
     pub fn convert_to_v2_container<P: AsRef<Path>, Q: AsRef<Path>>(
         &self,
@@ -206,17 +124,7 @@ impl TdfConverter {
         let metadata = build_metadata(input_path);
         let vendor_hints = metadata.vendor_hints.clone();
 
-        let dataset_config = DatasetWriterV2Config {
-            spectra_config: SpectraWriterConfig {
-                compression: writer_config.compression,
-                ..Default::default()
-            },
-            peaks_config: PeaksWriterV2Config {
-                compression: writer_config.compression,
-                row_group_size: writer_config.row_group_size,
-                ..Default::default()
-            },
-        };
+        let dataset_config = DatasetWriterV2Config::from(&writer_config);
 
         let mut writer =
             MzPeakDatasetWriterV2::with_config(output_path, modality, vendor_hints, dataset_config)

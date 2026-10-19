@@ -61,6 +61,7 @@ impl ZipEntryChunkReader {
     pub fn new<P: AsRef<Path>>(zip_path: P, entry_name: &str) -> Result<Self, ReaderError> {
         let zip_path = zip_path.as_ref();
         let file = File::open(zip_path)?;
+        let file_size = file.metadata()?.len();
         let mut archive = ZipArchive::new(BufReader::new(file))?;
 
         let entry = archive.by_name(entry_name).map_err(|_| {
@@ -79,6 +80,15 @@ impl ZipEntryChunkReader {
 
         let entry_offset = entry.data_start();
         let entry_size = entry.size();
+        if entry.compressed_size() != entry_size
+            || entry_offset
+                .checked_add(entry_size)
+                .is_none_or(|end| end > file_size)
+        {
+            return Err(ReaderError::InvalidFormat(
+                "stored entry exceeds archive bounds".into(),
+            ));
+        }
 
         Ok(Self {
             zip_path: zip_path.to_path_buf(),
@@ -145,6 +155,11 @@ impl ChunkReader for ZipEntryChunkReader {
     type T = ZipEntrySliceReader;
 
     fn get_read(&self, start: u64) -> parquet::errors::Result<Self::T> {
+        if start > self.entry_size {
+            return Err(parquet::errors::ParquetError::General(
+                "read starts outside ZIP member".into(),
+            ));
+        }
         let mut file = File::open(&self.zip_path).map_err(|e| {
             parquet::errors::ParquetError::General(format!("Failed to open ZIP file: {}", e))
         })?;
@@ -165,6 +180,14 @@ impl ChunkReader for ZipEntryChunkReader {
     }
 
     fn get_bytes(&self, start: u64, length: usize) -> parquet::errors::Result<Bytes> {
+        if start
+            .checked_add(length as u64)
+            .is_none_or(|end| end > self.entry_size)
+        {
+            return Err(parquet::errors::ParquetError::General(
+                "byte range exceeds ZIP member".into(),
+            ));
+        }
         let mut file = File::open(&self.zip_path).map_err(|e| {
             parquet::errors::ParquetError::General(format!("Failed to open ZIP file: {}", e))
         })?;
@@ -175,11 +198,7 @@ impl ChunkReader for ZipEntryChunkReader {
                 parquet::errors::ParquetError::General(format!("Failed to seek in ZIP: {}", e))
             })?;
 
-        // Clamp length to not exceed entry boundary
-        let remaining = self.entry_size.saturating_sub(start) as usize;
-        let actual_length = std::cmp::min(length, remaining);
-
-        let mut buf = vec![0u8; actual_length];
+        let mut buf = vec![0u8; length];
         file.read_exact(&mut buf).map_err(|e| {
             parquet::errors::ParquetError::General(format!("Failed to read from ZIP: {}", e))
         })?;
@@ -187,13 +206,6 @@ impl ChunkReader for ZipEntryChunkReader {
         Ok(Bytes::from(buf))
     }
 }
-
-// SAFETY: ZipEntryChunkReader is Send + Sync because:
-// - zip_path is PathBuf (Send + Sync)
-// - entry_offset and entry_size are u64 (Send + Sync)
-// - Each method call opens a new file handle, so there's no shared mutable state
-unsafe impl Send for ZipEntryChunkReader {}
-unsafe impl Sync for ZipEntryChunkReader {}
 
 /// Arc-wrapped ZipEntryChunkReader for sharing across threads
 ///
@@ -292,6 +304,9 @@ mod tests {
             ZipEntryChunkReader::new(temp.path(), "peaks/peaks.parquet").expect("should open");
 
         // Read first 4 bytes (PAR1)
+        assert!(reader.get_bytes(u64::MAX, 1).is_err());
+        assert!(reader.get_bytes(27, 2).is_err());
+        assert!(reader.get_read(29).is_err());
         let bytes = reader.get_bytes(0, 4).expect("should read");
         assert_eq!(&bytes[..], b"PAR1");
 

@@ -88,6 +88,8 @@ impl VendorHints {
 /// Complete metadata container for an mzPeak file
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MzPeakMetadata {
+    #[serde(default, flatten)]
+    pub extensions: HashMap<String, serde_json::Value>,
     /// SDRF experimental metadata
     pub sdrf: Option<SdrfMetadata>,
 
