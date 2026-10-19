@@ -19,3 +19,7 @@ claim of preserving an entire RAW file. Do not commit instrument data.
 There is no v1 compatibility layer. Extend the one v2 pipeline instead of adding
 another writer, reader, conversion branch or Python wrapper hierarchy. These
 experimental layouts do not claim current HUPO-PSI interchange compatibility.
+
+Wheel platform tags are inferred from the build environment. Use a matching
+manylinux build container when targeting older Linux systems; do not force an
+older glibc tag on a wheel built by a current Ubuntu runner.

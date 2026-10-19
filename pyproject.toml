@@ -49,8 +49,7 @@ module-name = "mzpeak"
 bindings = "pyo3"
 # Strip symbols for smaller binaries
 strip = true
-# Compatibility with Python 3.8+
-compatibility = "manylinux2014"
+# Infer the wheel platform tag from the build environment.
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "python_tests"]
