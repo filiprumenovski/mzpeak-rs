@@ -48,7 +48,6 @@ pub struct RawMzMLSpectrum {
     // ========================================================================
     // Metadata fields (same as MzMLSpectrum)
     // ========================================================================
-
     /// Spectrum index (0-based)
     pub index: i64,
 
@@ -115,7 +114,6 @@ pub struct RawMzMLSpectrum {
     // ========================================================================
     // Raw Binary Data Containers (NOT decoded yet)
     // ========================================================================
-
     /// Raw m/z array data (Base64 + encoding info)
     pub mz_data: RawBinaryData,
 
@@ -128,7 +126,6 @@ pub struct RawMzMLSpectrum {
     // ========================================================================
     // CV and User Parameters
     // ========================================================================
-
     /// All CV parameters for this spectrum
     pub cv_params: Vec<CvParam>,
 
@@ -153,93 +150,6 @@ impl RawMzMLSpectrum {
         }
     }
 
-    /// Decode this raw spectrum into a fully decoded MzMLSpectrum
-    ///
-    /// This method performs the CPU-intensive Base64 decoding and
-    /// decompression. When using parallel processing, this should be
-    /// called from within a Rayon parallel iterator.
-    ///
-    /// # SIMD Acceleration
-    /// When the `parallel-decode` feature is enabled, this uses SIMD-accelerated
-    /// decoding for significantly improved performance (2-4x faster).
-    ///
-    /// # Errors
-    /// Returns an error if decoding fails (invalid Base64, decompression error, etc.)
-    #[cfg(feature = "parallel-decode")]
-    pub fn decode(self) -> Result<MzMLSpectrum, crate::mzml::binary::BinaryDecodeError> {
-        use crate::mzml::simd::decode_binary_array_simd;
-
-        // Decode binary arrays using SIMD-accelerated decoder
-        let mz_array = if !self.mz_data.is_empty() {
-            decode_binary_array_simd(
-                &self.mz_data.base64,
-                self.mz_data.encoding,
-                self.mz_data.compression,
-                Some(self.default_array_length),
-            )?
-        } else {
-            Vec::new()
-        };
-
-        let intensity_array = if !self.intensity_data.is_empty() {
-            decode_binary_array_simd(
-                &self.intensity_data.base64,
-                self.intensity_data.encoding,
-                self.intensity_data.compression,
-                Some(self.default_array_length),
-            )?
-        } else {
-            Vec::new()
-        };
-
-        let ion_mobility_array = if let Some(ref im_data) = self.ion_mobility_data {
-            decode_binary_array_simd(
-                &im_data.base64,
-                im_data.encoding,
-                im_data.compression,
-                Some(self.default_array_length),
-            )?
-        } else {
-            Vec::new()
-        };
-
-        Ok(MzMLSpectrum {
-            index: self.index,
-            id: self.id,
-            default_array_length: self.default_array_length,
-            ms_level: self.ms_level,
-            centroided: self.centroided,
-            polarity: self.polarity,
-            retention_time: self.retention_time,
-            total_ion_current: self.total_ion_current,
-            base_peak_mz: self.base_peak_mz,
-            base_peak_intensity: self.base_peak_intensity,
-            lowest_mz: self.lowest_mz,
-            highest_mz: self.highest_mz,
-            scan_window_lower: self.scan_window_lower,
-            scan_window_upper: self.scan_window_upper,
-            pixel_x: self.pixel_x,
-            pixel_y: self.pixel_y,
-            pixel_z: self.pixel_z,
-            ion_injection_time: self.ion_injection_time,
-            filter_string: self.filter_string,
-            preset_scan_configuration: self.preset_scan_configuration,
-            precursors: self.precursors,
-            mz_array,
-            intensity_array,
-            ion_mobility_array,
-            mz_precision_64bit: self.mz_data.encoding == BinaryEncoding::Float64,
-            intensity_precision_64bit: self.intensity_data.encoding == BinaryEncoding::Float64,
-            cv_params: self.cv_params,
-            user_params: self.user_params,
-        })
-    }
-
-    /// Decode this raw spectrum into a fully decoded MzMLSpectrum (non-SIMD fallback)
-    ///
-    /// This uses the standard BinaryDecoder when the `parallel-decode` feature
-    /// is not enabled.
-    #[cfg(not(feature = "parallel-decode"))]
     pub fn decode(self) -> Result<MzMLSpectrum, crate::mzml::binary::BinaryDecodeError> {
         use crate::mzml::binary::BinaryDecoder;
 

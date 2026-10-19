@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/filiprumenovski/rawr-ms",
+  "revision": "4c353b70f82b4edb01abbe1a433762541c2676ef",
+  "target": "aarch64-apple-darwin",
+  "rustc": "1.98.1",
+  "profile": "release",
+  "sha256": "b32ae9688590dc5b22429fa01a23f685f989c69b3a9d39c9c7f586b1e825b30a",
+  "bytes": 4800304
+}

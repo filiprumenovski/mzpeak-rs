@@ -1,188 +1,210 @@
-//! Streaming access to Thermo RAW files with batch iteration.
+//! Bounded RAW ingestion from the rawr executable's mzML stream.
 
-use std::path::Path;
+use std::fs::File;
+use std::io::{BufReader, Read, Seek, SeekFrom};
+use std::path::{Path, PathBuf};
+use std::process::{Child, ChildStdout, Command, Stdio};
 
-use thermorawfilereader::{RawFileReader, RawSpectrum};
-
+use crate::ingest::IngestSpectrum;
+use crate::mzml::{MzMLConverter, MzMLStreamer};
 use crate::thermo::ThermoError;
 
-/// Check if the current platform supports Thermo RAW file reading.
+/// Streams source-saved RAW centroids through rawr without a vendor runtime.
 ///
-/// Returns `Ok(())` if supported, `Err(ThermoError::PlatformNotSupported)` otherwise.
-fn check_platform_support() -> Result<(), ThermoError> {
-    // Thermo's RawFileReader .NET assemblies only support x86/x86_64 architectures
-    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
-    {
-        return Err(ThermoError::PlatformNotSupported(format!(
-            "Current architecture '{}' is not supported. \
-             Thermo RAW file reading requires Windows, Linux, or macOS on x86/x86_64. \
-             ARM-based systems (including Apple Silicon Macs) are not supported \
-             because Thermo's RawFileReader .NET libraries require x86 architecture.",
-            std::env::consts::ARCH
-        )));
-    }
-
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    Ok(())
-}
-
-/// Streaming access to Thermo RAW files with configurable batch sizes.
-///
-/// This streamer wraps `thermorawfilereader::RawFileReader` and provides
-/// batch-based iteration for memory-efficient processing of large RAW files.
-///
-/// # Example
-///
-/// ```no_run
-/// use mzpeak::thermo::ThermoStreamer;
-///
-/// let mut streamer = ThermoStreamer::new("sample.raw", 1000)?;
-/// println!("Total spectra: {}", streamer.len());
-///
-/// while let Some(batch) = streamer.next_batch()? {
-///     for spectrum in batch {
-///         println!("Scan {}: {} peaks", spectrum.index() + 1, 
-///             spectrum.data().map(|d| d.mz().len()).unwrap_or(0));
-///     }
-/// }
-/// # Ok::<(), mzpeak::thermo::ThermoError>(())
-/// ```
+/// The mzML intermediate travels through a pipe; it is never stored on disk.
+/// Process failures and incomplete streams are errors, including failures after
+/// the last spectrum. Dropping this reader terminates and reaps its child.
 pub struct ThermoStreamer {
-    reader: RawFileReader,
-    next_index: usize,
+    process: RawrProcess,
+    xml: MzMLStreamer<BufReader<ChildStdout>>,
+    converter: MzMLConverter,
     batch_size: usize,
     total_spectra: usize,
+    next_index: usize,
+    finished: bool,
+    // Keeps the extracted executable alive until the child has exited.
+    _executable: Option<tempfile::TempPath>,
+}
+
+struct RawrProcess {
+    child: Child,
+    stderr: File,
+}
+
+impl RawrProcess {
+    fn check(&mut self) -> Result<(), ThermoError> {
+        let status = self.child.wait()?;
+        if status.success() {
+            return Ok(());
+        }
+        self.stderr.seek(SeekFrom::Start(0))?;
+        let mut detail = String::new();
+        (&mut self.stderr).take(8192).read_to_string(&mut detail)?;
+        Err(ThermoError::Process(format!(
+            "exited with {status}: {}",
+            detail.trim()
+        )))
+    }
+}
+
+impl Drop for RawrProcess {
+    fn drop(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
 }
 
 impl ThermoStreamer {
-    /// Create a new streamer over a Thermo RAW file.
-    ///
-    /// # Arguments
-    /// * `path` - Path to the .raw file
-    /// * `batch_size` - Number of spectra to return per batch (minimum 1)
-    ///
-    /// # Errors
-    /// - `ThermoError::PlatformNotSupported` if running on ARM architecture
-    /// - `ThermoError::OpenError` if the file cannot be opened
-    /// - `ThermoError::RuntimeError` if .NET initialization fails
-    pub fn new<P: AsRef<Path>>(path: P, batch_size: usize) -> Result<Self, ThermoError> {
-        // Check platform support early with a clear message
-        check_platform_support()?;
+    /// Starts rawr with a maximum number of spectra per returned batch.
+    pub fn new(path: impl AsRef<Path>, batch_size: usize) -> Result<Self, ThermoError> {
+        Self::with_binary(path, batch_size, None)
+    }
 
+    pub(crate) fn with_binary(
+        path: impl AsRef<Path>,
+        batch_size: usize,
+        binary: Option<&Path>,
+    ) -> Result<Self, ThermoError> {
         let path = path.as_ref();
-
-        // Validate path exists and has .raw extension
-        if !path.exists() {
-            return Err(ThermoError::InvalidPath(format!(
-                "File does not exist: {}",
-                path.display()
-            )));
+        if !path.is_file()
+            || !path
+                .extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("raw"))
+        {
+            return Err(ThermoError::InvalidPath(path.display().to_string()));
         }
-
-        if path.extension().map(|e| e.to_ascii_lowercase()) != Some("raw".into()) {
-            return Err(ThermoError::InvalidPath(format!(
-                "Expected .raw extension: {}",
-                path.display()
-            )));
-        }
-
-        let mut reader = RawFileReader::open(path).map_err(|e| {
-            ThermoError::OpenError(format!("{}: {}", path.display(), e))
-        })?;
-
-        // Enable signal loading (peak data)
-        reader.set_signal_loading(true);
-        // Enable centroiding for profile spectra
-        reader.set_centroid_spectra(true);
-
-        let total_spectra = reader.len();
-        let batch_size = batch_size.max(1);
-
+        let (binary, executable) = resolve_binary(binary)?;
+        let stderr = tempfile::tempfile()?;
+        let mut child = Command::new(&binary)
+            .args([
+                "--color", "never", "convert", "--format", "mzml", "--output", "-", "--plain", "--",
+            ])
+            .arg(path)
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(stderr.try_clone()?)
+            .spawn()
+            .map_err(|error| {
+                ThermoError::Process(format!(
+                    "cannot start {}: {error}; set MZPEAK_RAWR to a compatible rawr executable",
+                    binary.display()
+                ))
+            })?;
+        let stdout = child
+            .stdout
+            .take()
+            .ok_or_else(|| ThermoError::Process("stdout pipe unavailable".into()))?;
+        let mut process = RawrProcess { child, stderr };
+        let mut xml = MzMLStreamer::new(BufReader::with_capacity(1 << 20, stdout))?;
+        xml.read_metadata()?;
+        let total_spectra = match xml.spectrum_count() {
+            Some(count) => count,
+            None => {
+                process.check()?;
+                return Err(ThermoError::Process(
+                    "mzML header has no spectrum count".into(),
+                ));
+            }
+        };
         Ok(Self {
-            reader,
-            next_index: 0,
-            batch_size,
+            process,
+            xml,
+            converter: MzMLConverter::new(),
+            batch_size: batch_size.max(1),
             total_spectra,
+            next_index: 0,
+            finished: false,
+            _executable: executable,
         })
     }
 
-    /// Total number of spectra in the RAW file.
+    /// Total mass spectra advertised by rawr's mzML header.
     pub fn len(&self) -> usize {
         self.total_spectra
     }
 
-    /// Whether the RAW file is empty.
+    /// Whether the advertised run is empty.
     pub fn is_empty(&self) -> bool {
         self.total_spectra == 0
     }
 
-    /// Current position in the file (0-based index of next spectrum to read).
+    /// Number of spectra returned so far.
     pub fn position(&self) -> usize {
         self.next_index
     }
 
-    /// Reset the streamer to the beginning of the file.
-    pub fn reset(&mut self) {
-        self.next_index = 0;
-    }
-
-    /// Get a reference to the underlying RawFileReader for metadata access.
-    pub fn reader(&self) -> &RawFileReader {
-        &self.reader
-    }
-
-    /// Fetch the next batch of raw spectra.
-    ///
-    /// Returns `Ok(None)` when all spectra have been read.
-    /// Returns `Ok(Some(Vec<RawSpectrum>))` with the next batch.
-    ///
-    /// # Errors
-    /// Returns `ThermoError::ReadError` if spectrum reading fails.
-    pub fn next_batch(&mut self) -> Result<Option<Vec<RawSpectrum>>, ThermoError> {
-        if self.next_index >= self.total_spectra {
+    /// Reads the next batch. `None` means the stream and child both completed.
+    pub fn next_batch(&mut self) -> Result<Option<Vec<IngestSpectrum>>, ThermoError> {
+        if self.finished {
             return Ok(None);
         }
-
-        let end = (self.next_index + self.batch_size).min(self.total_spectra);
-        let mut batch = Vec::with_capacity(end - self.next_index);
-
-        for idx in self.next_index..end {
-            match self.reader.get(idx) {
-                Some(spectrum) => batch.push(spectrum),
-                None => {
-                    // Log warning but continue - some scans may be missing
-                    eprintln!(
-                        "⚠️  Skipping spectrum {} (read returned None)",
-                        idx + 1
-                    );
+        let mut batch = Vec::new();
+        while batch.len() < self.batch_size {
+            let Some(raw) = self.xml.next_raw_spectrum()? else {
+                // Drain the document trailer before waiting for a piped writer.
+                while self.xml.next_chromatogram()?.is_some() {}
+                self.xml.finish_document()?;
+                self.process.check()?;
+                if self.next_index + batch.len() != self.total_spectra {
+                    return Err(ThermoError::Process(format!(
+                        "expected {} spectra, received {}",
+                        self.total_spectra,
+                        self.next_index + batch.len()
+                    )));
                 }
+                self.finished = true;
+                break;
+            };
+            if self.next_index + batch.len() >= self.total_spectra {
+                return Err(ThermoError::Process(
+                    "more spectra than the header advertises".into(),
+                ));
             }
+            if !raw.centroided {
+                return Err(ThermoError::UnsupportedRepresentation(
+                    "expected source-saved centroids".into(),
+                ));
+            }
+            let base_peak_mz = raw.base_peak_mz;
+            let decoded = self.converter.build_ingest_spectrum_raw(raw)?;
+            let mut ingest = decoded.ingest;
+            ingest.total_ion_current = decoded.total_ion_current;
+            ingest.base_peak_mz = base_peak_mz;
+            ingest.base_peak_intensity = decoded.base_peak_intensity.map(|value| value as f32);
+            ingest
+                .validate_contract()
+                .map_err(|error| ThermoError::PeakConversionError(error.to_string()))?;
+            batch.push(ingest);
         }
-
-        self.next_index = end;
-        Ok(Some(batch))
-    }
-
-    /// Get instrument model information.
-    pub fn instrument_model(&self) -> String {
-        let model = self.reader.instrument_model();
-        model.model().unwrap_or("Unknown").to_string()
-    }
-
-    /// Get file description/metadata.
-    pub fn file_description(&self) -> thermorawfilereader::FileDescription {
-        self.reader.file_description()
+        self.next_index += batch.len();
+        Ok((!batch.is_empty()).then_some(batch))
     }
 }
 
-impl std::fmt::Debug for ThermoStreamer {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ThermoStreamer")
-            .field("total_spectra", &self.total_spectra)
-            .field("next_index", &self.next_index)
-            .field("batch_size", &self.batch_size)
-            .finish()
+fn resolve_binary(
+    override_path: Option<&Path>,
+) -> Result<(PathBuf, Option<tempfile::TempPath>), ThermoError> {
+    if let Some(path) = override_path {
+        return Ok((path.to_path_buf(), None));
     }
+    if let Some(path) = std::env::var_os("MZPEAK_RAWR") {
+        return Ok((path.into(), None));
+    }
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    {
+        use std::io::Write;
+        use std::os::unix::fs::PermissionsExt;
+        let mut file = tempfile::NamedTempFile::new()?;
+        file.write_all(include_bytes!(
+            "../../../vendor/rawr-ms/bin/aarch64-apple-darwin/rawr"
+        ))?;
+        file.as_file()
+            .set_permissions(std::fs::Permissions::from_mode(0o700))?;
+        let path = file.into_temp_path();
+        return Ok((path.to_path_buf(), Some(path)));
+    }
+    #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+    Ok((PathBuf::from("rawr"), None))
 }
 
 #[cfg(test)]
@@ -190,21 +212,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_invalid_path() {
-        let result = ThermoStreamer::new("/nonexistent/file.raw", 100);
-        assert!(matches!(result, Err(ThermoError::InvalidPath(_))));
-    }
-
-    #[test]
-    fn test_wrong_extension() {
-        // Create a temp file with wrong extension
-        let temp_dir = std::env::temp_dir();
-        let fake_file = temp_dir.join("test.mzML");
-        std::fs::write(&fake_file, "fake").ok();
-
-        let result = ThermoStreamer::new(&fake_file, 100);
-        assert!(matches!(result, Err(ThermoError::InvalidPath(_))));
-
-        std::fs::remove_file(&fake_file).ok();
+    fn rejects_invalid_paths_before_starting_rawr() {
+        assert!(matches!(
+            ThermoStreamer::new("/nonexistent/file.raw", 100),
+            Err(ThermoError::InvalidPath(_))
+        ));
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("test.mzML");
+        std::fs::write(&path, b"fake").unwrap();
+        assert!(matches!(
+            ThermoStreamer::new(path, 100),
+            Err(ThermoError::InvalidPath(_))
+        ));
     }
 }

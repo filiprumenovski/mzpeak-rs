@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use timsrust::{AcquisitionType, Frame, MaldiInfo, MSLevel, QuadrupoleSettings};
+use timsrust::{AcquisitionType, Frame, MSLevel, MaldiInfo, QuadrupoleSettings};
 
 /// Raw TDF frame with deferred binary payloads and minimal metadata needed for decode.
 #[derive(Debug)]
@@ -48,7 +48,11 @@ impl RawTdfFrame {
             maldi_info,
         } = frame;
 
-        let window_group = if window_group > 0 { Some(window_group) } else { None };
+        let window_group = if window_group > 0 {
+            Some(window_group)
+        } else {
+            None
+        };
         // Only keep quadrupole settings when they are populated (DIA/PASEF frames).
         let quadrupole_settings = if window_group.is_some() {
             Some(quadrupole_settings)

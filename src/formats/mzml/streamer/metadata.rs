@@ -13,47 +13,58 @@ impl<R: BufRead> MzMLStreamer<R> {
         let mut buf = Vec::new();
         loop {
             match self.reader.read_event_into(&mut buf) {
-                Ok(Event::Start(ref e)) => match e.name().as_ref() {
-                    b"mzML" => {
-                        self.metadata.version = get_attribute(e, "version")?;
+                Ok(Event::Start(ref e)) => {
+                    if self.document_root.is_none() {
+                        self.document_root = Some(e.name().as_ref().to_vec());
                     }
-                    b"fileDescription" => {
-                        self.parse_file_description()?;
+                    match e.name().as_ref() {
+                        b"mzML" => {
+                            self.metadata.version = get_attribute(e, "version")?;
+                        }
+                        b"fileDescription" => {
+                            self.parse_file_description()?;
+                        }
+                        b"softwareList" => {
+                            self.parse_software_list()?;
+                        }
+                        b"instrumentConfigurationList" => {
+                            self.parse_instrument_configuration_list()?;
+                        }
+                        b"dataProcessingList" => {
+                            self.parse_data_processing_list()?;
+                        }
+                        b"sampleList" => {
+                            self.parse_sample_list()?;
+                        }
+                        b"run" => {
+                            self.metadata.run_id = get_attribute(e, "id")?;
+                            self.metadata.run_start_time = get_attribute(e, "startTimeStamp")?;
+                            self.metadata.default_instrument_configuration_ref =
+                                get_attribute(e, "defaultInstrumentConfigurationRef")?;
+                            self.metadata.default_source_file_ref =
+                                get_attribute(e, "defaultSourceFileRef")?;
+                        }
+                        b"spectrumList" => {
+                            self.in_spectrum_list = true;
+                            self.spectrum_count =
+                                get_attribute(e, "count")?.and_then(|s| s.parse().ok());
+                            break;
+                        }
+                        b"chromatogramList" => {
+                            self.in_chromatogram_list = true;
+                            self.chromatogram_count =
+                                get_attribute(e, "count")?.and_then(|s| s.parse().ok());
+                            break;
+                        }
+                        _ => {}
                     }
-                    b"softwareList" => {
-                        self.parse_software_list()?;
-                    }
-                    b"instrumentConfigurationList" => {
-                        self.parse_instrument_configuration_list()?;
-                    }
-                    b"dataProcessingList" => {
-                        self.parse_data_processing_list()?;
-                    }
-                    b"sampleList" => {
-                        self.parse_sample_list()?;
-                    }
-                    b"run" => {
-                        self.metadata.run_id = get_attribute(e, "id")?;
-                        self.metadata.run_start_time = get_attribute(e, "startTimeStamp")?;
-                        self.metadata.default_instrument_configuration_ref =
-                            get_attribute(e, "defaultInstrumentConfigurationRef")?;
-                        self.metadata.default_source_file_ref =
-                            get_attribute(e, "defaultSourceFileRef")?;
-                    }
-                    b"spectrumList" => {
-                        self.in_spectrum_list = true;
-                        self.spectrum_count =
-                            get_attribute(e, "count")?.and_then(|s| s.parse().ok());
-                        break;
-                    }
-                    b"chromatogramList" => {
-                        self.in_chromatogram_list = true;
-                        self.chromatogram_count =
-                            get_attribute(e, "count")?.and_then(|s| s.parse().ok());
-                        break;
-                    }
-                    _ => {}
-                },
+                }
+                Ok(Event::End(ref e))
+                    if self.document_root.as_deref() == Some(e.name().as_ref()) =>
+                {
+                    self.document_closed = true;
+                    break;
+                }
                 Ok(Event::Eof) => break,
                 Err(e) => return Err(MzMLError::XmlError(e)),
                 _ => {}
@@ -276,7 +287,9 @@ impl<R: BufRead> MzMLStreamer<R> {
             buf.clear();
         }
 
-        self.metadata.instrument_configurations.extend(pending_configs);
+        self.metadata
+            .instrument_configurations
+            .extend(pending_configs);
         Ok(())
     }
 
@@ -496,7 +509,11 @@ impl<R: BufRead> MzMLStreamer<R> {
     }
 
     /// Parse sample element content
-    fn parse_sample_content(&mut self, id: String, name: Option<String>) -> Result<Sample, MzMLError> {
+    fn parse_sample_content(
+        &mut self,
+        id: String,
+        name: Option<String>,
+    ) -> Result<Sample, MzMLError> {
         let mut sample = Sample {
             id,
             name,

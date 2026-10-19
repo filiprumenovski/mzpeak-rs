@@ -1,0 +1,3 @@
+[submodule "vendor/timsrust"]
+	path = vendor/timsrust
+	url = https://github.com/MannLabs/timsrust.git

@@ -1,0 +1,6 @@
+{
+  "spectra": 225,
+  "peaks": 156181,
+  "peak_fidelity": "bit exact at f64 m/z and f32 intensity",
+  "scan_metadata": "matched all exported fields"
+}

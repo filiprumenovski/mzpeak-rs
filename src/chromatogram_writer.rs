@@ -85,9 +85,12 @@ impl Default for ChromatogramWriterConfig {
 
 impl ChromatogramWriterConfig {
     /// Create writer properties from this configuration
-    fn to_writer_properties(&self, metadata: &std::collections::HashMap<String, String>) -> WriterProperties {
+    fn to_writer_properties(
+        &self,
+        metadata: &std::collections::HashMap<String, String>,
+    ) -> WriterProperties {
         let compression = Compression::ZSTD(
-            ZstdLevel::try_new(self.compression_level).unwrap_or(ZstdLevel::default())
+            ZstdLevel::try_new(self.compression_level).unwrap_or(ZstdLevel::default()),
         );
 
         let statistics = if self.write_statistics {
@@ -105,11 +108,15 @@ impl ChromatogramWriterConfig {
         // Disable dictionary encoding for array columns (high-cardinality data)
         // Arrays contain unique values, so dictionary encoding is inefficient
         builder = builder.set_column_dictionary_enabled(
-            parquet::schema::types::ColumnPath::new(vec![chromatogram_columns::TIME_ARRAY.to_string()]),
+            parquet::schema::types::ColumnPath::new(vec![
+                chromatogram_columns::TIME_ARRAY.to_string()
+            ]),
             false,
         );
         builder = builder.set_column_dictionary_enabled(
-            parquet::schema::types::ColumnPath::new(vec![chromatogram_columns::INTENSITY_ARRAY.to_string()]),
+            parquet::schema::types::ColumnPath::new(vec![
+                chromatogram_columns::INTENSITY_ARRAY.to_string()
+            ]),
             false,
         );
 
@@ -219,7 +226,10 @@ impl<W: Write + Send> ChromatogramWriter<W> {
     }
 
     /// Write a batch of chromatograms to the file
-    pub fn write_chromatograms(&mut self, chromatograms: &[Chromatogram]) -> Result<(), ChromatogramWriterError> {
+    pub fn write_chromatograms(
+        &mut self,
+        chromatograms: &[Chromatogram],
+    ) -> Result<(), ChromatogramWriterError> {
         if chromatograms.is_empty() {
             return Ok(());
         }
@@ -227,12 +237,13 @@ impl<W: Write + Send> ChromatogramWriter<W> {
         // Build arrays for each column
         let mut id_builder = StringBuilder::with_capacity(chromatograms.len(), 1024);
         let mut type_builder = StringBuilder::with_capacity(chromatograms.len(), 1024);
-        
+
         // Create list builders with proper field definitions matching the schema
         let time_field = Arc::new(Field::new("item", DataType::Float64, false));
         let intensity_field = Arc::new(Field::new("item", DataType::Float32, false));
         let mut time_array_builder = ListBuilder::new(Float64Builder::new()).with_field(time_field);
-        let mut intensity_array_builder = ListBuilder::new(Float32Builder::new()).with_field(intensity_field);
+        let mut intensity_array_builder =
+            ListBuilder::new(Float32Builder::new()).with_field(intensity_field);
 
         // Process each chromatogram
         for chromatogram in chromatograms {
@@ -283,7 +294,10 @@ impl<W: Write + Send> ChromatogramWriter<W> {
     }
 
     /// Write a single chromatogram
-    pub fn write_chromatogram(&mut self, chromatogram: &Chromatogram) -> Result<(), ChromatogramWriterError> {
+    pub fn write_chromatogram(
+        &mut self,
+        chromatogram: &Chromatogram,
+    ) -> Result<(), ChromatogramWriterError> {
         self.write_chromatograms(&[chromatogram.clone()])
     }
 
@@ -353,14 +367,14 @@ mod tests {
     fn test_chromatogram_creation() {
         let time = vec![0.0, 1.0, 2.0, 3.0];
         let intensity = vec![100.0, 200.0, 150.0, 50.0];
-        
+
         let chromatogram = Chromatogram::new(
             "TIC".to_string(),
             "TIC".to_string(),
             time.clone(),
             intensity.clone(),
         );
-        
+
         assert!(chromatogram.is_ok());
         let chromatogram = chromatogram.unwrap();
         assert_eq!(chromatogram.data_point_count(), 4);
@@ -370,16 +384,14 @@ mod tests {
     fn test_chromatogram_array_mismatch() {
         let time = vec![0.0, 1.0, 2.0];
         let intensity = vec![100.0, 200.0]; // One less element
-        
-        let result = Chromatogram::new(
-            "TIC".to_string(),
-            "TIC".to_string(),
-            time,
-            intensity,
-        );
-        
+
+        let result = Chromatogram::new("TIC".to_string(), "TIC".to_string(), time, intensity);
+
         assert!(result.is_err());
-        assert!(matches!(result, Err(ChromatogramWriterError::ArrayLengthMismatch { .. })));
+        assert!(matches!(
+            result,
+            Err(ChromatogramWriterError::ArrayLengthMismatch { .. })
+        ));
     }
 
     #[test]

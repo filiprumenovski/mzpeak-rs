@@ -33,4 +33,3 @@ pub enum TdfError {
     #[error("I/O error: {0}")]
     IoError(#[from] std::io::Error),
 }
-

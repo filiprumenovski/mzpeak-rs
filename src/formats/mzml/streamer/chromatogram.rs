@@ -12,6 +12,9 @@ use crate::mzml::models::{ChromatogramType, MzMLChromatogram};
 impl<R: BufRead> MzMLStreamer<R> {
     /// Read the next chromatogram from the stream
     pub fn next_chromatogram(&mut self) -> Result<Option<MzMLChromatogram>, MzMLError> {
+        if self.document_closed {
+            return Ok(None);
+        }
         self.event_buf.clear();
 
         loop {
@@ -36,6 +39,10 @@ impl<R: BufRead> MzMLStreamer<R> {
                     _ => {}
                 },
                 Ok(Event::End(ref e)) => {
+                    if self.document_root.as_deref() == Some(e.name().as_ref()) {
+                        self.document_closed = true;
+                        return Ok(None);
+                    }
                     if e.name().as_ref() == b"chromatogramList" {
                         self.in_chromatogram_list = false;
                         return Ok(None);

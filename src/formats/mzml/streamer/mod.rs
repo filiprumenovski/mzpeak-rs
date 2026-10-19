@@ -9,20 +9,20 @@ use quick_xml::Reader;
 
 use super::models::{MzMLFileMetadata, MzMLIndex};
 use crate::mzml::cv_params::CvParam;
-use crate::mzml::ExternalBinaryReader;
 use crate::mzml::streamer::spectrum::BinaryArrayContext;
+use crate::mzml::ExternalBinaryReader;
 
 pub use error::MzMLError;
 pub use index::DEFAULT_INPUT_BUFFER_SIZE;
 pub use iterators::{RawSpectrumIterator, SpectrumIterator};
 
+mod chromatogram;
 mod error;
 mod helpers;
 mod index;
 mod iterators;
 mod metadata;
 mod spectrum;
-mod chromatogram;
 
 #[cfg(test)]
 mod tests;
@@ -30,6 +30,8 @@ mod tests;
 /// Streaming parser for mzML files
 pub struct MzMLStreamer<R: BufRead> {
     reader: Reader<R>,
+    document_root: Option<Vec<u8>>,
+    document_closed: bool,
     metadata: MzMLFileMetadata,
     #[allow(dead_code)]
     index: MzMLIndex,
@@ -57,6 +59,8 @@ impl<R: BufRead> MzMLStreamer<R> {
 
         Ok(Self {
             reader: xml_reader,
+            document_root: None,
+            document_closed: false,
             metadata: MzMLFileMetadata::default(),
             index: MzMLIndex::default(),
             in_spectrum_list: false,
@@ -102,5 +106,38 @@ impl<R: BufRead> MzMLStreamer<R> {
     /// This is useful for collecting spectra before parallel decoding.
     pub fn raw_spectra(self) -> RawSpectrumIterator<R> {
         RawSpectrumIterator { streamer: self }
+    }
+}
+
+impl<R: BufRead> MzMLStreamer<R> {
+    /// Consume the trailer and require a complete, single XML document.
+    pub fn finish_document(&mut self) -> Result<(), MzMLError> {
+        use quick_xml::events::Event;
+        loop {
+            self.event_buf.clear();
+            match self.reader.read_event_into(&mut self.event_buf)? {
+                Event::End(ref e) if self.document_root.as_deref() == Some(e.name().as_ref()) => {
+                    self.document_closed = true
+                }
+                Event::Start(_) | Event::Empty(_) if self.document_closed => {
+                    return Err(MzMLError::InvalidStructure(
+                        "trailing XML element after document root".into(),
+                    ))
+                }
+                Event::Text(ref t)
+                    if self.document_closed && !t.as_ref().iter().all(u8::is_ascii_whitespace) =>
+                {
+                    return Err(MzMLError::InvalidStructure(
+                        "trailing text after document root".into(),
+                    ))
+                }
+                Event::Eof => break,
+                _ => {}
+            }
+        }
+        if !self.document_closed {
+            return Err(MzMLError::InvalidStructure("truncated XML document".into()));
+        }
+        Ok(())
     }
 }

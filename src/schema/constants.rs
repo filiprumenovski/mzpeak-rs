@@ -2,13 +2,13 @@
 pub const MS_CV_PREFIX: &str = "MS";
 
 /// mzPeak format version - follows semantic versioning
-pub const MZPEAK_FORMAT_VERSION: &str = "1.0.0";
+pub const MZPEAK_FORMAT_VERSION: &str = "2.0";
 
 /// File extension for mzPeak files (legacy single-file format)
 pub const MZPEAK_EXTENSION: &str = ".mzpeak.parquet";
 
 /// MIME type for mzPeak container files (public for use in validator and dataset modules)
-pub const MZPEAK_MIMETYPE: &str = "application/vnd.mzpeak";
+pub const MZPEAK_MIMETYPE: &str = "application/vnd.mzpeak+v2";
 
 /// Metadata key for format version in Parquet footer
 pub const KEY_FORMAT_VERSION: &str = "mzpeak:format_version";

@@ -48,10 +48,10 @@ use parquet::format::KeyValue;
 use parquet::schema::types::ColumnPath;
 
 use crate::schema::spectra_columns::{
-    create_spectra_schema_arc, BASE_PEAK_INTENSITY, BASE_PEAK_MZ, COLLISION_ENERGY,
-    INJECTION_TIME, ISOLATION_WINDOW_LOWER, ISOLATION_WINDOW_UPPER, MS_LEVEL, PEAK_OFFSET,
-    POLARITY, PRECURSOR_CHARGE, PRECURSOR_INTENSITY, PRECURSOR_MZ, RETENTION_TIME,
-    SPECTRUM_ID, TOTAL_ION_CURRENT,
+    create_spectra_schema_arc, BASE_PEAK_INTENSITY, BASE_PEAK_MZ, COLLISION_ENERGY, INJECTION_TIME,
+    ISOLATION_WINDOW_LOWER, ISOLATION_WINDOW_UPPER, MS_LEVEL, PEAK_OFFSET, POLARITY,
+    PRECURSOR_CHARGE, PRECURSOR_INTENSITY, PRECURSOR_MZ, RETENTION_TIME, SPECTRUM_ID,
+    TOTAL_ION_CURRENT,
 };
 
 use super::config::CompressionType;
@@ -88,8 +88,8 @@ pub struct SpectraWriterConfig {
 impl Default for SpectraWriterConfig {
     fn default() -> Self {
         Self {
-            // ZSTD level 9 for good compression
-            compression: CompressionType::Zstd(9),
+            // Balanced compression; callers can opt into higher levels.
+            compression: CompressionType::Zstd(3),
             // 10k spectra per row group is a good balance for spectrum-level data
             row_group_size: 10_000,
             // 1MB data pages
@@ -128,17 +128,11 @@ impl SpectraWriterConfig {
 
         // Enable dictionary encoding for columns that benefit from it
         // These columns often have repeated values across many spectra
-        let dict_columns = [
-            MS_LEVEL,
-            POLARITY,
-            PRECURSOR_CHARGE,
-        ];
+        let dict_columns = [MS_LEVEL, POLARITY, PRECURSOR_CHARGE];
 
         for col in dict_columns {
-            builder = builder.set_column_dictionary_enabled(
-                ColumnPath::new(vec![col.to_string()]),
-                true,
-            );
+            builder =
+                builder.set_column_dictionary_enabled(ColumnPath::new(vec![col.to_string()]), true);
         }
 
         // Disable dictionary for high-cardinality columns
@@ -152,10 +146,8 @@ impl SpectraWriterConfig {
         ];
 
         for col in no_dict_columns {
-            builder = builder.set_column_dictionary_enabled(
-                ColumnPath::new(vec![col.to_string()]),
-                false,
-            );
+            builder = builder
+                .set_column_dictionary_enabled(ColumnPath::new(vec![col.to_string()]), false);
         }
 
         // Use BYTE_STREAM_SPLIT for floating-point columns
@@ -331,8 +323,10 @@ impl ColumnBuffers {
         self.precursor_mz.push(metadata.precursor_mz);
         self.precursor_charge.push(metadata.precursor_charge);
         self.precursor_intensity.push(metadata.precursor_intensity);
-        self.isolation_window_lower.push(metadata.isolation_window_lower);
-        self.isolation_window_upper.push(metadata.isolation_window_upper);
+        self.isolation_window_lower
+            .push(metadata.isolation_window_lower);
+        self.isolation_window_upper
+            .push(metadata.isolation_window_upper);
         self.collision_energy.push(metadata.collision_energy);
         self.total_ion_current.push(metadata.total_ion_current);
         self.base_peak_mz.push(metadata.base_peak_mz);
@@ -395,6 +389,14 @@ impl<W: Write + Seek + Send> SpectraWriter<W> {
     ///
     /// A new SpectraWriter ready to write spectrum metadata.
     pub fn new(writer: W, config: &SpectraWriterConfig) -> Result<Self, WriterError> {
+        if let CompressionType::Zstd(level) = config.compression {
+            ZstdLevel::try_new(level)?;
+        }
+        if config.row_group_size == 0 {
+            return Err(WriterError::InvalidData(
+                "row_group_size must be positive".into(),
+            ));
+        }
         let schema = create_spectra_schema_arc();
         let props = config.to_writer_properties();
 
@@ -435,7 +437,10 @@ impl<W: Write + Seek + Send> SpectraWriter<W> {
     /// # Returns
     ///
     /// `Ok(())` on success, or an error if writing fails.
-    pub fn write_spectrum_metadata(&mut self, metadata: &SpectrumMetadata) -> Result<(), WriterError> {
+    pub fn write_spectrum_metadata(
+        &mut self,
+        metadata: &SpectrumMetadata,
+    ) -> Result<(), WriterError> {
         self.buffers.push(metadata, self.current_peak_offset);
         self.spectra_written += 1;
 
@@ -794,7 +799,11 @@ mod tests {
             .collect();
 
         // Write as batch with offsets
-        let batch: Vec<_> = spectra.iter().enumerate().map(|(i, m)| (m, i as u64 * 1000)).collect();
+        let batch: Vec<_> = spectra
+            .iter()
+            .enumerate()
+            .map(|(i, m)| (m, i as u64 * 1000))
+            .collect();
         writer
             .write_spectrum_metadata_batch(batch)
             .expect("Failed to write batch");

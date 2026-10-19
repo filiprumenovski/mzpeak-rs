@@ -1,24 +1,16 @@
 //! Streaming access to Bruker TDF frames with deferred binary data.
 
-use std::ops::Range;
 use std::path::Path;
 use std::sync::Arc;
 
-use timsrust::converters::{ConvertableDomain, Frame2RtConverter, Scan2ImConverter, Tof2MzConverter};
+use timsrust::converters::{
+    ConvertableDomain, Frame2RtConverter, Scan2ImConverter, Tof2MzConverter,
+};
 use timsrust::readers::{FrameReader, MetadataReader};
 
 use crate::tdf::error::TdfError;
 
 use super::RawTdfFrame;
-
-/// A partition of frames for parallel processing.
-#[derive(Debug, Clone)]
-pub struct FramePartition {
-    /// Range of frame indices in this partition
-    pub range: Range<usize>,
-    /// Estimated total peaks in this partition (for load balancing info)
-    pub estimated_peaks: usize,
-}
 
 /// Streaming access to TDF frames with deferred binary data and shared converters.
 pub struct TdfStreamer {
@@ -87,20 +79,15 @@ impl TdfStreamer {
                         self.rt_converter.convert(frame.index as u32)
                     } else {
                         // Fallback for out-of-bounds frame index (shouldn't happen in normal operation)
-                        eprintln!("⚠️  Frame {} has out-of-bounds index, using native RT: {:.2}s",
-                            frame_idx, frame.rt_in_seconds);
+                        eprintln!(
+                            "⚠️  Frame {} has out-of-bounds index, using native RT: {:.2}s",
+                            frame_idx, frame.rt_in_seconds
+                        );
                         frame.rt_in_seconds
                     };
                     batch.push(RawTdfFrame::from_frame(frame, rt_seconds));
                 }
                 Err(e) => {
-                    // Skip decompression errors (known issue with some AlphaTims samples)
-                    let err_str = format!("{e}");
-                    if err_str.contains("Decompression") {
-                        eprintln!("⚠️  Skipping frame {} (decompression error): {}", frame_idx, e);
-                        continue;
-                    }
-                    // Propagate other errors
                     return Err(TdfError::FrameParsingError(format!(
                         "Failed to read frame {frame_idx}: {e}"
                     )));
@@ -110,85 +97,5 @@ impl TdfStreamer {
 
         self.next_index = end;
         Ok(Some(batch))
-    }
-
-    /// Partition the dataset into N roughly equal parts for parallel processing.
-    /// Partitions are balanced by frame count (could be enhanced to use peak count hints).
-    pub fn partition(&self, num_workers: usize) -> Vec<FramePartition> {
-        let total = self.frame_reader.len();
-        if total == 0 || num_workers == 0 {
-            return vec![];
-        }
-
-        let num_workers = num_workers.min(total);
-        let base_size = total / num_workers;
-        let remainder = total % num_workers;
-
-        let mut partitions = Vec::with_capacity(num_workers);
-        let mut start = 0;
-
-        for i in 0..num_workers {
-            // Distribute remainder across first `remainder` partitions
-            let extra = if i < remainder { 1 } else { 0 };
-            let size = base_size + extra;
-            let end = start + size;
-
-            partitions.push(FramePartition {
-                range: start..end,
-                estimated_peaks: 0, // Could query SQL for NumPeaks hints
-            });
-
-            start = end;
-        }
-
-        partitions
-    }
-
-    /// Read a specific range of frames (for parallel worker processing).
-    /// Returns frames with their assigned spectrum IDs based on offset.
-    pub fn read_range(
-        &self,
-        range: Range<usize>,
-        spectrum_id_offset: i64,
-    ) -> Result<Vec<(i64, RawTdfFrame)>, TdfError> {
-        let mut result = Vec::with_capacity(range.len());
-
-        for (i, frame_idx) in range.clone().enumerate() {
-            let spectrum_id = spectrum_id_offset + i as i64;
-
-            match self.frame_reader.get(frame_idx) {
-                Ok(frame) => {
-                    let rt_seconds = if frame.index < self.frame_reader.len() {
-                        self.rt_converter.convert(frame.index as u32)
-                    } else {
-                        frame.rt_in_seconds
-                    };
-                    result.push((spectrum_id, RawTdfFrame::from_frame(frame, rt_seconds)));
-                }
-                Err(e) => {
-                    let err_str = format!("{e}");
-                    if err_str.contains("Decompression") {
-                        eprintln!("⚠️  Skipping frame {} (decompression error): {}", frame_idx, e);
-                        continue;
-                    }
-                    return Err(TdfError::FrameParsingError(format!(
-                        "Failed to read frame {frame_idx}: {e}"
-                    )));
-                }
-            }
-        }
-
-        Ok(result)
-    }
-
-    /// Get a shared reference to the underlying frame reader.
-    /// Useful for parallel workers that need direct access.
-    pub fn frame_reader(&self) -> &FrameReader {
-        &self.frame_reader
-    }
-
-    /// Get the RT converter for use in parallel processing.
-    pub fn rt_converter(&self) -> Arc<Frame2RtConverter> {
-        self.rt_converter.clone()
     }
 }

@@ -9,9 +9,8 @@
 
 use std::io::Read;
 
+#[cfg(test)]
 use base64::prelude::*;
-use byteorder::{LittleEndian, ReadBytesExt};
-use flate2::read::ZlibDecoder;
 
 /// Compression types used in mzML binary data
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -88,220 +87,72 @@ pub enum BinaryDecodeError {
     UnsupportedCompression(CompressionType),
 }
 
-/// Decoder for mzML binary data arrays
+/// Decoder for checked mzML numeric arrays.
 pub struct BinaryDecoder;
 
+thread_local! {
+    static INFLATER: std::cell::RefCell<libdeflater::Decompressor> =
+        std::cell::RefCell::new(libdeflater::Decompressor::new());
+}
+
 impl BinaryDecoder {
-    /// Decode a Base64-encoded binary array from mzML
-    ///
-    /// # Arguments
-    /// * `base64_data` - The Base64-encoded string from the `<binary>` element
-    /// * `encoding` - The numerical precision (32 or 64 bit)
-    /// * `compression` - The compression type (none, zlib, etc.)
-    /// * `expected_length` - Expected number of values (from defaultArrayLength)
-    ///
-    /// # Returns
-    /// A `Vec<f64>` containing the decoded values
+    /// Decodes standard Base64, optional zlib, and little-endian f32/f64 values.
     pub fn decode(
         base64_data: &str,
         encoding: BinaryEncoding,
         compression: CompressionType,
         expected_length: Option<usize>,
     ) -> Result<Vec<f64>, BinaryDecodeError> {
-        // Skip if empty
-        let trimmed = base64_data.trim();
-        if trimmed.is_empty() {
-            return Ok(Vec::new());
-        }
-
-        // Step 1: Base64 decode
-        let decoded_bytes = BASE64_STANDARD.decode(trimmed)?;
-
-        // Step 2: Decompress if needed
-        let uncompressed = match compression {
-            CompressionType::None => decoded_bytes,
-            CompressionType::Zlib => {
-                let mut decoder = ZlibDecoder::new(&decoded_bytes[..]);
-                let mut uncompressed = Vec::new();
-                decoder.read_to_end(&mut uncompressed)?;
-                uncompressed
-            }
-            CompressionType::NumpressLinear
-            | CompressionType::NumpressPic
-            | CompressionType::NumpressSlof => {
-                // MS-Numpress is not commonly used; implement if needed
-                return Err(BinaryDecodeError::UnsupportedCompression(compression));
-            }
-        };
-
-        // Step 3: Convert bytes to floats
-        let values = Self::bytes_to_floats(&uncompressed, encoding)?;
-
-        // Validate length if expected
-        if let Some(expected) = expected_length {
-            if values.len() != expected {
-                return Err(BinaryDecodeError::InvalidLength {
-                    expected,
-                    actual: values.len(),
-                });
-            }
-        }
-
-        Ok(values)
+        let bytes = decode_base64(base64_data)?;
+        Self::decode_bytes(&bytes, encoding, compression, expected_length)
     }
 
-    /// Decode a Base64-encoded binary array from mzML into f32 values.
+    /// Decodes directly into f32 output without an intermediate f64 column.
     pub fn decode_f32(
         base64_data: &str,
         encoding: BinaryEncoding,
         compression: CompressionType,
         expected_length: Option<usize>,
     ) -> Result<Vec<f32>, BinaryDecodeError> {
-        let trimmed = base64_data.trim();
-        if trimmed.is_empty() {
-            return Ok(Vec::new());
-        }
-
-        let decoded_bytes = BASE64_STANDARD.decode(trimmed)?;
-
-        let uncompressed = match compression {
-            CompressionType::None => decoded_bytes,
-            CompressionType::Zlib => {
-                let mut decoder = ZlibDecoder::new(&decoded_bytes[..]);
-                let mut uncompressed = Vec::new();
-                decoder.read_to_end(&mut uncompressed)?;
-                uncompressed
-            }
-            CompressionType::NumpressLinear
-            | CompressionType::NumpressPic
-            | CompressionType::NumpressSlof => {
-                return Err(BinaryDecodeError::UnsupportedCompression(compression));
-            }
-        };
-
-        let values = Self::bytes_to_f32(&uncompressed, encoding)?;
-
-        if let Some(expected) = expected_length {
-            if values.len() != expected {
-                return Err(BinaryDecodeError::InvalidLength {
-                    expected,
-                    actual: values.len(),
-                });
-            }
-        }
-
-        Ok(values)
+        let bytes = decode_base64(base64_data)?;
+        let bytes = inflate(&bytes, encoding, compression, expected_length)?;
+        validate_length(&bytes, encoding, expected_length)?;
+        Ok(match encoding {
+            BinaryEncoding::Float32 => bytes
+                .chunks_exact(4)
+                .map(|v| f32::from_le_bytes([v[0], v[1], v[2], v[3]]))
+                .collect(),
+            BinaryEncoding::Float64 => bytes
+                .chunks_exact(8)
+                .map(|v| {
+                    f64::from_le_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]) as f32
+                })
+                .collect(),
+        })
     }
 
-    /// Decode a binary array from raw bytes (imzML external data).
+    /// Decodes an external imzML array, borrowing uncompressed input bytes.
     pub fn decode_bytes(
         bytes: &[u8],
         encoding: BinaryEncoding,
         compression: CompressionType,
         expected_length: Option<usize>,
     ) -> Result<Vec<f64>, BinaryDecodeError> {
-        let uncompressed = match compression {
-            CompressionType::None => bytes.to_vec(),
-            CompressionType::Zlib => {
-                let mut decoder = ZlibDecoder::new(bytes);
-                let mut uncompressed = Vec::new();
-                decoder.read_to_end(&mut uncompressed)?;
-                uncompressed
-            }
-            CompressionType::NumpressLinear
-            | CompressionType::NumpressPic
-            | CompressionType::NumpressSlof => {
-                return Err(BinaryDecodeError::UnsupportedCompression(compression));
-            }
-        };
-
-        let values = Self::bytes_to_floats(&uncompressed, encoding)?;
-        if let Some(expected) = expected_length {
-            if values.len() != expected {
-                return Err(BinaryDecodeError::InvalidLength {
-                    expected,
-                    actual: values.len(),
-                });
-            }
-        }
-
-        Ok(values)
+        let bytes = inflate(bytes, encoding, compression, expected_length)?;
+        validate_length(&bytes, encoding, expected_length)?;
+        Ok(match encoding {
+            BinaryEncoding::Float32 => bytes
+                .chunks_exact(4)
+                .map(|v| f64::from(f32::from_le_bytes([v[0], v[1], v[2], v[3]])))
+                .collect(),
+            BinaryEncoding::Float64 => bytes
+                .chunks_exact(8)
+                .map(|v| f64::from_le_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]))
+                .collect(),
+        })
     }
 
-    /// Convert raw bytes to f64 values based on encoding
-    fn bytes_to_floats(
-        bytes: &[u8],
-        encoding: BinaryEncoding,
-    ) -> Result<Vec<f64>, BinaryDecodeError> {
-        let byte_size = encoding.byte_size();
-
-        if bytes.len() % byte_size != 0 {
-            return Err(BinaryDecodeError::InvalidLength {
-                expected: bytes.len() / byte_size * byte_size,
-                actual: bytes.len(),
-            });
-        }
-
-        let count = bytes.len() / byte_size;
-        let mut values = Vec::with_capacity(count);
-        let mut cursor = std::io::Cursor::new(bytes);
-
-        match encoding {
-            BinaryEncoding::Float32 => {
-                for _ in 0..count {
-                    let val = cursor.read_f32::<LittleEndian>()?;
-                    values.push(val as f64);
-                }
-            }
-            BinaryEncoding::Float64 => {
-                for _ in 0..count {
-                    let val = cursor.read_f64::<LittleEndian>()?;
-                    values.push(val);
-                }
-            }
-        }
-
-        Ok(values)
-    }
-
-    fn bytes_to_f32(
-        bytes: &[u8],
-        encoding: BinaryEncoding,
-    ) -> Result<Vec<f32>, BinaryDecodeError> {
-        let byte_size = encoding.byte_size();
-
-        if bytes.len() % byte_size != 0 {
-            return Err(BinaryDecodeError::InvalidLength {
-                expected: bytes.len() / byte_size * byte_size,
-                actual: bytes.len(),
-            });
-        }
-
-        let count = bytes.len() / byte_size;
-        let mut values = Vec::with_capacity(count);
-        let mut cursor = std::io::Cursor::new(bytes);
-
-        match encoding {
-            BinaryEncoding::Float32 => {
-                for _ in 0..count {
-                    let val = cursor.read_f32::<LittleEndian>()?;
-                    values.push(val);
-                }
-            }
-            BinaryEncoding::Float64 => {
-                for _ in 0..count {
-                    let val = cursor.read_f64::<LittleEndian>()?;
-                    values.push(val as f32);
-                }
-            }
-        }
-
-        Ok(values)
-    }
-
-    /// Decode with automatic detection of encoding from CV params
-    ///
-    /// This is a convenience method that extracts encoding info from CV params
+    /// Resolves precision and compression from PSI-MS accessions, then decodes.
     pub fn decode_with_cv_params(
         base64_data: &str,
         cv_params: &[(String, Option<String>)],
@@ -309,18 +160,114 @@ impl BinaryDecoder {
     ) -> Result<(Vec<f64>, BinaryEncoding), BinaryDecodeError> {
         let mut encoding = BinaryEncoding::Float64;
         let mut compression = CompressionType::None;
-
-        for (accession, _value) in cv_params {
-            if let Some(enc) = BinaryEncoding::from_cv_accession(accession) {
-                encoding = enc;
+        for (accession, _) in cv_params {
+            if let Some(value) = BinaryEncoding::from_cv_accession(accession) {
+                encoding = value;
             }
-            if let Some(comp) = CompressionType::from_cv_accession(accession) {
-                compression = comp;
+            if let Some(value) = CompressionType::from_cv_accession(accession) {
+                compression = value;
             }
         }
+        Ok((
+            Self::decode(base64_data, encoding, compression, expected_length)?,
+            encoding,
+        ))
+    }
+}
 
-        let values = Self::decode(base64_data, encoding, compression, expected_length)?;
-        Ok((values, encoding))
+fn decode_base64(input: &str) -> Result<Vec<u8>, BinaryDecodeError> {
+    use base64::Engine;
+    let input = input.trim().as_bytes();
+    match base64::engine::general_purpose::STANDARD.decode(input) {
+        Ok(bytes) => Ok(bytes),
+        Err(error) => {
+            // Compact payloads avoid an extra full scan. Normalize XML
+            // whitespace only on the cold decode-failure path.
+            let cleaned: Vec<_> = input
+                .iter()
+                .copied()
+                .filter(|b| !b.is_ascii_whitespace())
+                .collect();
+            if cleaned.len() == input.len() {
+                return Err(error.into());
+            }
+            Ok(base64::engine::general_purpose::STANDARD.decode(cleaned)?)
+        }
+    }
+}
+
+fn validate_length(
+    bytes: &[u8],
+    encoding: BinaryEncoding,
+    expected: Option<usize>,
+) -> Result<(), BinaryDecodeError> {
+    let width = encoding.byte_size();
+    if bytes.len() % width != 0 {
+        return Err(BinaryDecodeError::InvalidLength {
+            expected: bytes.len() / width * width,
+            actual: bytes.len(),
+        });
+    }
+    if let Some(expected) = expected {
+        if bytes.len() / width != expected {
+            return Err(BinaryDecodeError::InvalidLength {
+                expected,
+                actual: bytes.len() / width,
+            });
+        }
+    }
+    Ok(())
+}
+
+// One decoded array is bounded independently of the number of scans in a run.
+const MAX_ARRAY_BYTES: usize = 1 << 30;
+
+fn inflate<'a>(
+    bytes: &'a [u8],
+    encoding: BinaryEncoding,
+    compression: CompressionType,
+    expected: Option<usize>,
+) -> Result<std::borrow::Cow<'a, [u8]>, BinaryDecodeError> {
+    use std::borrow::Cow;
+    match compression {
+        CompressionType::None => Ok(Cow::Borrowed(bytes)),
+        CompressionType::Zlib => {
+            if let Some(count) = expected {
+                let len = count
+                    .checked_mul(encoding.byte_size())
+                    .filter(|n| *n <= MAX_ARRAY_BYTES)
+                    .ok_or_else(|| {
+                        std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "decoded array exceeds 1 GiB",
+                        )
+                    })?;
+                let mut output = vec![0; len];
+                let written = INFLATER
+                    .with(|decoder| decoder.borrow_mut().zlib_decompress(bytes, &mut output))
+                    .map_err(|error| {
+                        std::io::Error::new(std::io::ErrorKind::InvalidData, error.to_string())
+                    })?;
+                output.truncate(written);
+                Ok(Cow::Owned(output))
+            } else {
+                // Streams lacking a declared count retain the bounded streaming
+                // decoder; the normal indexed-array path uses libdeflate.
+                let mut output = Vec::new();
+                flate2::read::ZlibDecoder::new(bytes)
+                    .take(MAX_ARRAY_BYTES as u64 + 1)
+                    .read_to_end(&mut output)?;
+                if output.len() > MAX_ARRAY_BYTES {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "decoded array exceeds 1 GiB",
+                    )
+                    .into());
+                }
+                Ok(Cow::Owned(output))
+            }
+        }
+        _ => Err(BinaryDecodeError::UnsupportedCompression(compression)),
     }
 }
 
@@ -377,13 +324,9 @@ mod tests {
 
     #[test]
     fn test_decode_empty() {
-        let result = BinaryDecoder::decode(
-            "",
-            BinaryEncoding::Float64,
-            CompressionType::None,
-            None,
-        )
-        .unwrap();
+        let result =
+            BinaryDecoder::decode("", BinaryEncoding::Float64, CompressionType::None, None)
+                .unwrap();
 
         assert!(result.is_empty());
     }
@@ -422,5 +365,98 @@ mod tests {
         for (i, v) in values.iter().enumerate() {
             assert!((result[i] - v).abs() < 1e-10);
         }
+    }
+}
+
+#[cfg(test)]
+mod contract_tests {
+    use super::*;
+    use base64::{engine::general_purpose::STANDARD, Engine};
+
+    #[test]
+    fn declared_empty_and_nonempty_lengths_are_checked() {
+        assert!(
+            BinaryDecoder::decode("", BinaryEncoding::Float64, CompressionType::None, Some(1))
+                .is_err()
+        );
+        assert!(
+            BinaryDecoder::decode("", BinaryEncoding::Float64, CompressionType::None, Some(0))
+                .unwrap()
+                .is_empty()
+        );
+        assert!(BinaryDecoder::decode(
+            &STANDARD.encode([1, 2, 3]),
+            BinaryEncoding::Float32,
+            CompressionType::None,
+            None
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn compressed_arrays_reject_truncation_corruption_and_unbounded_counts() {
+        use std::io::Write;
+        let mut encoder = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::fast());
+        encoder.write_all(&123.123456789_f64.to_le_bytes()).unwrap();
+        let mut bytes = encoder.finish().unwrap();
+        let encoded = STANDARD.encode(&bytes);
+        assert_eq!(
+            BinaryDecoder::decode(
+                &encoded,
+                BinaryEncoding::Float64,
+                CompressionType::Zlib,
+                Some(1)
+            )
+            .unwrap(),
+            [123.123456789]
+        );
+        assert!(BinaryDecoder::decode(
+            &encoded,
+            BinaryEncoding::Float64,
+            CompressionType::Zlib,
+            Some(0)
+        )
+        .is_err());
+        assert!(BinaryDecoder::decode(
+            &encoded,
+            BinaryEncoding::Float64,
+            CompressionType::Zlib,
+            Some(usize::MAX)
+        )
+        .is_err());
+        bytes.pop();
+        assert!(BinaryDecoder::decode(
+            &STANDARD.encode(bytes),
+            BinaryEncoding::Float64,
+            CompressionType::Zlib,
+            Some(1)
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn whitespace_is_accepted_but_invalid_padding_is_not() {
+        let encoded = STANDARD.encode(42.5_f64.to_le_bytes());
+        let wrapped = encoded
+            .chars()
+            .map(|c| format!("{c}\n"))
+            .collect::<String>();
+        assert_eq!(
+            BinaryDecoder::decode(
+                &wrapped,
+                BinaryEncoding::Float64,
+                CompressionType::None,
+                Some(1)
+            )
+            .unwrap(),
+            [42.5]
+        );
+        assert!(BinaryDecoder::decode(
+            "AA=A",
+            BinaryEncoding::Float64,
+            CompressionType::None,
+            None
+        )
+        .is_err());
     }
 }

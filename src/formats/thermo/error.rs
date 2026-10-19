@@ -25,13 +25,29 @@ pub enum ThermoError {
     #[error("Missing required data: {0}")]
     MissingData(String),
 
-    /// .NET runtime initialization failed
-    #[error(".NET runtime error: {0}")]
-    RuntimeError(String),
+    /// The rawr process failed to produce a complete run.
+    #[error("rawr-ms: {0}")]
+    Process(String),
 
-    /// Platform not supported (e.g., ARM architecture)
-    #[error("Platform not supported: {0}. Thermo RAW reading requires x86/x86_64 architecture.")]
-    PlatformNotSupported(String),
+    /// Parsing the mzML stream emitted by rawr failed.
+    #[error(transparent)]
+    MzML(#[from] crate::mzml::MzMLError),
+
+    /// Decoding the mzML stream failed.
+    #[error(transparent)]
+    Conversion(#[from] crate::mzml::converter::ConversionError),
+
+    /// The current mzPeak ingestion schema cannot represent this data.
+    #[error("Unsupported RAW representation: {0}")]
+    UnsupportedRepresentation(String),
+
+    /// Parquet or ingestion writer failure.
+    #[error(transparent)]
+    Writer(#[from] crate::writer::WriterError),
+
+    /// Dataset container failure.
+    #[error(transparent)]
+    Dataset(#[from] crate::dataset::DatasetError),
 
     /// Generic I/O error
     #[error("I/O error: {0}")]

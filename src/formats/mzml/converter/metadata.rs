@@ -1,117 +1,11 @@
-use std::path::Path;
-
-use log::{info, warn};
-
 use super::{ConversionError, MzMLConverter};
-use super::super::cv_params::MS_CV_ACCESSIONS;
-use super::super::models::{ChromatogramType, ComponentType, MzMLChromatogram, MzMLFileMetadata};
-use super::super::streamer::MzMLStreamer;
-use crate::dataset::MzPeakDatasetWriter;
 use crate::metadata::{
     InstrumentConfig, MassAnalyzerConfig, MzPeakMetadata, ProcessingHistory, ProcessingStep,
-    RunParameters, SdrfMetadata, SourceFileInfo,
+    RunParameters, SourceFileInfo,
 };
-use crate::writer::WriterError;
-
+use crate::mzml::{ComponentType, MzMLFileMetadata, MS_CV_ACCESSIONS};
+use std::path::Path;
 impl MzMLConverter {
-    /// Stream chromatograms directly to the dataset writer
-    pub(crate) fn stream_chromatograms<R: std::io::BufRead>(
-        &self,
-        streamer: &mut MzMLStreamer<R>,
-        writer: &mut MzPeakDatasetWriter,
-    ) -> Result<usize, ConversionError> {
-        let mut count = 0;
-        while let Some(mzml_chrom) = streamer.next_chromatogram()? {
-            let chromatogram = self.convert_chromatogram(&mzml_chrom)?;
-            writer
-                .write_chromatogram(&chromatogram)
-                .map_err(|e| ConversionError::WriterError(WriterError::InvalidData(e.to_string())))?;
-            count += 1;
-        }
-        Ok(count)
-    }
-
-    /// Convert chromatograms from mzML to mzPeak format (deprecated, kept for backward compatibility)
-    #[allow(dead_code)]
-    pub(crate) fn convert_chromatograms<R: std::io::BufRead>(
-        &self,
-        streamer: &mut MzMLStreamer<R>,
-        output_path: &Path,
-        metadata: &MzPeakMetadata,
-    ) -> Result<usize, ConversionError> {
-        use crate::chromatogram_writer::{ChromatogramWriter, ChromatogramWriterConfig};
-
-        // Create output path for chromatograms subdirectory
-        let chromatogram_dir = output_path
-            .parent()
-            .unwrap_or(Path::new("."))
-            .join("chromatograms");
-        std::fs::create_dir_all(&chromatogram_dir)?;
-
-        let chromatogram_file = chromatogram_dir
-            .join(
-                output_path
-                    .file_stem()
-                    .and_then(|s| s.to_str())
-                    .unwrap_or("chromatograms"),
-            )
-            .with_extension("chromatograms.parquet");
-
-        let config = ChromatogramWriterConfig::default();
-        let mut writer = ChromatogramWriter::new_file(&chromatogram_file, metadata, config)?;
-
-        let mut count = 0;
-        while let Some(mzml_chrom) = streamer.next_chromatogram()? {
-            let chromatogram = self.convert_chromatogram(&mzml_chrom)?;
-            writer.write_chromatogram(&chromatogram)?;
-            count += 1;
-        }
-
-        let stats = writer.finish()?;
-        info!(
-            "Wrote {} chromatograms to {}",
-            stats.chromatograms_written,
-            chromatogram_file.display()
-        );
-
-        Ok(count)
-    }
-
-    /// Convert a single mzML chromatogram to mzPeak format
-    pub(crate) fn convert_chromatogram(
-        &self,
-        mzml_chrom: &MzMLChromatogram,
-    ) -> Result<crate::chromatogram_writer::Chromatogram, ConversionError> {
-        use crate::chromatogram_writer::Chromatogram;
-
-        // Convert chromatogram type to string
-        let chrom_type = match mzml_chrom.chromatogram_type {
-            ChromatogramType::TIC => "TIC",
-            ChromatogramType::BPC => "BPC",
-            ChromatogramType::SIM => "SIM",
-            ChromatogramType::SRM => "SRM",
-            ChromatogramType::XIC => "XIC",
-            ChromatogramType::Absorption => "Absorption",
-            ChromatogramType::Emission => "Emission",
-            ChromatogramType::Unknown => "Unknown",
-        };
-
-        // Convert intensity array from f64 to f32
-        let intensity_array: Vec<f32> = mzml_chrom
-            .intensity_array
-            .iter()
-            .map(|&x| x as f32)
-            .collect();
-
-        Chromatogram::new(
-            mzml_chrom.id.clone(),
-            chrom_type.to_string(),
-            mzml_chrom.time_array.clone(),
-            intensity_array,
-        )
-        .map_err(|e| ConversionError::WriterError(WriterError::InvalidData(e.to_string())))
-    }
-
     /// Convert mzML file metadata to mzPeak metadata
     pub(crate) fn convert_metadata(
         &self,
@@ -133,7 +27,11 @@ impl MzMLConverter {
 
         // Extract checksum from mzML source files
         if let Some(mzml_source) = mzml.source_files.first() {
-            source.sha256 = mzml_source.checksum.clone();
+            match mzml_source.checksum_type.as_deref() {
+                Some("SHA-256") => source.sha256 = mzml_source.checksum.clone(),
+                Some("MD5") => source.md5 = mzml_source.checksum.clone(),
+                _ => {}
+            }
             if let Some(ref format) = mzml_source.file_format {
                 source.format = Some(format.clone());
             }
@@ -166,8 +64,7 @@ impl MzMLConverter {
                             if cv.accession == MS_CV_ACCESSIONS::ESI
                                 || cv.accession == MS_CV_ACCESSIONS::NANOESI
                             {
-                                instrument.ion_source =
-                                    Some("electrospray ionization".to_string());
+                                instrument.ion_source = Some("electrospray ionization".to_string());
                             } else if cv.accession == MS_CV_ACCESSIONS::MALDI {
                                 instrument.ion_source = Some("MALDI".to_string());
                             }
@@ -270,20 +167,10 @@ impl MzMLConverter {
 
         metadata.processing_history = Some(history);
 
-        // Load SDRF if provided
-        if let Some(ref sdrf_path) = self.config.sdrf_path {
-            match SdrfMetadata::from_tsv_file(sdrf_path) {
-                Ok(sdrf_list) => {
-                    if let Some(sdrf) = sdrf_list.into_iter().next() {
-                        metadata.sdrf = Some(sdrf);
-                    }
-                }
-                Err(e) => {
-                    warn!("Failed to load SDRF file: {}", e);
-                }
-            }
-        }
-
+        metadata.extensions.insert(
+            "mzml".into(),
+            serde_json::to_value(mzml).map_err(|e| std::io::Error::other(e.to_string()))?,
+        );
         Ok(metadata)
     }
 }
