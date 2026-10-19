@@ -309,15 +309,8 @@ fn perform_v2_peaks_sanity_checks<R: parquet::file::reader::ChunkReader + 'stati
             }
 
             if let Some(idx) = spectrum_id_idx {
-                if let Ok(spectrum_id) = row.get_int(idx) {
-                    if spectrum_id >= 0 {
-                        spectrum_id_valid_count += 1;
-                    }
-                } else if let Ok(spectrum_id) = row.get_long(idx) {
-                    if spectrum_id >= 0 {
-                        spectrum_id_valid_count += 1;
-                    }
-                }
+                row.get_uint(idx)?;
+                spectrum_id_valid_count += 1;
             }
         } else {
             break;
@@ -420,7 +413,7 @@ fn perform_v2_spectra_sanity_checks<R: parquet::file::reader::ChunkReader + 'sta
     let mut rt_valid_count = 0;
     let mut last_rt: Option<f32> = None;
     let mut rt_non_decreasing = true;
-    let mut last_spectrum_id: Option<i64> = None;
+    let mut last_spectrum_id: Option<u32> = None;
     let mut spectrum_id_non_decreasing = true;
 
     for _i in 0..sample_size {
@@ -428,14 +421,8 @@ fn perform_v2_spectra_sanity_checks<R: parquet::file::reader::ChunkReader + 'sta
             let row = row_result?;
 
             if let Some(idx) = ms_level_idx {
-                if let Ok(ms_level) = row.get_byte(idx) {
-                    if ms_level >= 1 {
-                        ms_level_valid_count += 1;
-                    }
-                } else if let Ok(ms_level) = row.get_int(idx) {
-                    if ms_level >= 1 {
-                        ms_level_valid_count += 1;
-                    }
+                if row.get_ubyte(idx)? >= 1 {
+                    ms_level_valid_count += 1;
                 }
             }
 
@@ -467,22 +454,13 @@ fn perform_v2_spectra_sanity_checks<R: parquet::file::reader::ChunkReader + 'sta
             }
 
             if let Some(idx) = spectrum_id_idx {
-                let spectrum_id = if let Ok(value) = row.get_int(idx) {
-                    Some(value as i64)
-                } else if let Ok(value) = row.get_long(idx) {
-                    Some(value)
-                } else {
-                    None
-                };
-
-                if let Some(current) = spectrum_id {
-                    if let Some(prev) = last_spectrum_id {
-                        if current < prev {
-                            spectrum_id_non_decreasing = false;
-                        }
+                let current = row.get_uint(idx)?;
+                if let Some(prev) = last_spectrum_id {
+                    if current < prev {
+                        spectrum_id_non_decreasing = false;
                     }
-                    last_spectrum_id = Some(current);
                 }
+                last_spectrum_id = Some(current);
             }
         } else {
             break;

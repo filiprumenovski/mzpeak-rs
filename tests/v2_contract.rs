@@ -5,6 +5,63 @@ use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use std::io::Cursor;
 
 #[test]
+fn validator_accepts_unsigned_ids_and_ms_levels() {
+    let dir = tempfile::tempdir().unwrap();
+    let output = dir.path().join("unsigned.mzpeak");
+    let mut writer = MzPeakDatasetWriterV2::new(&output, Modality::LcMs, None).unwrap();
+    for id in [u32::MAX - 1, u32::MAX] {
+        let mut metadata = SpectrumMetadata::new_ms1(id, Some(1), 0.0, 1, 1);
+        metadata.ms_level = 255;
+        writer
+            .write_spectrum_v2(&metadata, &PeakArraysV2::new(vec![100.0], vec![1.0]))
+            .unwrap();
+    }
+    writer.close().unwrap();
+    let report = mzpeak::validator::validate_mzpeak_file(&output).unwrap();
+    assert!(!report.has_failures(), "{report}");
+    assert!(
+        !report
+            .checks
+            .iter()
+            .any(|check| check.name == "Format version"
+                && matches!(check.status, mzpeak::validator::CheckStatus::Warning(_))),
+        "{report}"
+    );
+    for check in report
+        .checks
+        .iter()
+        .filter(|check| check.name.starts_with("V2 "))
+    {
+        assert!(
+            matches!(check.status, mzpeak::validator::CheckStatus::Ok),
+            "{check:?}"
+        );
+    }
+}
+
+#[test]
+fn validator_still_rejects_zero_ms_level() {
+    let dir = tempfile::tempdir().unwrap();
+    let output = dir.path().join("invalid-ms-level.mzpeak");
+    let mut writer = MzPeakDatasetWriterV2::new(&output, Modality::LcMs, None).unwrap();
+    let mut metadata = SpectrumMetadata::new_ms1(0, Some(1), 0.0, 1, 1);
+    metadata.ms_level = 0;
+    writer
+        .write_spectrum_v2(&metadata, &PeakArraysV2::new(vec![100.0], vec![1.0]))
+        .unwrap();
+    writer.close().unwrap();
+    let report = mzpeak::validator::validate_mzpeak_file(&output).unwrap();
+    assert!(
+        report
+            .checks
+            .iter()
+            .any(|check| check.name == "V2 MS level values >= 1"
+                && matches!(check.status, mzpeak::validator::CheckStatus::Failed(_))),
+        "{report}"
+    );
+}
+
+#[test]
 fn direct_writer_preserves_unsigned_ids_and_arrow_metadata() {
     let mut writer = PeaksWriterV2::new(
         Cursor::new(Vec::new()),

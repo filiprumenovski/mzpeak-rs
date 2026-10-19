@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-19",
+  "cpu": "Apple M4",
+  "architecture": "arm64",
+  "rustc": "1.98.1",
+  "conversion_code_revision": "b80d3589343ab4c2243aadd39318040fd1e1bcd9",
+  "rawr_revision": "4c353b70f82b4edb01abbe1a433762541c2676ef",
+  "input": {
+    "file": "020618_MS0745_PTB_H2.raw",
+    "bytes": 1480899846,
+    "sha256": "2ad1282223953583827ce4d1f01587d12daa4d58e746fe052b5c325635d92a61"
+  },
+  "independent_reference": {
+    "file": "020618_MS0745_PTB_H2.mzML",
+    "bytes": 1284219489,
+    "sha256": "d692bcd4090fc04ad19c8ec9e758692bf9dd5353ffabe10af1b8fb118049329d",
+    "software": "ProteoWizard 3.0.20287",
+    "precision": "f32 m/z and intensity"
+  },
+  "conversion": {
+    "command": "mzpeak-convert convert-thermo 020618_MS0745_PTB_H2.raw converted.mzpeak",
+    "profile": "balanced (ZSTD 3, 100000 peaks/row group, 1000 scans/batch)",
+    "wall_seconds": 8.45,
+    "output_bytes": 261818368,
+    "maximum_resident_set_size_bytes": 501497856,
+    "peak_memory_footprint_bytes": 39895496,
+    "measurement": "Single warm-cache end-to-end CLI run, including rawr, XML pipe, compression, ZIP assembly and output writes. Compiler time excluded. RSS includes resident file mappings; footprint is the separate macOS time metric."
+  },
+  "rawr_packet_check": {
+    "spectra": 169273,
+    "peaks": 41092121,
+    "failed_scans": 0
+  },
+  "bridge_fidelity": {
+    "spectra": 169273,
+    "peaks": 41092121,
+    "peak_fidelity": "bit exact at f64 m/z and f32 intensity",
+    "scan_metadata": "matched all exported fields"
+  },
+  "proteowizard_fidelity": {
+    "spectra": 169273,
+    "peaks": 41092121,
+    "peak_fidelity": "bit exact at reference precision",
+    "native_scan_numbers": "matched"
+  },
+  "streaming_readback": {
+    "spectra": 169273,
+    "peaks": 41092121,
+    "ms_levels": {
+      "1": 11018,
+      "2": 158255
+    },
+    "native_scan_sequence": "complete"
+  },
+  "integrity_validation_after_fix": {
+    "passed": 57,
+    "warnings": 0,
+    "failed": 0
+  },
+  "negative_control": "Changing one stored intensity was rejected at scan 1",
+  "verifier_environment": {
+    "python": "3.11.15",
+    "pyarrow": "18.1.0",
+    "numpy": "1.26.4"
+  },
+  "scope": "Source-saved centroids from one Orbitrap Fusion acquisition; not profile preservation or a multi-instrument corpus benchmark."
+}

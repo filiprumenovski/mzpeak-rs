@@ -118,7 +118,7 @@ pub(crate) fn check_metadata_integrity(
                     format!("Expected {}, found {}", expected, version),
                 ));
             }
-        } else {
+        } else if validation_target.schema_version == SchemaVersion::V1 {
             report.add_check(ValidationCheck::warning(
                 "Format version",
                 "Format version not found in Parquet metadata",

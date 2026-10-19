@@ -44,3 +44,34 @@ Regression coverage includes empty spectra, cross-batch v2 joins, unsigned
 spectrum IDs, optional-column lengths, malformed input, truncated process
 streams, late child failures, existing-output protection, chromatogram
 preservation/generation, and Python exception mapping.
+
+## Full Orbitrap Fusion RAW
+
+`large-raw.json` records the complete `020618_MS0745_PTB_H2.raw` run: 1.48 GB,
+169,273 scans and 41,092,121 saved centroid peaks. A release CLI conversion
+with the balanced profile took 8.45 seconds and wrote 261,818,368 bytes
+(249.7 MiB). This is one warm-cache run on the Apple M4, including the rawr
+process, XML pipe, Parquet compression, ZIP assembly and output writes; it is
+not a cross-machine or cold-storage throughput claim.
+
+Every peak and exported scan metadata field matched rawr's mzML at the output
+schema's precision. A second comparison against the existing ProteoWizard
+3.0.20287 export matched every peak and native scan number at that reference's
+f32 precision. The preserved f64 m/z values were narrowed only inside that
+comparison. Python/Rust streaming readback recovered all scans and peaks,
+including 11,018 MS1 and 158,255 MS2 scans. rawr's full packet check had zero
+failures.
+
+Both independent checkers now stream XML and Parquet batches and extract
+fixed archive members to temporary sibling storage. A negative control with
+one altered intensity failed at the expected scan. For an independent
+centroid reference, run:
+
+```sh
+python tools/verify_peak_reference.py proteowizard.mzML converted.mzpeak
+```
+
+The full-run validation also exposed a signed/unsigned accessor bug in the
+integrity command. It now reads v2 UInt32 IDs and UInt8 MS levels with the
+matching Parquet accessors, and uses the v2 manifest's format version. The
+regression covers maximum unsigned values and still rejects MS level zero.
