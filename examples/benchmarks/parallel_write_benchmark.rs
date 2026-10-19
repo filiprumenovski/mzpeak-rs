@@ -2,10 +2,10 @@
 //!
 //! Compare zero-copy streaming writes vs materialized batch writes
 
-use std::time::Instant;
 use std::path::PathBuf;
+use std::time::Instant;
 
-use mzpeak::tdf::{ParallelTdfConverter, ParallelConversionConfig};
+use mzpeak::tdf::{ParallelConversionConfig, ParallelTdfConverter};
 use mzpeak::writer::WriterConfig;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -28,7 +28,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut config = ParallelConversionConfig::default();
     config.merge_shards = false; // Keep shards separate for now
     config.writer_config = WriterConfig::default();
-    
+
     println!("Configuration:");
     println!("  Workers: {}", config.num_workers);
     println!("  Merge shards: {}", config.merge_shards);
@@ -42,23 +42,35 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Calculate metrics
     let peaks_per_sec = stats.total_peaks as f64 / elapsed.as_secs_f64();
-    
+
     println!("\n═══════════════════════════════════════════════════════════════════");
     println!("Results:");
     println!("  Total spectra: {}", stats.total_spectra);
-    println!("  Total peaks: {} ({:.1}M)", stats.total_peaks, stats.total_peaks as f64 / 1_000_000.0);
+    println!(
+        "  Total peaks: {} ({:.1}M)",
+        stats.total_peaks,
+        stats.total_peaks as f64 / 1_000_000.0
+    );
     println!("  Total time: {:.2}s", elapsed.as_secs_f64());
-    println!("  Throughput: {:.1}M peaks/sec", peaks_per_sec / 1_000_000.0);
+    println!(
+        "  Throughput: {:.1}M peaks/sec",
+        peaks_per_sec / 1_000_000.0
+    );
     println!("  Shards written: {}", stats.shard_stats.len());
-    
+
     // Calculate total file size
-    let total_size: u64 = stats.shard_stats.iter()
+    let total_size: u64 = stats
+        .shard_stats
+        .iter()
         .filter_map(|s| std::fs::metadata(&s.path).ok())
         .map(|m: std::fs::Metadata| m.len())
         .sum();
     let write_speed = total_size as f64 / 1_000_000.0 / elapsed.as_secs_f64();
-    
-    println!("  Total file size: {:.1} MB", total_size as f64 / 1_000_000.0);
+
+    println!(
+        "  Total file size: {:.1} MB",
+        total_size as f64 / 1_000_000.0
+    );
     println!("  Write speed: {:.1} MB/s", write_speed);
     println!("═══════════════════════════════════════════════════════════════════");
 

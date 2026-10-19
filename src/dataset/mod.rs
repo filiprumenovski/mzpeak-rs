@@ -81,4 +81,6 @@ pub use error::DatasetError;
 pub use stats::DatasetStats;
 pub use types::OutputMode;
 pub use writer_impl::MzPeakDatasetWriter;
-pub use writer_v2::{DatasetV2Stats, DatasetWriterV2Config, MzPeakDatasetWriterV2, MZPEAK_V2_MIMETYPE};
+pub use writer_v2::{
+    DatasetV2Stats, DatasetWriterV2Config, MzPeakDatasetWriterV2, MZPEAK_V2_MIMETYPE,
+};

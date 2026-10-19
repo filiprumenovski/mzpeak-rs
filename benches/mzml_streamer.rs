@@ -1,14 +1,18 @@
 use std::io::{BufReader, Cursor};
 use std::sync::Arc;
 
-use criterion::{black_box, criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion, Throughput};
+use criterion::{
+    black_box, criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion, Throughput,
+};
 use mzpeak::mzml::MzMLStreamer;
 
 fn generate_test_mzml(num_spectra: usize, peaks_per_spectrum: usize) -> Vec<u8> {
-    let mut mzml = String::from(r#"<?xml version="1.0" encoding="UTF-8"?>
+    let mut mzml = String::from(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
 <mzML xmlns="http://psi.hupo.org/ms/mzml" version="1.1.0">
   <run id="bench_run">
-    <spectrumList count=""#);
+    <spectrumList count=""#,
+    );
     mzml.push_str(&num_spectra.to_string());
     mzml.push_str(r#"">"#);
 
@@ -29,7 +33,8 @@ fn generate_test_mzml(num_spectra: usize, peaks_per_spectrum: usize) -> Vec<u8> 
             .flat_map(|v| v.to_le_bytes())
             .collect();
 
-        let mz_base64 = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &mz_bytes);
+        let mz_base64 =
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &mz_bytes);
         let intensity_base64 =
             base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &intensity_bytes);
 

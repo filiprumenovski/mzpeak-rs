@@ -196,10 +196,7 @@ mod tests {
 
     #[test]
     fn test_modality_kebab_case_serialization() {
-        assert_eq!(
-            serde_json::to_string(&Modality::LcMs).unwrap(),
-            "\"lc-ms\""
-        );
+        assert_eq!(serde_json::to_string(&Modality::LcMs).unwrap(), "\"lc-ms\"");
         assert_eq!(
             serde_json::to_string(&Modality::LcImsMs).unwrap(),
             "\"lc-ims-ms\""

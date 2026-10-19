@@ -18,11 +18,7 @@ impl MzPeakReader {
                 let sub_file_path = if path.is_dir() {
                     // Directory bundle
                     path.join(subpath)
-                } else if path
-                    .extension()
-                    .map(|e| e == "parquet")
-                    .unwrap_or(false)
-                {
+                } else if path.extension().map(|e| e == "parquet").unwrap_or(false) {
                     // Single parquet file - could be peaks/peaks.parquet from a directory dataset
                     // Check if parent is peaks/ directory
                     if let Some(parent) = path.parent() {

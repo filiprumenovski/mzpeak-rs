@@ -88,7 +88,6 @@ pub struct ShardStats {
 struct SharedDecodeContext {
     tof_to_mz: Tof2MzConverter,
     scan_to_im: Scan2ImConverter,
-    include_extended_metadata: bool,
     precursors_by_frame: HashMap<usize, Vec<Precursor>>,
     rt_converter: Arc<timsrust::converters::Frame2RtConverter>,
 }
@@ -157,7 +156,6 @@ impl ParallelTdfConverter {
         let ctx = Arc::new(SharedDecodeContext {
             tof_to_mz: *tof_to_mz,
             scan_to_im: *scan_to_im,
-            include_extended_metadata: self.config.include_extended_metadata,
             precursors_by_frame,
             rt_converter: streamer.rt_converter(),
         });
@@ -195,7 +193,7 @@ impl ParallelTdfConverter {
 
                 process_shard(
                     shard_id,
-                    &input_path_arc,  // Pass path instead of shared streamer
+                    &input_path_arc, // Pass path instead of shared streamer
                     &ctx,
                     partition,
                     spectrum_id_offset,
@@ -238,7 +236,7 @@ impl Default for ParallelTdfConverter {
 /// Each worker creates its own FrameReader to avoid lock contention.
 fn process_shard(
     shard_id: usize,
-    input_path: &Arc<PathBuf>,  // Path for creating per-worker FrameReader
+    input_path: &Arc<PathBuf>, // Path for creating per-worker FrameReader
     ctx: &Arc<SharedDecodeContext>,
     partition: FramePartition,
     spectrum_id_offset: i64,
@@ -294,7 +292,10 @@ fn process_shard(
             Err(e) => {
                 let err_str = format!("{e}");
                 if err_str.contains("Decompression") {
-                    eprintln!("⚠️  Skipping frame {} (decompression error): {}", frame_idx, e);
+                    eprintln!(
+                        "⚠️  Skipping frame {} (decompression error): {}",
+                        frame_idx, e
+                    );
                     continue;
                 }
                 return Err(TdfError::FrameParsingError(format!(
@@ -356,7 +357,7 @@ fn decode_raw_frame(
     for (&tof_idx, &intensity) in frame.tof_indices.iter().zip(frame.intensities.iter()) {
         let mz = ctx.tof_to_mz.convert(tof_idx);
         let corrected_intensity = (intensity as f64 * frame.intensity_correction_factor) as f32;
-        
+
         mz_values.push(mz);
         intensities.push(corrected_intensity);
 
@@ -434,16 +435,16 @@ fn decode_raw_frame(
         spectrum_id,
         scan_number: frame.frame_index as i64,
         ms_level,
-        retention_time: frame.rt_seconds as f32, 
-        polarity: 1, 
+        retention_time: frame.rt_seconds as f32,
+        polarity: 1,
         precursor_mz,
         precursor_charge,
         precursor_intensity,
         isolation_window_lower,
         isolation_window_upper,
         collision_energy,
-        total_ion_current: Some(tic),         // Set pre-calculated TIC
-        base_peak_mz: Some(max_mz),           // Set pre-calculated BPC m/z
+        total_ion_current: Some(tic), // Set pre-calculated TIC
+        base_peak_mz: Some(max_mz),   // Set pre-calculated BPC m/z
         base_peak_intensity: Some(max_intensity), // Set pre-calculated BPC intensity
         injection_time: None,
         pixel_x,

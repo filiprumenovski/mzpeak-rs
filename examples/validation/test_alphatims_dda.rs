@@ -1,12 +1,12 @@
 /// Test the TDF converter against real Bruker data
 use mzpeak::tdf::converter::TdfConverter;
 use mzpeak::writer::MzPeakWriter;
-use std::path::PathBuf;
 use std::fs;
+use std::path::PathBuf;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let output_dir = PathBuf::from("/Volumes/NVMe 2TB/Test");
-    
+
     // Create output directory if it doesn't exist
     if !output_dir.exists() {
         fs::create_dir_all(&output_dir)?;
@@ -46,9 +46,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     println!("\nFirst spectrum:");
                     println!("  Peaks: {}", first.peaks.mz.len());
                     if !first.peaks.mz.is_empty() {
-                        println!("  m/z range: {:.2} - {:.2}", first.peaks.mz[0], first.peaks.mz[first.peaks.mz.len() - 1]);
-                        println!("  Intensity range: {:.0} - {:.0}",
-                            first.peaks.intensity.iter().copied().fold(f32::INFINITY, f32::min),
+                        println!(
+                            "  m/z range: {:.2} - {:.2}",
+                            first.peaks.mz[0],
+                            first.peaks.mz[first.peaks.mz.len() - 1]
+                        );
+                        println!(
+                            "  Intensity range: {:.0} - {:.0}",
+                            first
+                                .peaks
+                                .intensity
+                                .iter()
+                                .copied()
+                                .fold(f32::INFINITY, f32::min),
                             first.peaks.intensity.iter().copied().fold(0.0, f32::max)
                         );
                     }
@@ -69,11 +79,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 println!("\nDataset stats:");
                 println!("  Total peaks: {}", total_peaks);
-                println!("  Average peaks/spectrum: {:.1}", total_peaks as f64 / spectra.len() as f64);
+                println!(
+                    "  Average peaks/spectrum: {:.1}",
+                    total_peaks as f64 / spectra.len() as f64
+                );
                 if !rt_values.is_empty() {
                     let min_rt = rt_values.iter().copied().fold(f32::INFINITY, f32::min);
                     let max_rt = rt_values.iter().copied().fold(0.0, f32::max);
-                    println!("  RT range: {:.2} - {:.2} minutes", min_rt / 60.0, max_rt / 60.0);
+                    println!(
+                        "  RT range: {:.2} - {:.2} minutes",
+                        min_rt / 60.0,
+                        max_rt / 60.0
+                    );
                 }
 
                 // Write to mzpeak format
@@ -82,13 +99,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .and_then(|name| name.to_str())
                     .unwrap_or("output");
                 let output_path = output_dir.join(format!("{}.mzpeak", file_stem));
-                
+
                 println!("\n💾 Writing to: {}", output_path.display());
-                
+
                 let metadata = mzpeak::metadata::MzPeakMetadata::default();
                 let config = mzpeak::writer::WriterConfig::default();
                 let mut writer = MzPeakWriter::new_file(&output_path, &metadata, config)?;
-                
+
                 // Write all spectra in batches - creates ONE RecordBatch per batch
                 // Uses optimized write_spectra_owned with O(1) validity tracking
                 const BATCH_SIZE: usize = 500;
@@ -98,8 +115,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     writer.write_spectra_owned(batch)?;
                 }
                 let stats = writer.finish()?;
-                
-                println!("✅ Successfully wrote {} spectra, {} peaks", stats.spectra_written, stats.peaks_written);
+
+                println!(
+                    "✅ Successfully wrote {} spectra, {} peaks",
+                    stats.spectra_written, stats.peaks_written
+                );
 
                 return Ok(());
             }

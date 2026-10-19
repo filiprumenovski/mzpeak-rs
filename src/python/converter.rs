@@ -13,20 +13,7 @@ use crate::python::types::{PyConversionConfig, PyConversionStats, PyModality};
 use crate::tdf::{TdfConversionConfig, TdfConversionStats, TdfConverter};
 
 #[cfg(feature = "thermo")]
-use crate::thermo::{ThermoConverter, ThermoStreamer};
-#[cfg(feature = "thermo")]
-use crate::dataset::{DatasetWriterV2Config, MzPeakDatasetWriterV2};
-#[cfg(feature = "thermo")]
-use crate::ingest::IngestSpectrumConverter;
-#[cfg(feature = "thermo")]
-use crate::metadata::MzPeakMetadata;
-#[cfg(feature = "thermo")]
-use crate::schema::manifest::Modality;
-#[cfg(feature = "thermo")]
-use crate::writer::{
-    CompressionType, MzPeakWriter, PeaksWriterV2Config, SpectraWriterConfig, SpectrumV2,
-    WriterConfig,
-};
+use crate::writer::{CompressionType, WriterConfig};
 
 /// Converter for mzML files to mzPeak format
 ///
@@ -85,7 +72,11 @@ impl PyMzMLConverter {
         let converter = MzMLConverter::with_config(self.config.clone());
 
         // Release GIL during the potentially long conversion
-        let stats = py.allow_threads(|| converter.convert(&input_path, &output_path).into_py_result())?;
+        let stats = py.allow_threads(|| {
+            converter
+                .convert(&input_path, &output_path)
+                .into_py_result()
+        })?;
 
         Ok(PyConversionStats::from(stats))
     }
@@ -185,7 +176,11 @@ impl PyTdfConversionStats {
     fn __repr__(&self) -> String {
         format!(
             "TdfConversionStats(spectra={}, peaks={}, ms1={}, ms2={}, imaging={})",
-            self.spectra_read, self.peaks_total, self.ms1_count, self.ms2_count, self.imaging_frames
+            self.spectra_read,
+            self.peaks_total,
+            self.ms1_count,
+            self.ms2_count,
+            self.imaging_frames
         )
     }
 }
@@ -231,10 +226,10 @@ impl PyTdfConverter {
     /// Args:
     ///     include_extended_metadata: Include TIC/base peak prepopulation (default True)
     ///     batch_size: Batch size for streaming + parallel decode (default 256)
-    ///     compression_level: ZSTD compression level 1-22 (default 9)
+    ///     compression_level: ZSTD compression level 1-22 (default 3)
     ///     row_group_size: Rows per Parquet row group (default 100000)
     #[new]
-    #[pyo3(signature = (include_extended_metadata=true, batch_size=256, compression_level=9, row_group_size=100000))]
+    #[pyo3(signature = (include_extended_metadata=true, batch_size=256, compression_level=3, row_group_size=100000))]
     fn new(
         include_extended_metadata: bool,
         batch_size: usize,
@@ -376,8 +371,7 @@ impl PyThermoConversionStats {
 /// Converts Thermo Fisher RAW files to mzPeak format. Supports both legacy
 /// v1 Parquet output and v2 container format.
 ///
-/// Note: Requires the 'thermo' feature and .NET 8 runtime.
-///       Only supported on Windows x86_64, Linux x86_64, and macOS x86_64.
+/// Requires the 'thermo' feature. Uses native rawr-ms; no vendor runtime is needed.
 ///
 /// Example:
 ///     >>> converter = mzpeak.ThermoConverter()
@@ -400,12 +394,12 @@ impl PyThermoConverter {
     ///
     /// Args:
     ///     batch_size: Number of spectra to process per batch (default 1000)
-    ///     compression_level: ZSTD compression level 1-22 (default 9)
+    ///     compression_level: ZSTD compression level 1-22 (default 3)
     ///     row_group_size: Rows per Parquet row group (default 100000)
     ///     legacy_format: Output legacy v1 Parquet instead of v2 container (default False)
-    ///     centroid_spectra: Centroid profile spectra during conversion (default True)
+    ///     centroid_spectra: Select saved centroids (default True); False is unsupported
     #[new]
-    #[pyo3(signature = (batch_size=1000, compression_level=9, row_group_size=100000, legacy_format=false, centroid_spectra=true))]
+    #[pyo3(signature = (batch_size=1000, compression_level=3, row_group_size=100000, legacy_format=false, centroid_spectra=true))]
     fn new(
         batch_size: usize,
         compression_level: i32,
@@ -443,8 +437,15 @@ impl PyThermoConverter {
 
         // Release GIL during conversion
         py.allow_threads(|| {
-            self.convert_inner(&input_path, &output_path, batch_size, compression_level, row_group_size, legacy_format)
-                .into_py_result()
+            self.convert_inner(
+                &input_path,
+                &output_path,
+                batch_size,
+                compression_level,
+                row_group_size,
+                legacy_format,
+            )
+            .into_py_result()
         })
     }
 
@@ -467,148 +468,35 @@ impl PyThermoConverter {
         row_group_size: usize,
         legacy_format: bool,
     ) -> Result<PyThermoConversionStats, crate::thermo::ThermoError> {
-        use std::path::Path;
-
-        let input = Path::new(input_path);
-        let output = Path::new(output_path);
-
-        let writer_config = WriterConfig {
-            compression: CompressionType::Zstd(compression_level),
-            row_group_size,
-            ..Default::default()
-        };
-
-        let mut streamer = ThermoStreamer::new(input, batch_size)?;
-        let total_spectra = streamer.len();
-
-        let metadata = MzPeakMetadata::new();
-        let mut stats = PyThermoConversionStats {
-            source_file_size: std::fs::metadata(input).map(|m| m.len()).unwrap_or(0),
-            ..Default::default()
-        };
-
-        if legacy_format {
-            let mut writer = MzPeakWriter::new_file(output, &metadata, writer_config)
-                .map_err(|e| crate::thermo::ThermoError::IoError(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    e.to_string(),
-                )))?;
-
-            let mut ingest_converter = IngestSpectrumConverter::new();
-            let converter = ThermoConverter::new();
-            let mut spectrum_id: i64 = 0;
-
-            while let Some(raw_batch) = streamer.next_batch()? {
-                let mut batch = Vec::with_capacity(raw_batch.len());
-                for raw_spectrum in raw_batch {
-                    let ingest = converter.convert_spectrum(raw_spectrum, spectrum_id)?;
-                    spectrum_id += 1;
-
-                    let spectrum = ingest_converter.convert(ingest)
-                        .map_err(|e| crate::thermo::ThermoError::IoError(std::io::Error::new(
-                            std::io::ErrorKind::InvalidData,
-                            e.to_string(),
-                        )))?;
-
-                    stats.spectra_count += 1;
-                    stats.peak_count += spectrum.peak_count();
-                    match spectrum.ms_level {
-                        1 => stats.ms1_spectra += 1,
-                        2 => stats.ms2_spectra += 1,
-                        _ => stats.msn_spectra += 1,
-                    }
-
-                    batch.push(spectrum);
-                }
-
-                writer.write_spectra_owned(batch)
-                    .map_err(|e| crate::thermo::ThermoError::IoError(std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        e.to_string(),
-                    )))?;
-            }
-
-            writer.finish()
-                .map_err(|e| crate::thermo::ThermoError::IoError(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    e.to_string(),
-                )))?;
-        } else {
-            // V2 container format
-            let vendor_hints = metadata.vendor_hints.clone();
-            let dataset_config = DatasetWriterV2Config {
-                spectra_config: SpectraWriterConfig {
-                    compression: writer_config.compression,
+        if !self.centroid_spectra {
+            return Err(crate::thermo::ThermoError::UnsupportedRepresentation(
+                "profile output is unavailable; centroid_spectra=True selects source-saved centroids".into(),
+            ));
+        }
+        let stats = crate::thermo::convert_thermo(
+            input_path,
+            output_path,
+            &crate::thermo::ThermoConversionConfig {
+                batch_size,
+                rawr_binary: None,
+                writer_config: WriterConfig {
+                    compression: CompressionType::Zstd(compression_level),
+                    row_group_size,
                     ..Default::default()
                 },
-                peaks_config: PeaksWriterV2Config {
-                    compression: writer_config.compression,
-                    row_group_size: writer_config.row_group_size,
-                    ..Default::default()
-                },
-            };
-
-            let mut writer = MzPeakDatasetWriterV2::with_config(
-                output,
-                Modality::LcMs,
-                vendor_hints,
-                dataset_config,
-            ).map_err(|e| crate::thermo::ThermoError::IoError(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                e.to_string(),
-            )))?;
-            writer.set_metadata(metadata);
-
-            let mut ingest_converter = IngestSpectrumConverter::new();
-            let converter = ThermoConverter::new();
-            let mut spectrum_id: i64 = 0;
-
-            while let Some(raw_batch) = streamer.next_batch()? {
-                for raw_spectrum in raw_batch {
-                    let ingest = converter.convert_spectrum(raw_spectrum, spectrum_id)?;
-                    spectrum_id += 1;
-
-                    let spectrum = ingest_converter.convert(ingest)
-                        .map_err(|e| crate::thermo::ThermoError::IoError(std::io::Error::new(
-                            std::io::ErrorKind::InvalidData,
-                            e.to_string(),
-                        )))?;
-
-                    stats.spectra_count += 1;
-                    stats.peak_count += spectrum.peak_count();
-                    match spectrum.ms_level {
-                        1 => stats.ms1_spectra += 1,
-                        2 => stats.ms2_spectra += 1,
-                        _ => stats.msn_spectra += 1,
-                    }
-
-                    let spectrum_v2 = SpectrumV2::try_from_spectrum_arrays(spectrum)
-                        .map_err(|e| crate::thermo::ThermoError::IoError(std::io::Error::new(
-                            std::io::ErrorKind::InvalidData,
-                            e.to_string(),
-                        )))?;
-
-                    writer.write_spectrum(&spectrum_v2)
-                        .map_err(|e| crate::thermo::ThermoError::IoError(std::io::Error::new(
-                            std::io::ErrorKind::Other,
-                            e.to_string(),
-                        )))?;
-                }
-            }
-
-            writer.close()
-                .map_err(|e| crate::thermo::ThermoError::IoError(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    e.to_string(),
-                )))?;
-        }
-
-        stats.output_file_size = std::fs::metadata(output).map(|m| m.len()).unwrap_or(0);
-        if stats.output_file_size > 0 {
-            stats.compression_ratio = stats.source_file_size as f64 / stats.output_file_size as f64;
-        }
-
-        Ok(stats)
+                legacy_format,
+            },
+        )?;
+        Ok(PyThermoConversionStats {
+            spectra_count: stats.spectra_count,
+            peak_count: stats.peak_count,
+            ms1_spectra: stats.ms1_spectra,
+            ms2_spectra: stats.ms2_spectra,
+            msn_spectra: stats.msn_spectra,
+            source_file_size: stats.source_file_size,
+            output_file_size: stats.output_file_size,
+            compression_ratio: stats.compression_ratio,
+        })
     }
 }
 
@@ -644,7 +532,11 @@ pub fn convert(
     let converter = MzMLConverter::with_config(conversion_config);
 
     // Release GIL during the potentially long conversion
-    let stats = py.allow_threads(|| converter.convert(&input_path, &output_path).into_py_result())?;
+    let stats = py.allow_threads(|| {
+        converter
+            .convert(&input_path, &output_path)
+            .into_py_result()
+    })?;
 
     Ok(PyConversionStats::from(stats))
 }
@@ -695,7 +587,7 @@ pub fn convert_with_sharding(
 ///     input_path: Path to Bruker .d directory
 ///     output_path: Path for output .mzpeak container
 ///     batch_size: Batch size for streaming (default 256)
-///     compression_level: ZSTD compression level 1-22 (default 9)
+///     compression_level: ZSTD compression level 1-22 (default 3)
 ///
 /// Returns:
 ///     TdfConversionStats with details about the conversion
@@ -706,7 +598,7 @@ pub fn convert_with_sharding(
 ///     >>> print(f"Converted {stats.spectra_read} spectra")
 #[cfg(feature = "tdf")]
 #[pyfunction]
-#[pyo3(signature = (input_path, output_path, batch_size=256, compression_level=9))]
+#[pyo3(signature = (input_path, output_path, batch_size=256, compression_level=3))]
 pub fn convert_tdf(
     py: Python<'_>,
     input_path: String,
@@ -740,7 +632,7 @@ pub fn convert_tdf(
 ///     input_path: Path to Thermo RAW file
 ///     output_path: Path for output .mzpeak container
 ///     batch_size: Number of spectra per batch (default 1000)
-///     compression_level: ZSTD compression level 1-22 (default 9)
+///     compression_level: ZSTD compression level 1-22 (default 3)
 ///
 /// Returns:
 ///     ThermoConversionStats with details about the conversion
@@ -751,7 +643,7 @@ pub fn convert_tdf(
 ///     >>> print(f"Converted {stats.spectra_count} spectra")
 #[cfg(feature = "thermo")]
 #[pyfunction]
-#[pyo3(signature = (input_path, output_path, batch_size=1000, compression_level=9))]
+#[pyo3(signature = (input_path, output_path, batch_size=1000, compression_level=3))]
 pub fn convert_thermo(
     py: Python<'_>,
     input_path: String,

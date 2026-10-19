@@ -31,7 +31,6 @@
 use std::path::Path;
 
 use anyhow::Result;
-use bytes::Bytes;
 
 pub use report::{CheckStatus, ValidationCheck, ValidationReport};
 
@@ -88,8 +87,6 @@ pub(crate) enum ParquetSource {
         zip_path: std::path::PathBuf,
         entry_name: String,
     },
-    /// In-memory Parquet data
-    InMemory(Bytes),
 }
 
 /// Validation target describing schema version and parquet sources
@@ -128,7 +125,10 @@ mod tests {
     fn test_validation_report_display() {
         let mut report = ValidationReport::new("test.mzpeak");
         report.add_check(ValidationCheck::ok("Test check 1"));
-        report.add_check(ValidationCheck::warning("Test check 2", "This is a warning"));
+        report.add_check(ValidationCheck::warning(
+            "Test check 2",
+            "This is a warning",
+        ));
         report.add_check(ValidationCheck::failed("Test check 3", "This failed"));
 
         let output = format!("{}", report);

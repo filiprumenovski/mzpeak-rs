@@ -1,0 +1,55 @@
+{
+  "command": "cargo run --locked --release --example io_hotpath",
+  "cpu": "Apple M4",
+  "architecture": "arm64",
+  "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "repetitions": 5,
+  "statistic": "median",
+  "fixture": "65,536 deterministic f64 values for decode; 256 spectra x 4,096 peaks for serialization",
+  "scope": "in-memory decoding/Parquet serialization, excluding RAW decoding, ZIP assembly and disk I/O",
+  "benchmark_sha256": "43d797435ae6ebf23b327b71c3f4256645a15ad2db2d2910feb4df10a2729fc8",
+  "results": [
+    {
+      "backend": "reference",
+      "median_seconds": 0.024770167,
+      "phase": "decode_plain",
+      "values": 6553600
+    },
+    {
+      "backend": "native",
+      "median_seconds": 0.024030875,
+      "phase": "decode_plain",
+      "values": 6553600
+    },
+    {
+      "backend": "reference",
+      "median_seconds": 0.200419084,
+      "phase": "decode_zlib",
+      "values": 6553600
+    },
+    {
+      "backend": "native",
+      "median_seconds": 0.153008083,
+      "phase": "decode_zlib",
+      "values": 6553600
+    },
+    {
+      "median_seconds": 0.024147458,
+      "output_bytes": 12637216,
+      "peaks": 1048576,
+      "phase": "write_plain"
+    },
+    {
+      "median_seconds": 0.029420541,
+      "output_bytes": 782887,
+      "peaks": 1048576,
+      "phase": "write_zstd3"
+    },
+    {
+      "median_seconds": 0.052789,
+      "output_bytes": 776679,
+      "peaks": 1048576,
+      "phase": "write_zstd9"
+    }
+  ]
+}

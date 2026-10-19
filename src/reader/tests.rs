@@ -175,3 +175,13 @@ fn test_spectrum_arrays_view_segments() -> Result<(), Box<dyn std::error::Error>
 
     Ok(())
 }
+
+#[test]
+fn streaming_reader_reports_io_errors_instead_of_silent_eof() {
+    let batches = super::batches::RecordBatchIterator::new(std::iter::once(Err(
+        arrow::error::ArrowError::ParseError("broken parquet page".into()),
+    )));
+    let mut spectra = super::spectra::StreamingSpectrumArraysViewIterator::new(batches);
+    assert!(spectra.next().unwrap().is_err());
+    assert!(spectra.next().is_none());
+}

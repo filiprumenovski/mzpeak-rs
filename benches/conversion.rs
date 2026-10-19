@@ -2,9 +2,7 @@ use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Through
 use mzpeak::dataset::MzPeakDatasetWriter;
 use mzpeak::metadata::MzPeakMetadata;
 use mzpeak::mzml::converter::{ConversionConfig, MzMLConverter};
-use mzpeak::writer::{
-    OptionalColumnBuf, PeakArrays, SpectrumArrays, WriterConfig,
-};
+use mzpeak::writer::{OptionalColumnBuf, PeakArrays, SpectrumArrays, WriterConfig};
 use std::fs;
 use tempfile::TempDir;
 
@@ -44,10 +42,7 @@ fn generate_test_mzml(path: &std::path::Path, num_spectra: usize, peaks_per_spec
         let mz_data: Vec<f64> = (0..peaks_per_spectrum)
             .map(|j| 200.0 + j as f64 * 10.0)
             .collect();
-        let mz_bytes: Vec<u8> = mz_data
-            .iter()
-            .flat_map(|&v| v.to_le_bytes())
-            .collect();
+        let mz_bytes: Vec<u8> = mz_data.iter().flat_map(|&v| v.to_le_bytes()).collect();
         content.push_str(&base64::Engine::encode(
             &base64::engine::general_purpose::STANDARD,
             &mz_bytes,
@@ -105,7 +100,10 @@ fn bench_conversion(c: &mut Criterion) {
         group.throughput(Throughput::Elements(total_peaks as u64));
 
         group.bench_with_input(
-            BenchmarkId::from_parameter(format!("{}spectra_{}peaks", num_spectra, peaks_per_spectrum)),
+            BenchmarkId::from_parameter(format!(
+                "{}spectra_{}peaks",
+                num_spectra, peaks_per_spectrum
+            )),
             &num_spectra,
             |b, &num_spectra| {
                 b.iter_batched(

@@ -5,7 +5,7 @@
 //!
 //! - [`mzml`] - mzML/imzML XML format (HUPO-PSI standard)
 //! - [`tdf`] - Bruker TimsTOF .d format
-//! - [`thermo`] - Thermo RAW format (requires .NET 8 runtime)
+//! - [`thermo`] - Thermo RAW through the bundled rawr executable
 //!
 //! The [`ingest`] module provides a common interface for format-agnostic
 //! spectrum ingestion.
@@ -26,5 +26,5 @@ pub mod tdf;
 pub mod readers;
 
 #[cfg(feature = "thermo")]
-/// Thermo RAW file reader (requires .NET 8 runtime).
+/// Thermo RAW reader through the bundled rawr executable.
 pub mod thermo;

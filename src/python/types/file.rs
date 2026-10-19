@@ -119,7 +119,10 @@ impl PyFileMetadata {
     /// or if parsing failed.
     #[getter]
     fn parsed_metadata(&self) -> Option<PyMzPeakMetadata> {
-        self.inner.mzpeak_metadata.clone().map(PyMzPeakMetadata::from)
+        self.inner
+            .mzpeak_metadata
+            .clone()
+            .map(PyMzPeakMetadata::from)
     }
 
     /// Check if this file has parsed structured metadata

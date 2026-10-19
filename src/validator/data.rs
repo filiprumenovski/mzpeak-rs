@@ -4,8 +4,8 @@ use anyhow::Result;
 use parquet::file::reader::{FileReader, SerializedFileReader};
 use parquet::record::RowAccessor;
 
-use crate::schema::columns;
 use crate::reader::ZipEntryChunkReader;
+use crate::schema::columns;
 use crate::schema::spectra_columns;
 
 use super::{ParquetSource, SchemaVersion, ValidationCheck, ValidationReport, ValidationTarget};
@@ -16,36 +16,32 @@ pub(crate) fn check_data_sanity(
     report: &mut ValidationReport,
 ) -> Result<()> {
     match validation_target.schema_version {
-        SchemaVersion::V1 => {
-            match &validation_target.peaks {
-                ParquetSource::FilePath(path) => {
-                    let reader = SerializedFileReader::new(File::open(path)?)?;
-                    perform_data_sanity_checks(reader, report)
-                }
-                ParquetSource::ZipEntry { zip_path, entry_name } => {
-                    let reader = ZipEntryChunkReader::new(zip_path, entry_name)?;
-                    let reader = SerializedFileReader::new(reader)?;
-                    perform_data_sanity_checks(reader, report)
-                }
-                ParquetSource::InMemory(bytes) => {
-                    let reader = SerializedFileReader::new(bytes.clone())?;
-                    perform_data_sanity_checks(reader, report)
-                }
+        SchemaVersion::V1 => match &validation_target.peaks {
+            ParquetSource::FilePath(path) => {
+                let reader = SerializedFileReader::new(File::open(path)?)?;
+                perform_data_sanity_checks(reader, report)
             }
-        }
+            ParquetSource::ZipEntry {
+                zip_path,
+                entry_name,
+            } => {
+                let reader = ZipEntryChunkReader::new(zip_path, entry_name)?;
+                let reader = SerializedFileReader::new(reader)?;
+                perform_data_sanity_checks(reader, report)
+            }
+        },
         SchemaVersion::V2 => {
             match &validation_target.peaks {
                 ParquetSource::FilePath(path) => {
                     let reader = SerializedFileReader::new(File::open(path)?)?;
                     perform_v2_peaks_sanity_checks(reader, report)?;
                 }
-                ParquetSource::ZipEntry { zip_path, entry_name } => {
+                ParquetSource::ZipEntry {
+                    zip_path,
+                    entry_name,
+                } => {
                     let reader = ZipEntryChunkReader::new(zip_path, entry_name)?;
                     let reader = SerializedFileReader::new(reader)?;
-                    perform_v2_peaks_sanity_checks(reader, report)?;
-                }
-                ParquetSource::InMemory(bytes) => {
-                    let reader = SerializedFileReader::new(bytes.clone())?;
                     perform_v2_peaks_sanity_checks(reader, report)?;
                 }
             }
@@ -56,13 +52,12 @@ pub(crate) fn check_data_sanity(
                         let reader = SerializedFileReader::new(File::open(path)?)?;
                         perform_v2_spectra_sanity_checks(reader, report)?;
                     }
-                    ParquetSource::ZipEntry { zip_path, entry_name } => {
+                    ParquetSource::ZipEntry {
+                        zip_path,
+                        entry_name,
+                    } => {
                         let reader = ZipEntryChunkReader::new(zip_path, entry_name)?;
                         let reader = SerializedFileReader::new(reader)?;
-                        perform_v2_spectra_sanity_checks(reader, report)?;
-                    }
-                    ParquetSource::InMemory(bytes) => {
-                        let reader = SerializedFileReader::new(bytes.clone())?;
                         perform_v2_spectra_sanity_checks(reader, report)?;
                     }
                 }
@@ -262,10 +257,7 @@ fn perform_v2_peaks_sanity_checks<R: parquet::file::reader::ChunkReader + 'stati
     let num_rows = metadata.file_metadata().num_rows();
     let schema_descriptor = metadata.file_metadata().schema_descr();
 
-    report.add_check(ValidationCheck::ok(format!(
-        "V2 peaks rows: {}",
-        num_rows
-    )));
+    report.add_check(ValidationCheck::ok(format!("V2 peaks rows: {}", num_rows)));
 
     if num_rows == 0 {
         report.add_check(ValidationCheck::warning(

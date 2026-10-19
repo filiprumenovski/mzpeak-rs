@@ -111,8 +111,10 @@ fn build_demo_metadata() -> Result<MzPeakMetadata> {
     sdrf.biological_replicate = Some(1);
     sdrf.factor_values
         .insert("treatment".to_string(), "control".to_string());
-    sdrf.comments
-        .insert("sample preparation".to_string(), "FASP digestion".to_string());
+    sdrf.comments.insert(
+        "sample preparation".to_string(),
+        "FASP digestion".to_string(),
+    );
     sdrf.raw_file = Some("HeLa_Digest_01.raw".to_string());
     metadata.sdrf = Some(sdrf);
 

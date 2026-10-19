@@ -298,8 +298,11 @@ impl PyMzPeakReader {
         max_rt: f32,
     ) -> PyResult<Vec<PySpectrum>> {
         let reader = self.get_reader()?;
-        let spectra =
-            py.allow_threads(|| reader.spectra_by_rt_range_arrays(min_rt, max_rt).into_py_result())?;
+        let spectra = py.allow_threads(|| {
+            reader
+                .spectra_by_rt_range_arrays(min_rt, max_rt)
+                .into_py_result()
+        })?;
         let mut out = Vec::with_capacity(spectra.len());
         for view in spectra {
             let owned = view.to_owned().into_py_result()?;
@@ -323,8 +326,11 @@ impl PyMzPeakReader {
         max_rt: f32,
     ) -> PyResult<Vec<PySpectrumArrays>> {
         let reader = self.get_reader()?;
-        let spectra =
-            py.allow_threads(|| reader.spectra_by_rt_range_arrays(min_rt, max_rt).into_py_result())?;
+        let spectra = py.allow_threads(|| {
+            reader
+                .spectra_by_rt_range_arrays(min_rt, max_rt)
+                .into_py_result()
+        })?;
         let mut out = Vec::with_capacity(spectra.len());
         for view in spectra {
             let owned = view.to_owned().into_py_result()?;
@@ -512,7 +518,9 @@ impl PyMzPeakReader {
     fn to_polars(&self, py: Python<'_>) -> PyResult<PyObject> {
         let table = self.to_arrow(py)?;
         let polars = py.import("polars")?;
-        polars.call_method1("from_arrow", (table,)).map(|df| df.into())
+        polars
+            .call_method1("from_arrow", (table,))
+            .map(|df| df.into())
     }
 
     // =========================================================================
@@ -604,9 +612,14 @@ impl PyMzPeakReader {
     ) -> PyResult<Vec<PySpectrumMetadataView>> {
         let reader = self.get_reader()?;
         let batch = py.allow_threads(|| {
-            reader.read_spectra_batch(offset, batch_size).into_py_result()
+            reader
+                .read_spectra_batch(offset, batch_size)
+                .into_py_result()
         })?;
-        Ok(batch.into_iter().map(PySpectrumMetadataView::from).collect())
+        Ok(batch
+            .into_iter()
+            .map(PySpectrumMetadataView::from)
+            .collect())
     }
 
     /// Get spectrum metadata by ID (v2 format only).
@@ -628,9 +641,8 @@ impl PyMzPeakReader {
         spectrum_id: u32,
     ) -> PyResult<Option<PySpectrumMetadataView>> {
         let reader = self.get_reader()?;
-        let result = py.allow_threads(|| {
-            reader.get_spectrum_metadata(spectrum_id).into_py_result()
-        })?;
+        let result =
+            py.allow_threads(|| reader.get_spectrum_metadata(spectrum_id).into_py_result())?;
         Ok(result.map(PySpectrumMetadataView::from))
     }
 
@@ -656,9 +668,14 @@ impl PyMzPeakReader {
     ) -> PyResult<Vec<PySpectrumMetadataView>> {
         let reader = self.get_reader()?;
         let results = py.allow_threads(|| {
-            reader.spectra_metadata_by_rt_range(start_rt, end_rt).into_py_result()
+            reader
+                .spectra_metadata_by_rt_range(start_rt, end_rt)
+                .into_py_result()
         })?;
-        Ok(results.into_iter().map(PySpectrumMetadataView::from).collect())
+        Ok(results
+            .into_iter()
+            .map(PySpectrumMetadataView::from)
+            .collect())
     }
 
     /// Query spectrum metadata by MS level (v2 format only).
@@ -681,9 +698,14 @@ impl PyMzPeakReader {
     ) -> PyResult<Vec<PySpectrumMetadataView>> {
         let reader = self.get_reader()?;
         let results = py.allow_threads(|| {
-            reader.spectra_metadata_by_ms_level(ms_level).into_py_result()
+            reader
+                .spectra_metadata_by_ms_level(ms_level)
+                .into_py_result()
         })?;
-        Ok(results.into_iter().map(PySpectrumMetadataView::from).collect())
+        Ok(results
+            .into_iter()
+            .map(PySpectrumMetadataView::from)
+            .collect())
     }
 
     /// Context manager entry
@@ -725,9 +747,9 @@ impl PyMzPeakReader {
 
 impl PyMzPeakReader {
     fn get_reader(&self) -> PyResult<&MzPeakReader> {
-        self.inner.as_ref().ok_or_else(|| {
-            pyo3::exceptions::PyRuntimeError::new_err("Reader is closed")
-        })
+        self.inner
+            .as_ref()
+            .ok_or_else(|| pyo3::exceptions::PyRuntimeError::new_err("Reader is closed"))
     }
 }
 
@@ -769,10 +791,7 @@ fn record_batch_to_pyarrow(py: Python<'_>, batch: RecordBatch) -> PyResult<PyObj
     // Create a RecordBatchReader from the single batch
     let schema = batch.schema();
     let batches = vec![batch];
-    let reader = arrow::record_batch::RecordBatchIterator::new(
-        batches.into_iter().map(Ok),
-        schema,
-    );
+    let reader = arrow::record_batch::RecordBatchIterator::new(batches.into_iter().map(Ok), schema);
 
     // Create FFI stream from reader using Arrow 54 API
     // This wraps the reader in a C-compatible struct that Python can consume
@@ -799,9 +818,11 @@ fn record_batch_to_pyarrow(py: Python<'_>, batch: RecordBatch) -> PyResult<PyObj
     if capsule.is_null() {
         // Clean up the stream if capsule creation failed
         // SAFETY: We still own stream_ptr since capsule creation failed
-        unsafe { drop(Box::from_raw(stream_ptr)); }
+        unsafe {
+            drop(Box::from_raw(stream_ptr));
+        }
         return Err(pyo3::exceptions::PyMemoryError::new_err(
-            "Failed to create PyCapsule for Arrow stream"
+            "Failed to create PyCapsule for Arrow stream",
         ));
     }
 
@@ -836,10 +857,8 @@ fn record_batch_to_pyarrow(py: Python<'_>, batch: RecordBatch) -> PyResult<PyObj
 /// The function is marked `unsafe extern "C"` as required by the PyCapsule API.
 unsafe extern "C" fn drop_ffi_stream(capsule: *mut pyo3::ffi::PyObject) {
     let capsule_name = b"arrow_array_stream\0";
-    let ptr = pyo3::ffi::PyCapsule_GetPointer(
-        capsule,
-        capsule_name.as_ptr() as *const std::ffi::c_char,
-    );
+    let ptr =
+        pyo3::ffi::PyCapsule_GetPointer(capsule, capsule_name.as_ptr() as *const std::ffi::c_char);
     if !ptr.is_null() {
         // SAFETY: ptr was created by Box::into_raw in record_batch_to_pyarrow
         drop(Box::from_raw(ptr as *mut FFI_ArrowArrayStream));
@@ -1093,12 +1112,16 @@ impl PyStreamingArrowReader {
     /// Returns a PyCapsule containing an FFI_ArrowArrayStream that PyArrow
     /// can consume for streaming record batch access.
     #[pyo3(signature = (requested_schema=None))]
-    fn __arrow_c_stream__(&mut self, py: Python<'_>, requested_schema: Option<PyObject>) -> PyResult<PyObject> {
+    fn __arrow_c_stream__(
+        &mut self,
+        py: Python<'_>,
+        requested_schema: Option<PyObject>,
+    ) -> PyResult<PyObject> {
         let _ = requested_schema; // We don't support schema negotiation
 
         if self.exhausted {
             return Err(pyo3::exceptions::PyRuntimeError::new_err(
-                "Arrow stream has already been consumed"
+                "Arrow stream has already been consumed",
             ));
         }
 
@@ -1135,9 +1158,11 @@ impl PyStreamingArrowReader {
         if capsule.is_null() {
             // Clean up the stream if capsule creation failed
             // SAFETY: We still own stream_ptr since capsule creation failed
-            unsafe { drop(Box::from_raw(stream_ptr)); }
+            unsafe {
+                drop(Box::from_raw(stream_ptr));
+            }
             return Err(pyo3::exceptions::PyMemoryError::new_err(
-                "Failed to create PyCapsule for Arrow stream"
+                "Failed to create PyCapsule for Arrow stream",
             ));
         }
 
@@ -1154,7 +1179,10 @@ struct StreamingBatchReader {
 }
 
 impl StreamingBatchReader {
-    fn new(iter: crate::reader::RecordBatchIterator, schema: std::sync::Arc<arrow::datatypes::Schema>) -> Self {
+    fn new(
+        iter: crate::reader::RecordBatchIterator,
+        schema: std::sync::Arc<arrow::datatypes::Schema>,
+    ) -> Self {
         Self { iter, schema }
     }
 }
@@ -1169,6 +1197,8 @@ impl Iterator for StreamingBatchReader {
     type Item = Result<RecordBatch, arrow::error::ArrowError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|r| r.map_err(|e| arrow::error::ArrowError::ExternalError(Box::new(e))))
+        self.iter
+            .next()
+            .map(|r| r.map_err(|e| arrow::error::ArrowError::ExternalError(Box::new(e))))
     }
 }

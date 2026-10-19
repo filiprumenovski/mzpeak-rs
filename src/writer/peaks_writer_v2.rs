@@ -33,11 +33,11 @@ use std::collections::HashMap;
 use std::io::{Seek, Write};
 use std::sync::Arc;
 
-use arrow::array::{ArrayRef, Float32Builder, Float64Builder, UInt32Builder};
-use arrow::record_batch::RecordBatch;
-use parquet::arrow::ArrowWriter;
+use parquet::arrow::{add_encoded_arrow_schema_to_metadata, ArrowSchemaConverter};
 use parquet::basic::{Compression, Encoding, ZstdLevel};
+use parquet::data_type::{DoubleType, FloatType, Int32Type};
 use parquet::file::properties::{EnabledStatistics, WriterProperties};
+use parquet::file::writer::SerializedFileWriter;
 use parquet::format::KeyValue;
 use parquet::schema::types::ColumnPath;
 
@@ -77,8 +77,8 @@ pub struct PeaksWriterV2Config {
 impl Default for PeaksWriterV2Config {
     fn default() -> Self {
         Self {
-            // ZSTD level 9 for good compression
-            compression: CompressionType::Zstd(9),
+            // Balanced compression; callers can opt into higher levels.
+            compression: CompressionType::Zstd(3),
             // 500k peaks per row group balances compression vs random access
             row_group_size: 500_000,
             // 1MB data pages
@@ -190,7 +190,7 @@ impl std::fmt::Display for PeaksWriterV2Stats {
 /// Buffered column data for efficient batch writing
 #[derive(Debug)]
 struct ColumnBuffers {
-    spectrum_id: Vec<u32>,
+    spectrum_id: Vec<i32>,
     mz: Vec<f64>,
     intensity: Vec<f32>,
     ion_mobility: Option<Vec<f64>>,
@@ -232,7 +232,8 @@ impl ColumnBuffers {
         let peak_count = peaks.len();
 
         // Extend spectrum_id with repeated values
-        self.spectrum_id.extend(std::iter::repeat(spectrum_id).take(peak_count));
+        self.spectrum_id
+            .extend(std::iter::repeat_n(spectrum_id as i32, peak_count));
 
         // Extend mz and intensity
         self.mz.extend_from_slice(&peaks.mz);
@@ -283,8 +284,7 @@ impl ColumnBuffers {
 /// println!("Written: {}", stats);
 /// ```
 pub struct PeaksWriterV2<W: Write + Seek> {
-    writer: ArrowWriter<W>,
-    schema: Arc<arrow::datatypes::Schema>,
+    writer: SerializedFileWriter<W>,
     row_group_size: usize,
     has_ion_mobility: bool,
     peaks_written: u64,
@@ -323,13 +323,20 @@ impl<W: Write + Seek + Send> PeaksWriterV2<W> {
         has_ion_mobility: bool,
     ) -> Result<Self, WriterError> {
         let schema = create_peaks_schema_v2_arc(has_ion_mobility);
-        let props = config.to_writer_properties(has_ion_mobility);
-
-        let arrow_writer = ArrowWriter::try_new(writer, schema.clone(), Some(props))?;
+        if config.row_group_size == 0 {
+            return Err(WriterError::InvalidData(
+                "row_group_size must be positive".into(),
+            ));
+        }
+        let mut props = config.to_writer_properties(has_ion_mobility);
+        add_encoded_arrow_schema_to_metadata(&schema, &mut props);
+        let parquet_schema = ArrowSchemaConverter::new()
+            .convert(&schema)?
+            .root_schema_ptr();
+        let writer = SerializedFileWriter::new(writer, parquet_schema, Arc::new(props))?;
 
         Ok(Self {
-            writer: arrow_writer,
-            schema,
+            writer,
             row_group_size: config.row_group_size,
             has_ion_mobility,
             peaks_written: 0,
@@ -348,11 +355,16 @@ impl<W: Write + Seek + Send> PeaksWriterV2<W> {
     /// # Returns
     ///
     /// `Ok(())` on success, or an error if writing fails.
-    pub fn write_peaks(&mut self, spectrum_id: u32, peaks: &PeakArraysV2) -> Result<(), WriterError> {
+    pub fn write_peaks(
+        &mut self,
+        spectrum_id: u32,
+        peaks: &PeakArraysV2,
+    ) -> Result<(), WriterError> {
         if peaks.is_empty() {
             return Ok(());
         }
 
+        peaks.validate().map_err(WriterError::InvalidData)?;
         self.validate_ion_mobility(peaks)?;
         self.buffers.push_spectrum(spectrum_id, peaks);
         self.peaks_written += peaks.len() as u64;
@@ -376,19 +388,7 @@ impl<W: Write + Seek + Send> PeaksWriterV2<W> {
         I: IntoIterator<Item = (u32, &'a PeakArraysV2)>,
     {
         for (spectrum_id, peaks) in batch {
-            if peaks.is_empty() {
-                continue;
-            }
-
-            self.validate_ion_mobility(peaks)?;
-            self.buffers.push_spectrum(spectrum_id, peaks);
-            self.peaks_written += peaks.len() as u64;
-            self.spectra_written += 1;
-
-            // Flush if buffer is full
-            if self.buffers.len() >= self.row_group_size {
-                self.flush_buffers()?;
-            }
+            self.write_peaks(spectrum_id, peaks)?;
         }
 
         Ok(())
@@ -400,56 +400,42 @@ impl<W: Write + Seek + Send> PeaksWriterV2<W> {
             return Ok(());
         }
 
-        let arrays = self.build_arrays();
-        let record_batch = RecordBatch::try_new(self.schema.clone(), arrays)?;
-        self.writer.write(&record_batch)?;
-        self.buffers.clear();
-
-        Ok(())
-    }
-
-    /// Build Arrow arrays from the buffered data.
-    fn build_arrays(&self) -> Vec<ArrayRef> {
-        let mut arrays: Vec<ArrayRef> = vec![
-            // spectrum_id (UInt32)
-            Self::build_u32_array(&self.buffers.spectrum_id),
-            // mz (Float64)
-            Self::build_f64_array(&self.buffers.mz),
-            // intensity (Float32)
-            Self::build_f32_array(&self.buffers.intensity),
-        ];
-
-        // ion_mobility (Float64, optional)
-        if let Some(ref im) = self.buffers.ion_mobility {
-            arrays.push(Self::build_f64_array(im));
+        let mut row_group = self.writer.next_row_group()?;
+        let mut column = row_group
+            .next_column()?
+            .ok_or(WriterError::NotInitialized)?;
+        // UInt32 IDs retain their bits in Parquet's signed INT32 physical column.
+        column
+            .typed::<Int32Type>()
+            .write_batch(&self.buffers.spectrum_id, None, None)?;
+        column.close()?;
+        let mut column = row_group
+            .next_column()?
+            .ok_or(WriterError::NotInitialized)?;
+        column
+            .typed::<DoubleType>()
+            .write_batch(&self.buffers.mz, None, None)?;
+        column.close()?;
+        let mut column = row_group
+            .next_column()?
+            .ok_or(WriterError::NotInitialized)?;
+        column
+            .typed::<FloatType>()
+            .write_batch(&self.buffers.intensity, None, None)?;
+        column.close()?;
+        if let Some(mobility) = &self.buffers.ion_mobility {
+            let mut column = row_group
+                .next_column()?
+                .ok_or(WriterError::NotInitialized)?;
+            let defined = vec![1_i16; mobility.len()];
+            column
+                .typed::<DoubleType>()
+                .write_batch(mobility, Some(&defined), None)?;
+            column.close()?;
         }
-
-        arrays
-    }
-
-    // =========================================================================
-    // Array Builder Helpers
-    // =========================================================================
-
-    #[inline]
-    fn build_u32_array(data: &[u32]) -> ArrayRef {
-        let mut builder = UInt32Builder::with_capacity(data.len());
-        builder.append_slice(data);
-        Arc::new(builder.finish())
-    }
-
-    #[inline]
-    fn build_f64_array(data: &[f64]) -> ArrayRef {
-        let mut builder = Float64Builder::with_capacity(data.len());
-        builder.append_slice(data);
-        Arc::new(builder.finish())
-    }
-
-    #[inline]
-    fn build_f32_array(data: &[f32]) -> ArrayRef {
-        let mut builder = Float32Builder::with_capacity(data.len());
-        builder.append_slice(data);
-        Arc::new(builder.finish())
+        row_group.close()?;
+        self.buffers.clear();
+        Ok(())
     }
 
     /// Finish writing and close the file.
@@ -545,7 +531,8 @@ mod tests {
             ..Default::default()
         };
 
-        let mut writer = PeaksWriterV2::new(buffer, &config, false).expect("Failed to create writer");
+        let mut writer =
+            PeaksWriterV2::new(buffer, &config, false).expect("Failed to create writer");
 
         // Write peaks for a few spectra
         for i in 0..5 {
@@ -553,7 +540,9 @@ mod tests {
                 vec![100.0 + i as f64, 200.0 + i as f64, 300.0 + i as f64],
                 vec![1000.0, 500.0, 250.0],
             );
-            writer.write_peaks(i, &peaks).expect("Failed to write peaks");
+            writer
+                .write_peaks(i, &peaks)
+                .expect("Failed to write peaks");
         }
 
         assert_eq!(writer.peaks_written(), 15);
@@ -570,7 +559,8 @@ mod tests {
         let buffer = Cursor::new(Vec::new());
         let config = PeaksWriterV2Config::default();
 
-        let mut writer = PeaksWriterV2::new(buffer, &config, true).expect("Failed to create writer");
+        let mut writer =
+            PeaksWriterV2::new(buffer, &config, true).expect("Failed to create writer");
 
         // Write peaks with ion mobility
         let peaks = PeakArraysV2::with_ion_mobility(
@@ -578,7 +568,9 @@ mod tests {
             vec![1000.0, 500.0],
             vec![1.5, 1.6],
         );
-        writer.write_peaks(0, &peaks).expect("Failed to write peaks");
+        writer
+            .write_peaks(0, &peaks)
+            .expect("Failed to write peaks");
 
         assert!(writer.has_ion_mobility());
         assert_eq!(writer.peaks_written(), 2);
@@ -595,7 +587,8 @@ mod tests {
             ..Default::default()
         };
 
-        let mut writer = PeaksWriterV2::new(buffer, &config, false).expect("Failed to create writer");
+        let mut writer =
+            PeaksWriterV2::new(buffer, &config, false).expect("Failed to create writer");
 
         // Write more peaks than buffer size
         // Each spectrum has 3 peaks:
@@ -609,7 +602,9 @@ mod tests {
                 vec![100.0, 200.0, 300.0], // 3 peaks each
                 vec![1000.0, 500.0, 250.0],
             );
-            writer.write_peaks(i, &peaks).expect("Failed to write peaks");
+            writer
+                .write_peaks(i, &peaks)
+                .expect("Failed to write peaks");
         }
 
         // 15 peaks total, buffer size 10, flushed once after spectrum 3
@@ -626,11 +621,14 @@ mod tests {
         let buffer = Cursor::new(Vec::new());
         let config = PeaksWriterV2Config::default();
 
-        let mut writer = PeaksWriterV2::new(buffer, &config, false).expect("Failed to create writer");
+        let mut writer =
+            PeaksWriterV2::new(buffer, &config, false).expect("Failed to create writer");
 
         // Write empty spectrum
         let empty_peaks = PeakArraysV2::new(vec![], vec![]);
-        writer.write_peaks(0, &empty_peaks).expect("Failed to write peaks");
+        writer
+            .write_peaks(0, &empty_peaks)
+            .expect("Failed to write peaks");
 
         // Empty spectrum should not increment counters
         assert_eq!(writer.peaks_written(), 0);
@@ -645,7 +643,8 @@ mod tests {
         let buffer = Cursor::new(Vec::new());
         let config = PeaksWriterV2Config::default();
 
-        let mut writer = PeaksWriterV2::new(buffer, &config, false).expect("Failed to create writer");
+        let mut writer =
+            PeaksWriterV2::new(buffer, &config, false).expect("Failed to create writer");
 
         // Create batch of spectra
         let spectra: Vec<PeakArraysV2> = (0..10)
@@ -653,8 +652,14 @@ mod tests {
             .collect();
 
         // Write as batch
-        let batch: Vec<_> = spectra.iter().enumerate().map(|(i, p)| (i as u32, p)).collect();
-        writer.write_peaks_batch(batch).expect("Failed to write batch");
+        let batch: Vec<_> = spectra
+            .iter()
+            .enumerate()
+            .map(|(i, p)| (i as u32, p))
+            .collect();
+        writer
+            .write_peaks_batch(batch)
+            .expect("Failed to write batch");
 
         assert_eq!(writer.peaks_written(), 10);
         assert_eq!(writer.spectra_written(), 10);

@@ -3,16 +3,16 @@ use std::path::Path;
 use log::info;
 use rayon::prelude::*;
 
-use super::{ConversionError, ConversionStats, MzMLConverter, OutputFormat};
 use super::super::models::RawMzMLSpectrum;
 use super::super::streamer::MzMLStreamer;
+use super::spectrum::DecodedRawSpectrum;
+use super::{ConversionError, ConversionStats, MzMLConverter, OutputFormat};
 use crate::dataset::{DatasetWriterV2Config, MzPeakDatasetWriter, MzPeakDatasetWriterV2};
 use crate::ingest::IngestSpectrumConverter;
 use crate::schema::manifest::Modality;
 use crate::writer::{
     PeaksWriterV2Config, SpectraWriterConfig, SpectrumArrays, SpectrumV2, WriterError,
 };
-use super::spectrum::DecodedRawSpectrum;
 
 impl MzMLConverter {
     /// Convert an mzML file to mzPeak format using parallel decoding
@@ -43,7 +43,9 @@ impl MzMLConverter {
     ) -> Result<ConversionStats, ConversionError> {
         match self.config.output_format {
             OutputFormat::V1Parquet => self.convert_parallel_v1_legacy(input_path, output_path),
-            OutputFormat::V2Container => self.convert_parallel_v2_container(input_path, output_path),
+            OutputFormat::V2Container => {
+                self.convert_parallel_v2_container(input_path, output_path)
+            }
         }
     }
 
@@ -193,9 +195,9 @@ impl MzMLConverter {
                     tic_times,
                     tic_intensities,
                 ) {
-                    writer
-                        .write_chromatogram(&tic_chrom)
-                        .map_err(|e| ConversionError::WriterError(WriterError::InvalidData(e.to_string())))?;
+                    writer.write_chromatogram(&tic_chrom).map_err(|e| {
+                        ConversionError::WriterError(WriterError::InvalidData(e.to_string()))
+                    })?;
                     stats.chromatograms_converted += 1;
                 }
 
@@ -206,9 +208,9 @@ impl MzMLConverter {
                     bpc_times,
                     bpc_intensities,
                 ) {
-                    writer
-                        .write_chromatogram(&bpc_chrom)
-                        .map_err(|e| ConversionError::WriterError(WriterError::InvalidData(e.to_string())))?;
+                    writer.write_chromatogram(&bpc_chrom).map_err(|e| {
+                        ConversionError::WriterError(WriterError::InvalidData(e.to_string()))
+                    })?;
                     stats.chromatograms_converted += 1;
                 }
 
@@ -296,8 +298,12 @@ impl MzMLConverter {
         };
 
         let vendor_hints = mzpeak_metadata.vendor_hints.clone();
-        let mut writer =
-            MzPeakDatasetWriterV2::with_config(output_path, modality, vendor_hints, dataset_config)?;
+        let mut writer = MzPeakDatasetWriterV2::with_config(
+            output_path,
+            modality,
+            vendor_hints,
+            dataset_config,
+        )?;
         writer.set_metadata(mzpeak_metadata);
 
         let mut stats = ConversionStats {
@@ -467,8 +473,7 @@ impl MzMLConverter {
             }
 
             if modality.has_imaging() {
-                if spectrum_v2.metadata.pixel_x.is_none()
-                    || spectrum_v2.metadata.pixel_y.is_none()
+                if spectrum_v2.metadata.pixel_x.is_none() || spectrum_v2.metadata.pixel_y.is_none()
                 {
                     return Err(ConversionError::WriterError(WriterError::InvalidData(
                         "pixel coordinates missing for imaging modality".to_string(),

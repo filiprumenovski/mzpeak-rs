@@ -189,12 +189,20 @@ impl PyValidationReport {
 
     /// Get all failed checks
     fn failed_checks(&self) -> Vec<PyValidationCheck> {
-        self.checks.iter().filter(|c| c.is_failed()).cloned().collect()
+        self.checks
+            .iter()
+            .filter(|c| c.is_failed())
+            .cloned()
+            .collect()
     }
 
     /// Get all warnings
     fn warning_checks(&self) -> Vec<PyValidationCheck> {
-        self.checks.iter().filter(|c| c.is_warning()).cloned().collect()
+        self.checks
+            .iter()
+            .filter(|c| c.is_warning())
+            .cloned()
+            .collect()
     }
 
     /// Get all passed checks
@@ -309,9 +317,7 @@ pub fn py_validate_mzpeak_file(path: &str) -> PyResult<PyValidationReport> {
     let path = Path::new(path);
 
     // Release GIL during validation since it may involve I/O
-    let report = Python::with_gil(|py| {
-        py.allow_threads(|| validate_mzpeak_file(path))
-    });
+    let report = Python::with_gil(|py| py.allow_threads(|| validate_mzpeak_file(path)));
 
     match report {
         Ok(report) => Ok(PyValidationReport::from(report)),

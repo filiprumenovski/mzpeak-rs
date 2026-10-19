@@ -276,7 +276,9 @@ impl<R: BufRead> MzMLStreamer<R> {
             buf.clear();
         }
 
-        self.metadata.instrument_configurations.extend(pending_configs);
+        self.metadata
+            .instrument_configurations
+            .extend(pending_configs);
         Ok(())
     }
 
@@ -496,7 +498,11 @@ impl<R: BufRead> MzMLStreamer<R> {
     }
 
     /// Parse sample element content
-    fn parse_sample_content(&mut self, id: String, name: Option<String>) -> Result<Sample, MzMLError> {
+    fn parse_sample_content(
+        &mut self,
+        id: String,
+        name: Option<String>,
+    ) -> Result<Sample, MzMLError> {
         let mut sample = Sample {
             id,
             name,

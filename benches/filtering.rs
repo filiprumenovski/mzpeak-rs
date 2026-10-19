@@ -63,9 +63,7 @@ fn bench_ms2_filtering(c: &mut Criterion) {
                 let reader = MzPeakReader::open(&file_path).unwrap();
 
                 b.iter(|| {
-                    let ms2_spectra = reader
-                        .spectra_by_ms_level_arrays(black_box(2))
-                        .unwrap();
+                    let ms2_spectra = reader.spectra_by_ms_level_arrays(black_box(2)).unwrap();
                     black_box(ms2_spectra);
                 });
             },

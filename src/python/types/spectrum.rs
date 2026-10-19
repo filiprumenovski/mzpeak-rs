@@ -96,10 +96,8 @@ impl PySpectrum {
                 }
             }
             OptionalColumnBuf::AllPresent(values) => {
-                for ((mz_val, intensity_val), im_val) in mz
-                    .iter()
-                    .zip(intensity.iter())
-                    .zip(values.iter())
+                for ((mz_val, intensity_val), im_val) in
+                    mz.iter().zip(intensity.iter()).zip(values.iter())
                 {
                     out.push(PyPeak::from_values(*mz_val, *intensity_val, Some(*im_val)));
                 }

@@ -101,10 +101,14 @@ pub fn create_mobilogram_schema() -> Schema {
 
     // Add schema-level metadata
     let mut metadata = HashMap::new();
-    metadata.insert(KEY_FORMAT_VERSION.to_string(), MZPEAK_FORMAT_VERSION.to_string());
+    metadata.insert(
+        KEY_FORMAT_VERSION.to_string(),
+        MZPEAK_FORMAT_VERSION.to_string(),
+    );
     metadata.insert(
         "mzpeak:schema_description".to_string(),
-        "Wide-format mobilogram data with array storage for instant trace visualization".to_string(),
+        "Wide-format mobilogram data with array storage for instant trace visualization"
+            .to_string(),
     );
     metadata.insert(
         "mzpeak:cv_namespace".to_string(),
@@ -184,7 +188,7 @@ impl MobilogramWriterConfig {
     /// Create writer properties from this configuration
     fn to_writer_properties(&self, metadata: &HashMap<String, String>) -> WriterProperties {
         let compression = Compression::ZSTD(
-            ZstdLevel::try_new(self.compression_level).unwrap_or(ZstdLevel::default())
+            ZstdLevel::try_new(self.compression_level).unwrap_or(ZstdLevel::default()),
         );
 
         let statistics = if self.write_statistics {
@@ -201,11 +205,15 @@ impl MobilogramWriterConfig {
 
         // Disable dictionary encoding for array columns (high-cardinality data)
         builder = builder.set_column_dictionary_enabled(
-            parquet::schema::types::ColumnPath::new(vec![mobilogram_columns::MOBILITY_ARRAY.to_string()]),
+            parquet::schema::types::ColumnPath::new(vec![
+                mobilogram_columns::MOBILITY_ARRAY.to_string()
+            ]),
             false,
         );
         builder = builder.set_column_dictionary_enabled(
-            parquet::schema::types::ColumnPath::new(vec![mobilogram_columns::INTENSITY_ARRAY.to_string()]),
+            parquet::schema::types::ColumnPath::new(vec![
+                mobilogram_columns::INTENSITY_ARRAY.to_string()
+            ]),
             false,
         );
 
@@ -265,13 +273,31 @@ impl Mobilogram {
     }
 
     /// Create a Total Ion Mobilogram (TIM)
-    pub fn new_tim(mobilogram_id: String, mobility_array: Vec<f64>, intensity_array: Vec<f32>) -> Result<Self, MobilogramWriterError> {
-        Self::new(mobilogram_id, "TIM".to_string(), mobility_array, intensity_array)
+    pub fn new_tim(
+        mobilogram_id: String,
+        mobility_array: Vec<f64>,
+        intensity_array: Vec<f32>,
+    ) -> Result<Self, MobilogramWriterError> {
+        Self::new(
+            mobilogram_id,
+            "TIM".to_string(),
+            mobility_array,
+            intensity_array,
+        )
     }
 
     /// Create an Extracted Ion Mobilogram (XIM)
-    pub fn new_xim(mobilogram_id: String, mobility_array: Vec<f64>, intensity_array: Vec<f32>) -> Result<Self, MobilogramWriterError> {
-        Self::new(mobilogram_id, "XIM".to_string(), mobility_array, intensity_array)
+    pub fn new_xim(
+        mobilogram_id: String,
+        mobility_array: Vec<f64>,
+        intensity_array: Vec<f32>,
+    ) -> Result<Self, MobilogramWriterError> {
+        Self::new(
+            mobilogram_id,
+            "XIM".to_string(),
+            mobility_array,
+            intensity_array,
+        )
     }
 
     /// Get the number of data points
@@ -327,7 +353,10 @@ impl<W: Write + Send> MobilogramWriter<W> {
     }
 
     /// Write a batch of mobilograms
-    pub fn write_mobilograms(&mut self, mobilograms: &[Mobilogram]) -> Result<(), MobilogramWriterError> {
+    pub fn write_mobilograms(
+        &mut self,
+        mobilograms: &[Mobilogram],
+    ) -> Result<(), MobilogramWriterError> {
         if mobilograms.is_empty() {
             return Ok(());
         }
@@ -338,8 +367,10 @@ impl<W: Write + Send> MobilogramWriter<W> {
         // Use Field with nullable=false to match schema
         let mobility_field = Field::new("item", DataType::Float64, false);
         let intensity_field = Field::new("item", DataType::Float32, false);
-        let mut mobility_builder = ListBuilder::new(Float64Builder::new()).with_field(mobility_field);
-        let mut intensity_builder = ListBuilder::new(Float32Builder::new()).with_field(intensity_field);
+        let mut mobility_builder =
+            ListBuilder::new(Float64Builder::new()).with_field(mobility_field);
+        let mut intensity_builder =
+            ListBuilder::new(Float32Builder::new()).with_field(intensity_field);
 
         for mobilogram in mobilograms {
             id_builder.append_value(&mobilogram.mobilogram_id);
@@ -382,7 +413,10 @@ impl<W: Write + Send> MobilogramWriter<W> {
     }
 
     /// Write a single mobilogram
-    pub fn write_mobilogram(&mut self, mobilogram: &Mobilogram) -> Result<(), MobilogramWriterError> {
+    pub fn write_mobilogram(
+        &mut self,
+        mobilogram: &Mobilogram,
+    ) -> Result<(), MobilogramWriterError> {
         self.write_mobilograms(&[mobilogram.clone()])
     }
 
@@ -452,10 +486,18 @@ mod tests {
         let schema = create_mobilogram_schema();
         assert_eq!(schema.fields().len(), 4);
 
-        assert!(schema.field_with_name(mobilogram_columns::MOBILOGRAM_ID).is_ok());
-        assert!(schema.field_with_name(mobilogram_columns::MOBILOGRAM_TYPE).is_ok());
-        assert!(schema.field_with_name(mobilogram_columns::MOBILITY_ARRAY).is_ok());
-        assert!(schema.field_with_name(mobilogram_columns::INTENSITY_ARRAY).is_ok());
+        assert!(schema
+            .field_with_name(mobilogram_columns::MOBILOGRAM_ID)
+            .is_ok());
+        assert!(schema
+            .field_with_name(mobilogram_columns::MOBILOGRAM_TYPE)
+            .is_ok());
+        assert!(schema
+            .field_with_name(mobilogram_columns::MOBILITY_ARRAY)
+            .is_ok());
+        assert!(schema
+            .field_with_name(mobilogram_columns::INTENSITY_ARRAY)
+            .is_ok());
     }
 
     #[test]
@@ -465,7 +507,8 @@ mod tests {
             "TIM".to_string(),
             vec![0.5, 0.6, 0.7, 0.8, 0.9],
             vec![100.0, 200.0, 500.0, 300.0, 150.0],
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(mobilogram.len(), 5);
         assert!(!mobilogram.is_empty());

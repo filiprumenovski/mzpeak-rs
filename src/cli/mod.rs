@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand, ValueEnum};
-use std::path::PathBuf;
 use mzpeak::schema::manifest::Modality;
+use std::path::PathBuf;
 
 #[cfg(feature = "mzml")]
 mod convert;

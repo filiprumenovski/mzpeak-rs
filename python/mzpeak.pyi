@@ -1639,7 +1639,7 @@ class WriterConfig:
     def __init__(
         self,
         compression: str = "zstd",
-        compression_level: int = 9,
+        compression_level: int = 3,
         row_group_size: int = 100000,
         data_page_size: int = 1048576
     ) -> None:
@@ -1648,7 +1648,7 @@ class WriterConfig:
         
         Args:
             compression: Compression type ("zstd", "snappy", or "none")
-            compression_level: ZSTD compression level (1-22, default 9)
+            compression_level: ZSTD compression level (1-22, default 3)
             row_group_size: Number of rows per row group (default 100000)
             data_page_size: Data page size in bytes (default 1MB)
         """
@@ -1806,7 +1806,7 @@ class ConversionConfig:
         >>> config = ConversionConfig(
         ...     batch_size=200,
         ...     output_format=OutputFormat.V2Container,
-        ...     compression_level=9,
+        ...     compression_level=3,
         ... )
         >>> stats = mzpeak.convert("input.mzML", "output.mzpeak", config)
     """
@@ -1834,7 +1834,7 @@ class ConversionConfig:
             progress_interval: Log progress every N spectra (default 1000)
             output_format: Output format (V2Container or V1Parquet, default V2Container)
             modality: Data modality override (auto-detect if None)
-            compression_level: ZSTD compression level 1-22 (default 9)
+            compression_level: ZSTD compression level 1-22 (default 3)
             row_group_size: Rows per Parquet row group (default 100000)
             sdrf_path: Optional path to SDRF metadata file
             streaming_config: Optional streaming configuration
@@ -2676,7 +2676,7 @@ class TdfConverter:
         self,
         include_extended_metadata: bool = True,
         batch_size: int = 256,
-        compression_level: int = 9,
+        compression_level: int = 3,
         row_group_size: int = 100000
     ) -> None:
         """
@@ -2685,7 +2685,7 @@ class TdfConverter:
         Args:
             include_extended_metadata: Include TIC/base peak prepopulation (default True)
             batch_size: Batch size for streaming + parallel decode (default 256)
-            compression_level: ZSTD compression level 1-22 (default 9)
+            compression_level: ZSTD compression level 1-22 (default 3)
             row_group_size: Rows per Parquet row group (default 100000)
         """
         ...
@@ -2713,7 +2713,7 @@ def convert_tdf(
     input_path: Union[str, PathLike],
     output_path: Union[str, PathLike],
     batch_size: int = 256,
-    compression_level: int = 9
+    compression_level: int = 3
 ) -> TdfConversionStats:
     """
     Convert a Bruker TDF dataset to mzPeak format (convenience function).
@@ -2724,7 +2724,7 @@ def convert_tdf(
         input_path: Path to Bruker .d directory
         output_path: Path for output .mzpeak container
         batch_size: Batch size for streaming (default 256)
-        compression_level: ZSTD compression level 1-22 (default 9)
+        compression_level: ZSTD compression level 1-22 (default 3)
         
     Returns:
         TdfConversionStats with details about the conversion
@@ -2792,8 +2792,7 @@ class ThermoConverter:
     Converts Thermo Fisher RAW files to mzPeak format. Supports both legacy
     v1 Parquet output and v2 container format.
     
-    Note: Requires the 'thermo' feature and .NET 8 runtime.
-          Only supported on Windows x86_64, Linux x86_64, and macOS x86_64.
+    Requires the 'thermo' feature and a compatible bundled or external rawr executable.
     
     Example:
         >>> converter = mzpeak.ThermoConverter()
@@ -2804,7 +2803,7 @@ class ThermoConverter:
     def __init__(
         self,
         batch_size: int = 1000,
-        compression_level: int = 9,
+        compression_level: int = 3,
         row_group_size: int = 100000,
         legacy_format: bool = False,
         centroid_spectra: bool = True
@@ -2814,10 +2813,10 @@ class ThermoConverter:
         
         Args:
             batch_size: Number of spectra to process per batch (default 1000)
-            compression_level: ZSTD compression level 1-22 (default 9)
+            compression_level: ZSTD compression level 1-22 (default 3)
             row_group_size: Rows per Parquet row group (default 100000)
             legacy_format: Output legacy v1 Parquet instead of v2 container (default False)
-            centroid_spectra: Centroid profile spectra during conversion (default True)
+            centroid_spectra: Select source-saved centroids (True); False is unsupported
         """
         ...
     
@@ -2844,18 +2843,18 @@ def convert_thermo(
     input_path: Union[str, PathLike],
     output_path: Union[str, PathLike],
     batch_size: int = 1000,
-    compression_level: int = 9
+    compression_level: int = 3
 ) -> ThermoConversionStats:
     """
     Convert a Thermo RAW file to mzPeak format (convenience function).
     
-    Note: Requires the 'thermo' feature and .NET 8 runtime.
+    Requires the 'thermo' feature and a compatible rawr executable.
     
     Args:
         input_path: Path to Thermo RAW file
         output_path: Path for output .mzpeak container
         batch_size: Number of spectra per batch (default 1000)
-        compression_level: ZSTD compression level 1-22 (default 9)
+        compression_level: ZSTD compression level 1-22 (default 3)
         
     Returns:
         ThermoConversionStats with details about the conversion

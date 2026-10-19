@@ -1,22 +1,42 @@
-use super::MzMLConverter;
+use crate::mzml::{BinaryCompression, BinaryEncoding};
+use base64::{engine::general_purpose::STANDARD, Engine};
+
+fn encoded(values: &[f64]) -> RawBinaryData {
+    RawBinaryData {
+        base64: STANDARD.encode(
+            values
+                .iter()
+                .flat_map(|v| v.to_le_bytes())
+                .collect::<Vec<_>>(),
+        ),
+        encoding: BinaryEncoding::Float64,
+        compression: BinaryCompression::None,
+    }
+}
+
 use super::super::models::*;
+use super::MzMLConverter;
 use crate::ingest::IngestSpectrumConverter;
 
 #[test]
 fn test_spectrum_conversion() {
-    let mzml_spectrum = MzMLSpectrum {
+    let mzml_spectrum = RawMzMLSpectrum {
         index: 0,
         id: "scan=1".to_string(),
         ms_level: 1,
         polarity: 1,
         retention_time: Some(60.0),
-        mz_array: vec![100.0, 200.0, 300.0],
-        intensity_array: vec![1000.0, 2000.0, 500.0],
+        default_array_length: 3,
+        mz_data: encoded(&[100.0, 200.0, 300.0]),
+        intensity_data: encoded(&[1000.0, 2000.0, 500.0]),
         ..Default::default()
     };
 
     let converter = MzMLConverter::new();
-    let ingest = converter.build_ingest_spectrum(mzml_spectrum);
+    let ingest = converter
+        .build_ingest_spectrum_raw(mzml_spectrum)
+        .unwrap()
+        .ingest;
     let mut contract = IngestSpectrumConverter::new();
     let spectrum = contract
         .convert(ingest)
@@ -31,31 +51,39 @@ fn test_spectrum_conversion() {
 
 #[test]
 fn test_contract_sequence_ordering() {
-    let mzml_spectrum1 = MzMLSpectrum {
+    let mzml_spectrum1 = RawMzMLSpectrum {
         index: 0,
         id: "scan=1".to_string(),
         ms_level: 1,
         polarity: 1,
         retention_time: Some(60.0),
-        mz_array: vec![100.0],
-        intensity_array: vec![1000.0],
+        default_array_length: 1,
+        mz_data: encoded(&[100.0]),
+        intensity_data: encoded(&[1000.0]),
         ..Default::default()
     };
 
-    let mzml_spectrum2 = MzMLSpectrum {
+    let mzml_spectrum2 = RawMzMLSpectrum {
         index: 1,
         id: "scan=2".to_string(),
         ms_level: 1,
         polarity: 1,
         retention_time: Some(61.0),
-        mz_array: vec![110.0],
-        intensity_array: vec![900.0],
+        default_array_length: 1,
+        mz_data: encoded(&[110.0]),
+        intensity_data: encoded(&[900.0]),
         ..Default::default()
     };
 
     let converter = MzMLConverter::new();
-    let ingest1 = converter.build_ingest_spectrum(mzml_spectrum1);
-    let ingest2 = converter.build_ingest_spectrum(mzml_spectrum2);
+    let ingest1 = converter
+        .build_ingest_spectrum_raw(mzml_spectrum1)
+        .unwrap()
+        .ingest;
+    let ingest2 = converter
+        .build_ingest_spectrum_raw(mzml_spectrum2)
+        .unwrap()
+        .ingest;
     let mut contract = IngestSpectrumConverter::new();
 
     contract
@@ -68,7 +96,7 @@ fn test_contract_sequence_ordering() {
 
 #[test]
 fn test_ms2_spectrum_conversion() {
-    let mzml_spectrum = MzMLSpectrum {
+    let mzml_spectrum = RawMzMLSpectrum {
         index: 1,
         id: "scan=2".to_string(),
         ms_level: 2,
@@ -82,13 +110,17 @@ fn test_ms2_spectrum_conversion() {
             collision_energy: Some(30.0),
             ..Default::default()
         }],
-        mz_array: vec![150.0, 250.0],
-        intensity_array: vec![500.0, 1000.0],
+        default_array_length: 2,
+        mz_data: encoded(&[150.0, 250.0]),
+        intensity_data: encoded(&[500.0, 1000.0]),
         ..Default::default()
     };
 
     let converter = MzMLConverter::new();
-    let ingest = converter.build_ingest_spectrum(mzml_spectrum);
+    let ingest = converter
+        .build_ingest_spectrum_raw(mzml_spectrum)
+        .unwrap()
+        .ingest;
     let mut contract = IngestSpectrumConverter::new();
     let spectrum = contract
         .convert(ingest)

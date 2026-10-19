@@ -143,10 +143,7 @@ fn perform_schema_validation(
             } else {
                 report.add_check(ValidationCheck::warning(
                     format!("CV accession for {}", col_name),
-                    format!(
-                        "Missing CV accession {} in column metadata",
-                        expected_cv
-                    ),
+                    format!("Missing CV accession {} in column metadata", expected_cv),
                 ));
             }
         }
@@ -178,21 +175,6 @@ fn perform_schema_validation(
 // =============================================================================
 // V2.0 Schema Validation
 // =============================================================================
-
-/// Check if the schema matches v2.0 peaks table format.
-///
-/// V2.0 peaks table has 3-4 columns:
-/// - spectrum_id (UInt32)
-/// - mz (Float64)
-/// - intensity (Float32)
-/// - ion_mobility (Float64, optional)
-pub(crate) fn check_peaks_v2_schema_contract(
-    validation_target: &ValidationTarget,
-    report: &mut ValidationReport,
-) -> Result<()> {
-    let metadata = read_parquet_metadata(&validation_target.peaks)?;
-    perform_peaks_v2_schema_validation(&metadata, report)
-}
 
 /// Perform v2.0 peaks schema validation
 fn perform_peaks_v2_schema_validation(
@@ -232,7 +214,10 @@ fn perform_peaks_v2_schema_validation(
                 format!("Type mismatch for column '{}'", col_name),
             ));
         } else {
-            report.add_check(ValidationCheck::ok(format!("V2 Peaks column: {}", col_name)));
+            report.add_check(ValidationCheck::ok(format!(
+                "V2 Peaks column: {}",
+                col_name
+            )));
         }
     }
 
@@ -243,7 +228,9 @@ fn perform_peaks_v2_schema_validation(
         if col.name() == "ion_mobility" {
             has_ion_mobility = true;
             if col.physical_type() == parquet::basic::Type::DOUBLE {
-                report.add_check(ValidationCheck::ok("V2 Peaks column: ion_mobility (4D data)"));
+                report.add_check(ValidationCheck::ok(
+                    "V2 Peaks column: ion_mobility (4D data)",
+                ));
             } else {
                 report.add_check(ValidationCheck::warning(
                     "V2 Peaks column type: ion_mobility",
@@ -255,7 +242,9 @@ fn perform_peaks_v2_schema_validation(
     }
 
     if !has_ion_mobility {
-        report.add_check(ValidationCheck::ok("V2 Peaks: 3D data (no ion_mobility column)"));
+        report.add_check(ValidationCheck::ok(
+            "V2 Peaks: 3D data (no ion_mobility column)",
+        ));
     }
 
     let expected_schema = create_peaks_schema_v2(has_ion_mobility);
@@ -323,7 +312,10 @@ fn perform_spectra_v2_schema_validation(
                 format!("Type mismatch for column '{}'", col_name),
             ));
         } else {
-            report.add_check(ValidationCheck::ok(format!("V2 Spectra column: {}", col_name)));
+            report.add_check(ValidationCheck::ok(format!(
+                "V2 Spectra column: {}",
+                col_name
+            )));
         }
     }
 
@@ -366,13 +358,12 @@ fn read_parquet_metadata(
             let reader = SerializedFileReader::new(file)?;
             Ok(reader.metadata().clone())
         }
-        ParquetSource::ZipEntry { zip_path, entry_name } => {
+        ParquetSource::ZipEntry {
+            zip_path,
+            entry_name,
+        } => {
             let reader = ZipEntryChunkReader::new(zip_path, entry_name)?;
             let reader = SerializedFileReader::new(reader)?;
-            Ok(reader.metadata().clone())
-        }
-        ParquetSource::InMemory(bytes) => {
-            let reader = SerializedFileReader::new(bytes.clone())?;
             Ok(reader.metadata().clone())
         }
     }

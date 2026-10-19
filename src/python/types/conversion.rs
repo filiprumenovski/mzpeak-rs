@@ -175,7 +175,7 @@ impl PyStreamingConfig {
 ///     >>> config = ConversionConfig(
 ///     ...     batch_size=200,
 ///     ...     output_format=OutputFormat.V2Container,
-///     ...     compression_level=9,
+///     ...     compression_level=3,
 ///     ... )
 ///     >>> stats = mzpeak.convert("input.mzML", "output.mzpeak", config)
 #[pyclass(name = "ConversionConfig")]
@@ -195,7 +195,7 @@ impl PyConversionConfig {
     ///     progress_interval: Log progress every N spectra (default 1000)
     ///     output_format: Output format (V2Container or V1Parquet, default V2Container)
     ///     modality: Data modality override (auto-detect if None)
-    ///     compression_level: ZSTD compression level 1-22 (default 9)
+    ///     compression_level: ZSTD compression level 1-22 (default 3)
     ///     row_group_size: Rows per Parquet row group (default 100000)
     ///     sdrf_path: Optional path to SDRF metadata file
     ///     streaming_config: Optional streaming configuration

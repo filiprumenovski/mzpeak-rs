@@ -2,8 +2,8 @@ use std::ffi::c_void;
 use std::sync::Arc;
 
 use arrow::array::{ArrayRef, Float32Array, Float64Array};
-use numpy::{PyArrayDescr, PyArrayDescrMethods};
 use numpy::npyffi::{self, npy_intp};
+use numpy::{PyArrayDescr, PyArrayDescrMethods};
 use pyo3::exceptions::{PyMemoryError, PyValueError};
 use pyo3::prelude::*;
 
@@ -26,10 +26,7 @@ unsafe extern "C" fn drop_arrow_array_holder(capsule: *mut pyo3::ffi::PyObject) 
     }
 }
 
-fn create_array_capsule(
-    _py: Python<'_>,
-    array: ArrayRef,
-) -> PyResult<*mut pyo3::ffi::PyObject> {
+fn create_array_capsule(_py: Python<'_>, array: ArrayRef) -> PyResult<*mut pyo3::ffi::PyObject> {
     let holder = Box::new(ArrowArrayHolder { _array: array });
     let holder_ptr = Box::into_raw(holder);
     let capsule = unsafe {
@@ -40,7 +37,9 @@ fn create_array_capsule(
         )
     };
     if capsule.is_null() {
-        unsafe { drop(Box::from_raw(holder_ptr)); }
+        unsafe {
+            drop(Box::from_raw(holder_ptr));
+        }
         return Err(PyMemoryError::new_err(
             "Failed to create capsule for Arrow array",
         ));
@@ -70,10 +69,10 @@ fn numpy_view_from_f64(py: Python<'_>, array: &Float64Array) -> PyResult<PyObjec
         )
     };
     if array_ptr.is_null() {
-        unsafe { pyo3::ffi::Py_DECREF(capsule); }
-        return Err(PyMemoryError::new_err(
-            "Failed to create NumPy array view",
-        ));
+        unsafe {
+            pyo3::ffi::Py_DECREF(capsule);
+        }
+        return Err(PyMemoryError::new_err("Failed to create NumPy array view"));
     }
 
     let set_result = unsafe {
@@ -118,10 +117,10 @@ fn numpy_view_from_f32(py: Python<'_>, array: &Float32Array) -> PyResult<PyObjec
         )
     };
     if array_ptr.is_null() {
-        unsafe { pyo3::ffi::Py_DECREF(capsule); }
-        return Err(PyMemoryError::new_err(
-            "Failed to create NumPy array view",
-        ));
+        unsafe {
+            pyo3::ffi::Py_DECREF(capsule);
+        }
+        return Err(PyMemoryError::new_err("Failed to create NumPy array view"));
     }
 
     let set_result = unsafe {
@@ -275,9 +274,10 @@ impl PySpectrumArraysView {
     /// Return m/z array view(s) without copying.
     #[getter]
     fn mz_array_views(&self, py: Python<'_>) -> PyResult<Vec<PyObject>> {
-        let arrays = self.inner.mz_arrays().map_err(|e| {
-            PyValueError::new_err(format!("Failed to read mz array views: {}", e))
-        })?;
+        let arrays = self
+            .inner
+            .mz_arrays()
+            .map_err(|e| PyValueError::new_err(format!("Failed to read mz array views: {}", e)))?;
         arrays
             .iter()
             .map(|array| numpy_view_from_f64(py, array))
@@ -299,9 +299,10 @@ impl PySpectrumArraysView {
     /// Return a single m/z array view when contiguous.
     #[getter]
     fn mz_array_view(&self, py: Python<'_>) -> PyResult<PyObject> {
-        let arrays = self.inner.mz_arrays().map_err(|e| {
-            PyValueError::new_err(format!("Failed to read mz array views: {}", e))
-        })?;
+        let arrays = self
+            .inner
+            .mz_arrays()
+            .map_err(|e| PyValueError::new_err(format!("Failed to read mz array views: {}", e)))?;
         if arrays.len() != 1 {
             return Err(PyValueError::new_err(
                 "Spectrum spans multiple batches; use mz_array_views",

@@ -1,6 +1,6 @@
 use numpy::{IntoPyArray, PyReadonlyArray1};
-use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
+use pyo3::prelude::*;
 
 use crate::writer::{OptionalColumnBuf, SpectrumArrays};
 
@@ -62,7 +62,8 @@ impl PySpectrumArrays {
                 match &arrays.validity {
                     None => OptionalColumnBuf::AllPresent(values),
                     Some(validity_obj) => {
-                        let validity = extract_vec::<bool>(py, validity_obj, "ion_mobility_validity")?;
+                        let validity =
+                            extract_vec::<bool>(py, validity_obj, "ion_mobility_validity")?;
                         if validity.len() != mz.len() {
                             return Err(PyValueError::new_err(format!(
                                 "ion_mobility_validity length {} does not match mz length {}",
@@ -233,8 +234,7 @@ impl PySpectrumArrays {
         if intensity_len != num_peaks {
             return Err(PyValueError::new_err(format!(
                 "intensity length {} does not match mz length {}",
-                intensity_len,
-                num_peaks,
+                intensity_len, num_peaks,
             )));
         }
 
@@ -253,21 +253,18 @@ impl PySpectrumArrays {
                 if values_len != num_peaks {
                     return Err(PyValueError::new_err(format!(
                         "ion_mobility length {} does not match mz length {}",
-                        values_len,
-                        num_peaks,
+                        values_len, num_peaks,
                     )));
                 }
                 let validity = match ion_mobility_validity {
                     None => None,
                     Some(validity_obj) => {
-                        let validity_array: PyReadonlyArray1<bool> =
-                            validity_obj.extract(py)?;
+                        let validity_array: PyReadonlyArray1<bool> = validity_obj.extract(py)?;
                         let validity_len = validity_array.len()?;
                         if validity_len != num_peaks {
                             return Err(PyValueError::new_err(format!(
                                 "ion_mobility_validity length {} does not match mz length {}",
-                                validity_len,
-                                num_peaks,
+                                validity_len, num_peaks,
                             )));
                         }
                         Some(validity_obj)

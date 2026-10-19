@@ -83,10 +83,9 @@ impl<T> OptionalColumnBuf<T> {
         match self {
             OptionalColumnBuf::AllPresent(values) => OptionalColumn::AllPresent(values),
             OptionalColumnBuf::AllNull { .. } => OptionalColumn::AllNull,
-            OptionalColumnBuf::WithValidity { values, validity } => OptionalColumn::WithValidity {
-                values,
-                validity,
-            },
+            OptionalColumnBuf::WithValidity { values, validity } => {
+                OptionalColumn::WithValidity { values, validity }
+            }
         }
     }
 }
@@ -104,7 +103,7 @@ impl<T> OptionalColumnBuf<T> {
 ///
 /// # Zero-Copy Guarantee
 ///
-/// When calling [`MzPeakWriter::write_owned_batch`], the vectors in this struct
+/// When calling [`MzPeakWriter::write_owned_batch`](crate::writer::MzPeakWriter::write_owned_batch), the vectors in this struct
 /// are converted directly to Arrow buffers using pointer ownership transfer.
 /// The only data movement is compression performed by the Parquet engine itself.
 ///
@@ -1092,9 +1091,7 @@ impl SpectrumV2 {
             intensity: v1.peaks.intensity,
             ion_mobility,
         };
-        peaks
-            .validate()
-            .map_err(|e| WriterError::InvalidData(e))?;
+        peaks.validate().map_err(|e| WriterError::InvalidData(e))?;
 
         let metadata = SpectrumMetadata {
             spectrum_id: v1.spectrum_id as u32,

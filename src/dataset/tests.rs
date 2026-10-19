@@ -290,7 +290,9 @@ fn test_container_mode_with_chromatograms() {
 
     // Verify chromatograms/chromatograms.parquet exists and is uncompressed
     {
-        let chrom_entry = archive.by_name("chromatograms/chromatograms.parquet").unwrap();
+        let chrom_entry = archive
+            .by_name("chromatograms/chromatograms.parquet")
+            .unwrap();
         assert_eq!(chrom_entry.compression(), zip::CompressionMethod::Stored);
         assert!(chrom_entry.size() > 0);
     }

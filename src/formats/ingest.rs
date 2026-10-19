@@ -50,7 +50,7 @@ pub struct IngestSpectrum {
     pub isolation_window_lower: Option<f32>,
     /// Isolation window upper offset.
     pub isolation_window_upper: Option<f32>,
-    /// Collision energy in eV.
+    /// Collision energy in source units; consult processing provenance.
     pub collision_energy: Option<f32>,
     /// Total ion current.
     pub total_ion_current: Option<f64>,
@@ -95,7 +95,11 @@ impl IngestSpectrum {
         }
 
         self.peaks.validate().map_err(IngestError::violation)?;
-        Self::validate_optional_column_len("ion_mobility", &self.peaks.ion_mobility, self.peaks.mz.len())?;
+        Self::validate_optional_column_len(
+            "ion_mobility",
+            &self.peaks.ion_mobility,
+            self.peaks.mz.len(),
+        )?;
 
         Ok(())
     }
@@ -152,7 +156,9 @@ pub struct IngestSpectrumConverter {
 impl IngestSpectrumConverter {
     /// Create a new contract-enforcing converter.
     pub fn new() -> Self {
-        Self { next_spectrum_id: None }
+        Self {
+            next_spectrum_id: None,
+        }
     }
 
     /// Convert an ingestion spectrum into `SpectrumArrays`, enforcing contract invariants.
@@ -205,8 +211,19 @@ impl IngestSpectrumConverter {
         };
 
         // Compute statistics only if not already provided (avoid redundant pass)
-        if spectrum.total_ion_current.is_none() {
+        if spectrum.total_ion_current.is_none()
+            || spectrum.base_peak_mz.is_none()
+            || spectrum.base_peak_intensity.is_none()
+        {
+            let recorded = (
+                spectrum.total_ion_current,
+                spectrum.base_peak_mz,
+                spectrum.base_peak_intensity,
+            );
             spectrum.compute_statistics();
+            spectrum.total_ion_current = recorded.0.or(spectrum.total_ion_current);
+            spectrum.base_peak_mz = recorded.1.or(spectrum.base_peak_mz);
+            spectrum.base_peak_intensity = recorded.2.or(spectrum.base_peak_intensity);
         }
 
         Ok(spectrum)

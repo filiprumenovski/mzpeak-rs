@@ -327,7 +327,12 @@ impl PyProcessingHistory {
     /// List of processing steps applied
     #[getter]
     fn steps(&self) -> Vec<PyProcessingStep> {
-        self.inner.steps.iter().cloned().map(PyProcessingStep::from).collect()
+        self.inner
+            .steps
+            .iter()
+            .cloned()
+            .map(PyProcessingStep::from)
+            .collect()
     }
 
     /// Number of processing steps
@@ -571,7 +576,12 @@ impl PyGradientProgram {
     /// Gradient steps
     #[getter]
     fn steps(&self) -> Vec<PyGradientStep> {
-        self.inner.steps.iter().cloned().map(PyGradientStep::from).collect()
+        self.inner
+            .steps
+            .iter()
+            .cloned()
+            .map(PyGradientStep::from)
+            .collect()
     }
 
     fn __len__(&self) -> usize {

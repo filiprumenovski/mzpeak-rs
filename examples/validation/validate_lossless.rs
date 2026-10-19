@@ -15,7 +15,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // These are bare Parquet files, rename to .parquet for the reader
     let sync_path = "/Volumes/NVMe 2TB/Test/mzml_benchmark/sync_output.parquet";
     let async_path = "/Volumes/NVMe 2TB/Test/mzml_benchmark/async_output.parquet";
-    
+
     // Copy/rename if needed
     let sync_src = "/Volumes/NVMe 2TB/Test/mzml_benchmark/sync_output.mzpeak";
     let async_src = "/Volumes/NVMe 2TB/Test/mzml_benchmark/async_output.mzpeak";

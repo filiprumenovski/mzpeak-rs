@@ -149,23 +149,43 @@ fn test_automatic_tic_bpc_generation() {
     let stats = converter.convert(&mzml_path, &output_path).unwrap();
 
     // Verify conversion statistics
-    assert_eq!(stats.spectra_count, 3, "Should have converted 3 MS1 spectra");
+    assert_eq!(
+        stats.spectra_count, 3,
+        "Should have converted 3 MS1 spectra"
+    );
     assert_eq!(stats.ms1_spectra, 3, "All spectra should be MS1");
-    assert_eq!(stats.chromatograms_converted, 2, "Should have auto-generated TIC and BPC");
+    assert_eq!(
+        stats.chromatograms_converted, 2,
+        "Should have auto-generated TIC and BPC"
+    );
 
     // Read back and verify chromatograms
     let reader = MzPeakReader::open(&output_path).unwrap();
     let chromatograms = reader.read_chromatograms().unwrap();
 
-    assert_eq!(chromatograms.len(), 2, "Should have TIC and BPC chromatograms");
+    assert_eq!(
+        chromatograms.len(),
+        2,
+        "Should have TIC and BPC chromatograms"
+    );
 
     // Find TIC chromatogram
-    let tic = chromatograms.iter().find(|c| c.chromatogram_id == "TIC")
+    let tic = chromatograms
+        .iter()
+        .find(|c| c.chromatogram_id == "TIC")
         .expect("TIC chromatogram should exist");
     assert_eq!(tic.chromatogram_type, "TIC");
-    assert_eq!(tic.time_array.len(), 3, "TIC should have 3 time points (one per MS1 spectrum)");
-    assert_eq!(tic.intensity_array.len(), 3, "TIC should have 3 intensity points");
-    
+    assert_eq!(
+        tic.time_array.len(),
+        3,
+        "TIC should have 3 time points (one per MS1 spectrum)"
+    );
+    assert_eq!(
+        tic.intensity_array.len(),
+        3,
+        "TIC should have 3 intensity points"
+    );
+
     // Verify TIC values match the spectrum TIC values
     assert_eq!(tic.time_array[0], 10.0);
     assert_eq!(tic.time_array[1], 20.0);
@@ -175,12 +195,18 @@ fn test_automatic_tic_bpc_generation() {
     assert_eq!(tic.intensity_array[2], 320000.0);
 
     // Find BPC chromatogram
-    let bpc = chromatograms.iter().find(|c| c.chromatogram_id == "BPC")
+    let bpc = chromatograms
+        .iter()
+        .find(|c| c.chromatogram_id == "BPC")
         .expect("BPC chromatogram should exist");
     assert_eq!(bpc.chromatogram_type, "BPC");
     assert_eq!(bpc.time_array.len(), 3, "BPC should have 3 time points");
-    assert_eq!(bpc.intensity_array.len(), 3, "BPC should have 3 intensity points");
-    
+    assert_eq!(
+        bpc.intensity_array.len(),
+        3,
+        "BPC should have 3 intensity points"
+    );
+
     // Verify BPC values match the spectrum base peak intensity values
     assert_eq!(bpc.time_array[0], 10.0);
     assert_eq!(bpc.time_array[1], 20.0);
@@ -300,29 +326,43 @@ fn test_tic_bpc_calculation_from_peaks() {
     let reader = MzPeakReader::open(&output_path).unwrap();
     let chromatograms = reader.read_chromatograms().unwrap();
 
-    let tic = chromatograms.iter().find(|c| c.chromatogram_id == "TIC").unwrap();
-    let bpc = chromatograms.iter().find(|c| c.chromatogram_id == "BPC").unwrap();
+    let tic = chromatograms
+        .iter()
+        .find(|c| c.chromatogram_id == "TIC")
+        .unwrap();
+    let bpc = chromatograms
+        .iter()
+        .find(|c| c.chromatogram_id == "BPC")
+        .unwrap();
 
     // TIC should be sum of all intensities
     // Note: Due to floating point precision in encoding/decoding, we check approximate values
     // Spectrum 1: approximately 10 + 12 + 14 + 16 = 52
     // Spectrum 2: approximately 24 + 26 + 28 = 78
-    assert!((tic.intensity_array[0] - 52.0).abs() < 10.0, "TIC[0] should be approximately 52, got {}", tic.intensity_array[0]);
-    assert!((tic.intensity_array[1] - 78.0).abs() < 10.0, "TIC[1] should be approximately 78, got {}", tic.intensity_array[1]);
+    assert!(
+        (tic.intensity_array[0] - 52.0).abs() < 10.0,
+        "TIC[0] should be approximately 52, got {}",
+        tic.intensity_array[0]
+    );
+    assert!(
+        (tic.intensity_array[1] - 78.0).abs() < 10.0,
+        "TIC[1] should be approximately 78, got {}",
+        tic.intensity_array[1]
+    );
 
     // BPC should be max intensity
     // Spectrum 1: approximately max(10, 12, 14, 16) = 16
     // Spectrum 2: approximately max(24, 26, 28) = 28
-    assert!((bpc.intensity_array[0] - 16.0).abs() < 5.0, "BPC[0] should be approximately 16, got {}", bpc.intensity_array[0]);
-    assert!((bpc.intensity_array[1] - 28.0).abs() < 5.0, "BPC[1] should be approximately 28, got {}", bpc.intensity_array[1]);
-}
-
-/// Test that existing chromatograms from mzML are preserved (no auto-generation)
-#[test]
-fn test_existing_chromatograms_preserved() {
-    // Skip this test for now as it requires valid base64-encoded binary data
-    // The key functionality (auto-generation only when chromatograms are missing) 
-    // is tested by the other tests
+    assert!(
+        (bpc.intensity_array[0] - 16.0).abs() < 5.0,
+        "BPC[0] should be approximately 16, got {}",
+        bpc.intensity_array[0]
+    );
+    assert!(
+        (bpc.intensity_array[1] - 28.0).abs() < 5.0,
+        "BPC[1] should be approximately 28, got {}",
+        bpc.intensity_array[1]
+    );
 }
 
 /// Test that MS2 spectra don't contribute to TIC/BPC generation
@@ -474,8 +514,15 @@ fn test_ms2_ignored_in_chromatogram_generation() {
     let reader = MzPeakReader::open(&output_path).unwrap();
     let chromatograms = reader.read_chromatograms().unwrap();
 
-    let tic = chromatograms.iter().find(|c| c.chromatogram_id == "TIC").unwrap();
-    assert_eq!(tic.time_array.len(), 2, "TIC should only include MS1 spectra");
+    let tic = chromatograms
+        .iter()
+        .find(|c| c.chromatogram_id == "TIC")
+        .unwrap();
+    assert_eq!(
+        tic.time_array.len(),
+        2,
+        "TIC should only include MS1 spectra"
+    );
     assert_eq!(tic.time_array[0], 10.0);
     assert_eq!(tic.time_array[1], 20.0);
     assert_eq!(tic.intensity_array[0], 100000.0);

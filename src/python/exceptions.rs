@@ -19,10 +19,30 @@ use crate::reader::ReaderError;
 use crate::writer::WriterError;
 
 // Define custom exception hierarchy
-create_exception!(mzpeak, MzPeakException, PyException, "Base exception for all mzPeak errors.");
-create_exception!(mzpeak, MzPeakIOError, MzPeakException, "I/O error during file operations.");
-create_exception!(mzpeak, MzPeakFormatError, MzPeakException, "Invalid or corrupted file format.");
-create_exception!(mzpeak, MzPeakValidationError, MzPeakException, "Data validation failed.");
+create_exception!(
+    mzpeak,
+    MzPeakException,
+    PyException,
+    "Base exception for all mzPeak errors."
+);
+create_exception!(
+    mzpeak,
+    MzPeakIOError,
+    MzPeakException,
+    "I/O error during file operations."
+);
+create_exception!(
+    mzpeak,
+    MzPeakFormatError,
+    MzPeakException,
+    "Invalid or corrupted file format."
+);
+create_exception!(
+    mzpeak,
+    MzPeakValidationError,
+    MzPeakException,
+    "Data validation failed."
+);
 
 /// Format an error with its full causal chain.
 ///
@@ -121,6 +141,30 @@ impl From<ConversionError> for PyErr {
 impl From<IngestError> for PyErr {
     fn from(err: IngestError) -> Self {
         MzPeakValidationError::new_err(format_error_chain(&err))
+    }
+}
+
+#[cfg(feature = "thermo")]
+impl From<crate::thermo::ThermoError> for PyErr {
+    fn from(error: crate::thermo::ThermoError) -> Self {
+        use crate::thermo::ThermoError;
+        let message = format_error_chain(&error);
+        match error {
+            ThermoError::InvalidPath(_) | ThermoError::IoError(_) => {
+                MzPeakIOError::new_err(message)
+            }
+            ThermoError::UnsupportedRepresentation(_) | ThermoError::PeakConversionError(_) => {
+                MzPeakValidationError::new_err(message)
+            }
+            _ => MzPeakFormatError::new_err(message),
+        }
+    }
+}
+
+#[cfg(feature = "tdf")]
+impl From<crate::tdf::TdfError> for PyErr {
+    fn from(error: crate::tdf::TdfError) -> Self {
+        MzPeakFormatError::new_err(format_error_chain(&error))
     }
 }
 

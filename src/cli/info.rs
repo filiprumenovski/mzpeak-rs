@@ -4,8 +4,8 @@ use std::path::PathBuf;
 
 /// Display information about an mzPeak file
 pub fn run(file: PathBuf) -> Result<()> {
-    use std::fs::File;
     use mzpeak::reader::ZipEntryChunkReader;
+    use std::fs::File;
     use zip::ZipArchive;
 
     if !file.exists() {
@@ -18,14 +18,10 @@ pub fn run(file: PathBuf) -> Result<()> {
     println!();
 
     if file.extension().map(|e| e == "mzpeak").unwrap_or(false) {
-        let mut archive =
-            ZipArchive::new(File::open(&file).context("Failed to open container")?)?;
+        let mut archive = ZipArchive::new(File::open(&file).context("Failed to open container")?)?;
         let is_v2 = archive.by_name("manifest.json").is_ok();
 
-        println!(
-            "Container format: {}",
-            if is_v2 { "v2" } else { "v1" }
-        );
+        println!("Container format: {}", if is_v2 { "v2" } else { "v1" });
         println!();
 
         let peaks_reader = ZipEntryChunkReader::new(&file, "peaks/peaks.parquet")

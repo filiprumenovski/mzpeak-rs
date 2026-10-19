@@ -9,7 +9,7 @@ use mzpeak::writer::WriterConfig;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let input_path = PathBuf::from(
-        "/Volumes/NVMe 2TB/Test/Sara_Ligandome_Ovarian_20201008_S4_Slot2-44_20-10-16_2943.d"
+        "/Volumes/NVMe 2TB/Test/Sara_Ligandome_Ovarian_20201008_S4_Slot2-44_20-10-16_2943.d",
     );
 
     let output_dir = PathBuf::from("/Volumes/NVMe 2TB/mz-peak output");
@@ -55,11 +55,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     let output_size = fs::metadata(&output_file).map(|m| m.len()).unwrap_or(0);
+    println!("\n   Output file: {}", output_file.display());
     println!(
-        "\n   Output file: {}",
-        output_file.display()
+        "   Total output size: {:.2} MB",
+        output_size as f64 / 1_000_000.0
     );
-    println!("   Total output size: {:.2} MB", output_size as f64 / 1_000_000.0);
 
     println!("\n✅ Conversion complete!");
 

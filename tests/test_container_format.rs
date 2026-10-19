@@ -36,7 +36,14 @@ fn make_ms2_spectrum(
     intensity: Vec<f32>,
 ) -> SpectrumArrays {
     let peaks = PeakArrays::new(mz, intensity);
-    SpectrumArrays::new_ms2(spectrum_id, scan_number, retention_time, 1, precursor_mz, peaks)
+    SpectrumArrays::new_ms2(
+        spectrum_id,
+        scan_number,
+        retention_time,
+        1,
+        precursor_mz,
+        peaks,
+    )
 }
 
 #[test]
@@ -83,7 +90,11 @@ fn test_container_mimetype_compliance() {
 
     // Verify mimetype is first entry
     let first_entry = archive.by_index(0).unwrap();
-    assert_eq!(first_entry.name(), "mimetype", "First entry must be mimetype");
+    assert_eq!(
+        first_entry.name(),
+        "mimetype",
+        "First entry must be mimetype"
+    );
 
     // Verify mimetype is uncompressed
     assert_eq!(
@@ -146,7 +157,14 @@ fn test_zero_extraction_reading() {
                 let peaks = PeakArrays::new(mz_values, intensity_values);
                 SpectrumArrays::new_ms1(i, i + 1, (i as f32) * 2.0, 1, peaks)
             } else {
-                make_ms2_spectrum(i, i + 1, (i as f32) * 2.0, 600.0, mz_values, intensity_values)
+                make_ms2_spectrum(
+                    i,
+                    i + 1,
+                    (i as f32) * 2.0,
+                    600.0,
+                    mz_values,
+                    intensity_values,
+                )
             }
         })
         .collect();
@@ -187,13 +205,9 @@ fn test_zero_extraction_reading() {
     let temp_dir_count = std::fs::read_dir(std::env::temp_dir())
         .unwrap()
         .filter_map(|e| e.ok())
-        .filter(|e| {
-            e.file_name()
-                .to_string_lossy()
-                .contains("mzpeak")
-        })
+        .filter(|e| e.file_name().to_string_lossy().contains("mzpeak"))
         .count();
-    
+
     // Should be 0 (or very small if other tests are running)
     println!("Temp mzpeak files found: {}", temp_dir_count);
 }
@@ -270,7 +284,9 @@ fn test_container_with_chromatograms() {
         let file = File::open(&dataset_path).unwrap();
         let mut archive = ZipArchive::new(file).unwrap();
 
-        let chrom_entry = archive.by_name("chromatograms/chromatograms.parquet").unwrap();
+        let chrom_entry = archive
+            .by_name("chromatograms/chromatograms.parquet")
+            .unwrap();
         assert_eq!(
             chrom_entry.compression(),
             zip::CompressionMethod::Stored,

@@ -36,18 +36,22 @@
 //! ```
 
 mod binary;
+pub mod converter;
 mod cv_params;
 mod external;
 mod models;
 mod streamer;
-pub mod converter;
 
-#[cfg(feature = "parallel-decode")]
+#[cfg(feature = "mzml-parallel")]
 pub mod simd;
 
 pub use binary::{BinaryDecoder, BinaryEncoding, CompressionType as BinaryCompression};
-pub use cv_params::{CvParam, extract_cv_value, IMS_CV_ACCESSIONS, MS_CV_ACCESSIONS};
+pub use converter::{
+    ConversionConfig, ConversionStats, MzMLConverter, OutputFormat, StreamingConfig,
+};
+pub use cv_params::{extract_cv_value, CvParam, IMS_CV_ACCESSIONS, MS_CV_ACCESSIONS};
 pub(crate) use external::ExternalBinaryReader;
 pub use models::*;
-pub use streamer::{MzMLStreamer, MzMLError, SpectrumIterator, RawSpectrumIterator, DEFAULT_INPUT_BUFFER_SIZE};
-pub use converter::{MzMLConverter, ConversionConfig, ConversionStats, OutputFormat, StreamingConfig};
+pub use streamer::{
+    MzMLError, MzMLStreamer, RawSpectrumIterator, SpectrumIterator, DEFAULT_INPUT_BUFFER_SIZE,
+};

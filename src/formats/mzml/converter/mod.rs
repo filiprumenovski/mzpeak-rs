@@ -4,8 +4,8 @@
 //! to the mzPeak Parquet format, preserving all metadata and numerical precision.
 
 use super::streamer::MzMLError;
-use crate::writer::{WriterConfig, WriterError};
 use crate::schema::manifest::Modality;
+use crate::writer::{WriterConfig, WriterError};
 
 /// Streaming configuration for memory-bounded pipeline operation
 ///
@@ -82,7 +82,7 @@ impl StreamingConfig {
     /// Uses smaller buffers, suitable for memory-constrained environments.
     pub fn low_memory() -> Self {
         Self {
-            input_buffer_size: 32 * 1024,  // 32KB
+            input_buffer_size: 32 * 1024, // 32KB
             max_container_buffer_bytes: None,
             streaming_mode: true,
         }
@@ -93,7 +93,7 @@ impl StreamingConfig {
     /// Uses larger buffers for better I/O performance.
     pub fn high_throughput() -> Self {
         Self {
-            input_buffer_size: 256 * 1024,  // 256KB
+            input_buffer_size: 256 * 1024, // 256KB
             max_container_buffer_bytes: None,
             streaming_mode: true,
         }
@@ -170,7 +170,7 @@ pub struct ConversionConfig {
     /// Batch size for parallel decoding (only used with parallel-decode feature)
     /// Larger batches improve throughput but increase memory usage.
     /// Default: 5000 spectra (~8GB RAM for typical high-res MS data)
-    #[cfg(feature = "parallel-decode")]
+    #[cfg(feature = "mzml-parallel")]
     pub parallel_batch_size: usize,
 
     /// Whether to preserve original precision (32/64 bit)
@@ -199,7 +199,7 @@ impl Default for ConversionConfig {
             writer_config: WriterConfig::default(),
             streaming_config: StreamingConfig::default(),
             batch_size: 100,
-            #[cfg(feature = "parallel-decode")]
+            #[cfg(feature = "mzml-parallel")]
             parallel_batch_size: 5000,
             preserve_precision: true,
             include_chromatograms: true,
@@ -220,7 +220,7 @@ impl ConversionConfig {
             writer_config: WriterConfig::max_compression(),
             streaming_config: StreamingConfig::default(),
             batch_size: 500,
-            #[cfg(feature = "parallel-decode")]
+            #[cfg(feature = "mzml-parallel")]
             parallel_batch_size: 5000,
             preserve_precision: true,
             include_chromatograms: true,
@@ -238,7 +238,7 @@ impl ConversionConfig {
             writer_config: WriterConfig::fast_write(),
             streaming_config: StreamingConfig::high_throughput(),
             batch_size: 50,
-            #[cfg(feature = "parallel-decode")]
+            #[cfg(feature = "mzml-parallel")]
             parallel_batch_size: 10000,
             preserve_precision: true,
             include_chromatograms: true,
@@ -256,7 +256,7 @@ impl ConversionConfig {
             writer_config: WriterConfig::default(),
             streaming_config: StreamingConfig::low_memory(),
             batch_size: 50,
-            #[cfg(feature = "parallel-decode")]
+            #[cfg(feature = "mzml-parallel")]
             parallel_batch_size: 1000,
             preserve_precision: true,
             include_chromatograms: true,
@@ -331,7 +331,7 @@ mod metadata;
 mod sequential;
 mod spectrum;
 
-#[cfg(feature = "parallel-decode")]
+#[cfg(feature = "mzml-parallel")]
 mod parallel;
 
 #[cfg(test)]

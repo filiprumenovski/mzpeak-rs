@@ -2,10 +2,10 @@ use std::path::Path;
 
 use log::{info, warn};
 
-use super::{ConversionError, MzMLConverter};
 use super::super::cv_params::MS_CV_ACCESSIONS;
 use super::super::models::{ChromatogramType, ComponentType, MzMLChromatogram, MzMLFileMetadata};
 use super::super::streamer::MzMLStreamer;
+use super::{ConversionError, MzMLConverter};
 use crate::dataset::MzPeakDatasetWriter;
 use crate::metadata::{
     InstrumentConfig, MassAnalyzerConfig, MzPeakMetadata, ProcessingHistory, ProcessingStep,
@@ -23,9 +23,9 @@ impl MzMLConverter {
         let mut count = 0;
         while let Some(mzml_chrom) = streamer.next_chromatogram()? {
             let chromatogram = self.convert_chromatogram(&mzml_chrom)?;
-            writer
-                .write_chromatogram(&chromatogram)
-                .map_err(|e| ConversionError::WriterError(WriterError::InvalidData(e.to_string())))?;
+            writer.write_chromatogram(&chromatogram).map_err(|e| {
+                ConversionError::WriterError(WriterError::InvalidData(e.to_string()))
+            })?;
             count += 1;
         }
         Ok(count)
@@ -166,8 +166,7 @@ impl MzMLConverter {
                             if cv.accession == MS_CV_ACCESSIONS::ESI
                                 || cv.accession == MS_CV_ACCESSIONS::NANOESI
                             {
-                                instrument.ion_source =
-                                    Some("electrospray ionization".to_string());
+                                instrument.ion_source = Some("electrospray ionization".to_string());
                             } else if cv.accession == MS_CV_ACCESSIONS::MALDI {
                                 instrument.ion_source = Some("MALDI".to_string());
                             }

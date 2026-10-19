@@ -2,10 +2,10 @@ use std::path::Path;
 
 use log::info;
 
-use super::{ConversionError, ConversionStats, MzMLConverter, OutputFormat};
-use super::spectrum::DecodedRawSpectrum;
 use super::super::models::RawMzMLSpectrum;
 use super::super::streamer::MzMLStreamer;
+use super::spectrum::DecodedRawSpectrum;
+use super::{ConversionError, ConversionStats, MzMLConverter, OutputFormat};
 use crate::dataset::{DatasetWriterV2Config, MzPeakDatasetWriter, MzPeakDatasetWriterV2};
 use crate::ingest::IngestSpectrumConverter;
 use crate::schema::manifest::Modality;
@@ -35,7 +35,11 @@ impl MzMLConverter {
         let input_path = input_path.as_ref();
         let output_path = output_path.as_ref();
 
-        info!("Converting {} to {}", input_path.display(), output_path.display());
+        info!(
+            "Converting {} to {}",
+            input_path.display(),
+            output_path.display()
+        );
 
         // Get source file size
         let source_file_size = std::fs::metadata(input_path)?.len();
@@ -171,9 +175,9 @@ impl MzMLConverter {
                     tic_times,
                     tic_intensities,
                 ) {
-                    writer
-                        .write_chromatogram(&tic_chrom)
-                        .map_err(|e| ConversionError::WriterError(WriterError::InvalidData(e.to_string())))?;
+                    writer.write_chromatogram(&tic_chrom).map_err(|e| {
+                        ConversionError::WriterError(WriterError::InvalidData(e.to_string()))
+                    })?;
                     stats.chromatograms_converted += 1;
                 }
 
@@ -184,9 +188,9 @@ impl MzMLConverter {
                     bpc_times,
                     bpc_intensities,
                 ) {
-                    writer
-                        .write_chromatogram(&bpc_chrom)
-                        .map_err(|e| ConversionError::WriterError(WriterError::InvalidData(e.to_string())))?;
+                    writer.write_chromatogram(&bpc_chrom).map_err(|e| {
+                        ConversionError::WriterError(WriterError::InvalidData(e.to_string()))
+                    })?;
                     stats.chromatograms_converted += 1;
                 }
 
@@ -274,8 +278,12 @@ impl MzMLConverter {
         };
 
         let vendor_hints = mzpeak_metadata.vendor_hints.clone();
-        let mut writer =
-            MzPeakDatasetWriterV2::with_config(output_path, modality, vendor_hints, dataset_config)?;
+        let mut writer = MzPeakDatasetWriterV2::with_config(
+            output_path,
+            modality,
+            vendor_hints,
+            dataset_config,
+        )?;
         writer.set_metadata(mzpeak_metadata);
 
         let mut stats = ConversionStats {
@@ -283,6 +291,9 @@ impl MzMLConverter {
             ..Default::default()
         };
 
+        let mut trace_times = Vec::new();
+        let mut trace_tic = Vec::new();
+        let mut trace_bpc = Vec::new();
         let mut ingest_converter = IngestSpectrumConverter::new();
         let expected_count = streamer.spectrum_count();
 
@@ -296,6 +307,11 @@ impl MzMLConverter {
         if let Some(raw) = pending_raw.take() {
             let spectrum_v2 =
                 self.build_spectrum_v2_from_raw(raw, &mut ingest_converter, modality)?;
+            if self.config.include_chromatograms && spectrum_v2.metadata.ms_level == 1 {
+                trace_times.push(f64::from(spectrum_v2.metadata.retention_time));
+                trace_tic.push(spectrum_v2.metadata.total_ion_current.unwrap_or(0.0) as f32);
+                trace_bpc.push(spectrum_v2.metadata.base_peak_intensity.unwrap_or(0.0));
+            }
             writer.write_spectrum(&spectrum_v2)?;
             update_v2_stats(&mut stats, &spectrum_v2);
             log_progress(&stats, expected_count, self.config.progress_interval);
@@ -304,11 +320,38 @@ impl MzMLConverter {
         while let Some(raw_spectrum) = streamer.next_raw_spectrum()? {
             let spectrum_v2 =
                 self.build_spectrum_v2_from_raw(raw_spectrum, &mut ingest_converter, modality)?;
+            if self.config.include_chromatograms && spectrum_v2.metadata.ms_level == 1 {
+                trace_times.push(f64::from(spectrum_v2.metadata.retention_time));
+                trace_tic.push(spectrum_v2.metadata.total_ion_current.unwrap_or(0.0) as f32);
+                trace_bpc.push(spectrum_v2.metadata.base_peak_intensity.unwrap_or(0.0));
+            }
             writer.write_spectrum(&spectrum_v2)?;
             update_v2_stats(&mut stats, &spectrum_v2);
             log_progress(&stats, expected_count, self.config.progress_interval);
         }
 
+        if self.config.include_chromatograms {
+            while let Some(raw) = streamer.next_chromatogram()? {
+                writer.write_chromatogram(&self.convert_chromatogram(&raw)?)?;
+                stats.chromatograms_converted += 1;
+            }
+            if stats.chromatograms_converted == 0 && !trace_times.is_empty() {
+                use crate::chromatogram_writer::Chromatogram;
+                writer.write_chromatogram(&Chromatogram::new(
+                    "TIC".into(),
+                    "TIC".into(),
+                    trace_times.clone(),
+                    trace_tic,
+                )?)?;
+                writer.write_chromatogram(&Chromatogram::new(
+                    "BPC".into(),
+                    "BPC".into(),
+                    trace_times,
+                    trace_bpc,
+                )?)?;
+                stats.chromatograms_converted = 2;
+            }
+        }
         let dataset_stats = writer.close()?;
         info!("Dataset finalized: {}", dataset_stats);
 
@@ -416,8 +459,11 @@ impl MzMLConverter {
         let mzpeak_metadata = self.convert_metadata(mzml_metadata, input_path)?;
 
         // Create the rolling writer
-        let mut writer =
-            RollingWriter::new(output_path, mzpeak_metadata, self.config.writer_config.clone())?;
+        let mut writer = RollingWriter::new(
+            output_path,
+            mzpeak_metadata,
+            self.config.writer_config.clone(),
+        )?;
 
         // Process spectra in batches
         let mut stats = ConversionStats {

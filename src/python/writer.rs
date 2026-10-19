@@ -7,13 +7,15 @@ use pyo3::prelude::*;
 use std::fs::File;
 use std::path::PathBuf;
 
-use crate::dataset::{DatasetWriterV2Config, MzPeakDatasetWriter, MzPeakDatasetWriterV2, OutputMode};
+use crate::dataset::{
+    DatasetWriterV2Config, MzPeakDatasetWriter, MzPeakDatasetWriterV2, OutputMode,
+};
 use crate::formats::ingest::{IngestSpectrum, IngestSpectrumConverter};
 use crate::metadata::MzPeakMetadata;
 use crate::python::exceptions::IntoPyResult;
 use crate::python::types::{
-    build_peak_arrays, PyChromatogram, PyDatasetV2Stats, PyMobilogram, PyPeakArraysV2,
-    PySpectrum, PySpectrumArrays, PySpectrumMetadata, PySpectrumV2, PyWriterConfig, PyWriterStats,
+    build_peak_arrays, PyChromatogram, PyDatasetV2Stats, PyMobilogram, PyPeakArraysV2, PySpectrum,
+    PySpectrumArrays, PySpectrumMetadata, PySpectrumV2, PyWriterConfig, PyWriterStats,
 };
 use crate::schema::manifest::Modality;
 use crate::writer::{
@@ -58,8 +60,7 @@ impl PyMzPeakWriter {
         let writer_config = config.map(|c| c.inner).unwrap_or_default();
         let metadata = MzPeakMetadata::new();
 
-        let writer =
-            MzPeakWriter::new_file(&path, &metadata, writer_config).into_py_result()?;
+        let writer = MzPeakWriter::new_file(&path, &metadata, writer_config).into_py_result()?;
 
         Ok(Self {
             inner: Some(writer),
@@ -75,7 +76,11 @@ impl PyMzPeakWriter {
     fn write_spectrum(&mut self, py: Python<'_>, spectrum: PySpectrum) -> PyResult<()> {
         let writer = self.get_writer_mut()?;
         let spectrum_arrays = spectrum.into_arrays();
-        py.allow_threads(|| writer.write_spectrum_owned(spectrum_arrays).into_py_result())
+        py.allow_threads(|| {
+            writer
+                .write_spectrum_owned(spectrum_arrays)
+                .into_py_result()
+        })
     }
 
     /// Write a single spectrum using SoA arrays
@@ -89,7 +94,11 @@ impl PyMzPeakWriter {
     ) -> PyResult<()> {
         let writer = self.get_writer_mut()?;
         let rust_spectrum = spectrum.to_rust(py)?;
-        py.allow_threads(|| writer.write_spectrum_arrays(&rust_spectrum).into_py_result())
+        py.allow_threads(|| {
+            writer
+                .write_spectrum_arrays(&rust_spectrum)
+                .into_py_result()
+        })
     }
 
     /// Write multiple spectra in a batch
@@ -120,7 +129,6 @@ impl PyMzPeakWriter {
         }
         py.allow_threads(|| writer.write_spectra_arrays(&rust_spectra).into_py_result())
     }
-
 
     /// Get current writer statistics
     ///
@@ -196,9 +204,9 @@ impl PyMzPeakWriter {
                 "Writer is closed",
             ));
         }
-        self.inner.as_ref().ok_or_else(|| {
-            pyo3::exceptions::PyRuntimeError::new_err("Writer is not initialized")
-        })
+        self.inner
+            .as_ref()
+            .ok_or_else(|| pyo3::exceptions::PyRuntimeError::new_err("Writer is not initialized"))
     }
 
     fn get_writer_mut(&mut self) -> PyResult<&mut MzPeakWriter<File>> {
@@ -207,9 +215,9 @@ impl PyMzPeakWriter {
                 "Writer is closed",
             ));
         }
-        self.inner.as_mut().ok_or_else(|| {
-            pyo3::exceptions::PyRuntimeError::new_err("Writer is not initialized")
-        })
+        self.inner
+            .as_mut()
+            .ok_or_else(|| pyo3::exceptions::PyRuntimeError::new_err("Writer is not initialized"))
     }
 }
 
@@ -252,9 +260,15 @@ impl PyMzPeakDatasetWriter {
         let metadata = MzPeakMetadata::new();
 
         let (writer, mode) = if use_container {
-            (MzPeakDatasetWriter::new_container(&path, &metadata, writer_config), OutputMode::Container)
+            (
+                MzPeakDatasetWriter::new_container(&path, &metadata, writer_config),
+                OutputMode::Container,
+            )
         } else {
-            (MzPeakDatasetWriter::new_directory(&path, &metadata, writer_config), OutputMode::Directory)
+            (
+                MzPeakDatasetWriter::new_directory(&path, &metadata, writer_config),
+                OutputMode::Directory,
+            )
         };
         let writer = writer.into_py_result()?;
 
@@ -273,7 +287,11 @@ impl PyMzPeakDatasetWriter {
     fn write_spectrum(&mut self, py: Python<'_>, spectrum: PySpectrum) -> PyResult<()> {
         let writer = self.get_writer_mut()?;
         let spectrum_arrays = spectrum.into_arrays();
-        py.allow_threads(|| writer.write_spectrum_owned(spectrum_arrays).into_py_result())
+        py.allow_threads(|| {
+            writer
+                .write_spectrum_owned(spectrum_arrays)
+                .into_py_result()
+        })
     }
 
     /// Write a single spectrum using SoA arrays
@@ -287,7 +305,11 @@ impl PyMzPeakDatasetWriter {
     ) -> PyResult<()> {
         let writer = self.get_writer_mut()?;
         let rust_spectrum = spectrum.to_rust(py)?;
-        py.allow_threads(|| writer.write_spectrum_arrays(&rust_spectrum).into_py_result())
+        py.allow_threads(|| {
+            writer
+                .write_spectrum_arrays(&rust_spectrum)
+                .into_py_result()
+        })
     }
 
     /// Write multiple spectra in a batch
@@ -323,13 +345,13 @@ impl PyMzPeakDatasetWriter {
     ///
     /// Args:
     ///     chromatogram: Chromatogram object to write
-    fn write_chromatogram(
-        &mut self,
-        py: Python<'_>,
-        chromatogram: PyChromatogram,
-    ) -> PyResult<()> {
+    fn write_chromatogram(&mut self, py: Python<'_>, chromatogram: PyChromatogram) -> PyResult<()> {
         let writer = self.get_writer_mut()?;
-        py.allow_threads(|| writer.write_chromatogram(&chromatogram.inner).into_py_result())
+        py.allow_threads(|| {
+            writer
+                .write_chromatogram(&chromatogram.inner)
+                .into_py_result()
+        })
     }
 
     /// Write multiple chromatograms
@@ -342,7 +364,8 @@ impl PyMzPeakDatasetWriter {
         chromatograms: Vec<PyChromatogram>,
     ) -> PyResult<()> {
         let writer = self.get_writer_mut()?;
-        let rust_chroms: Vec<crate::chromatogram_writer::Chromatogram> = chromatograms.into_iter().map(|c| c.inner).collect();
+        let rust_chroms: Vec<crate::chromatogram_writer::Chromatogram> =
+            chromatograms.into_iter().map(|c| c.inner).collect();
         py.allow_threads(|| writer.write_chromatograms(&rust_chroms).into_py_result())
     }
 
@@ -365,7 +388,8 @@ impl PyMzPeakDatasetWriter {
         mobilograms: Vec<PyMobilogram>,
     ) -> PyResult<()> {
         let writer = self.get_writer_mut()?;
-        let rust_mobs: Vec<crate::mobilogram_writer::Mobilogram> = mobilograms.into_iter().map(|m| m.inner).collect();
+        let rust_mobs: Vec<crate::mobilogram_writer::Mobilogram> =
+            mobilograms.into_iter().map(|m| m.inner).collect();
         py.allow_threads(|| writer.write_mobilograms(&rust_mobs).into_py_result())
     }
 
@@ -442,9 +466,9 @@ impl PyMzPeakDatasetWriter {
                 "Writer is closed",
             ));
         }
-        self.inner.as_ref().ok_or_else(|| {
-            pyo3::exceptions::PyRuntimeError::new_err("Writer is not initialized")
-        })
+        self.inner
+            .as_ref()
+            .ok_or_else(|| pyo3::exceptions::PyRuntimeError::new_err("Writer is not initialized"))
     }
 
     fn get_writer_mut(&mut self) -> PyResult<&mut MzPeakDatasetWriter> {
@@ -453,9 +477,9 @@ impl PyMzPeakDatasetWriter {
                 "Writer is closed",
             ));
         }
-        self.inner.as_mut().ok_or_else(|| {
-            pyo3::exceptions::PyRuntimeError::new_err("Writer is not initialized")
-        })
+        self.inner
+            .as_mut()
+            .ok_or_else(|| pyo3::exceptions::PyRuntimeError::new_err("Writer is not initialized"))
     }
 }
 
@@ -501,9 +525,8 @@ impl PyMzPeakDatasetWriterV2 {
             },
         };
 
-        let writer =
-            MzPeakDatasetWriterV2::with_config(&path, modality, None, dataset_config)
-                .into_py_result()?;
+        let writer = MzPeakDatasetWriterV2::with_config(&path, modality, None, dataset_config)
+            .into_py_result()?;
 
         Ok(Self {
             inner: Some(writer),
@@ -530,7 +553,11 @@ impl PyMzPeakDatasetWriterV2 {
                 metadata_rust.peak_count, expected
             )));
         }
-        py.allow_threads(|| writer.write_spectrum_v2(&metadata_rust, &peaks_rust).into_py_result())
+        py.allow_threads(|| {
+            writer
+                .write_spectrum_v2(&metadata_rust, &peaks_rust)
+                .into_py_result()
+        })
     }
 
     /// Write a single SpectrumV2
@@ -545,11 +572,7 @@ impl PyMzPeakDatasetWriterV2 {
     }
 
     /// Write multiple SpectrumV2 objects
-    fn write_spectra(
-        &mut self,
-        py: Python<'_>,
-        spectra: Vec<Py<PySpectrumV2>>,
-    ) -> PyResult<()> {
+    fn write_spectra(&mut self, py: Python<'_>, spectra: Vec<Py<PySpectrumV2>>) -> PyResult<()> {
         let writer = self.get_writer_mut()?;
         let mut rust_spectra: Vec<SpectrumV2> = Vec::with_capacity(spectra.len());
         for spectrum in spectra {
@@ -640,9 +663,9 @@ impl PyMzPeakDatasetWriterV2 {
                 "Writer is closed",
             ));
         }
-        self.inner.as_ref().ok_or_else(|| {
-            pyo3::exceptions::PyRuntimeError::new_err("Writer is not initialized")
-        })
+        self.inner
+            .as_ref()
+            .ok_or_else(|| pyo3::exceptions::PyRuntimeError::new_err("Writer is not initialized"))
     }
 
     fn get_writer_mut(&mut self) -> PyResult<&mut MzPeakDatasetWriterV2> {
@@ -651,9 +674,9 @@ impl PyMzPeakDatasetWriterV2 {
                 "Writer is closed",
             ));
         }
-        self.inner.as_mut().ok_or_else(|| {
-            pyo3::exceptions::PyRuntimeError::new_err("Writer is not initialized")
-        })
+        self.inner
+            .as_mut()
+            .ok_or_else(|| pyo3::exceptions::PyRuntimeError::new_err("Writer is not initialized"))
     }
 }
 
@@ -777,11 +800,7 @@ impl PySpectrumBuilder {
     /// Args:
     ///     lower: Lower offset from precursor m/z
     ///     upper: Upper offset from precursor m/z
-    fn isolation_window(
-        mut slf: PyRefMut<'_, Self>,
-        lower: f32,
-        upper: f32,
-    ) -> PyRefMut<'_, Self> {
+    fn isolation_window(mut slf: PyRefMut<'_, Self>, lower: f32, upper: f32) -> PyRefMut<'_, Self> {
         slf.inner.isolation_window_lower = Some(lower);
         slf.inner.isolation_window_upper = Some(upper);
         slf
@@ -858,10 +877,7 @@ impl PySpectrumBuilder {
     /// Returns:
     ///     Spectrum object with all configured properties
     fn build(&mut self) -> PySpectrum {
-        let state = std::mem::replace(
-            &mut self.inner,
-            SpectrumBuilderState::new(0, 0),
-        );
+        let state = std::mem::replace(&mut self.inner, SpectrumBuilderState::new(0, 0));
         let peaks = build_peak_arrays(&state.peaks);
         let mut spectrum = SpectrumArrays {
             spectrum_id: state.spectrum_id,
@@ -1016,8 +1032,7 @@ impl PyRollingWriter {
         writer_config.max_peaks_per_file = Some(max_peaks_per_file);
         let metadata = MzPeakMetadata::new();
 
-        let writer =
-            RollingWriter::new(&base_path, metadata, writer_config).into_py_result()?;
+        let writer = RollingWriter::new(&base_path, metadata, writer_config).into_py_result()?;
 
         Ok(Self {
             inner: Some(writer),
@@ -1033,7 +1048,11 @@ impl PyRollingWriter {
     fn write_spectrum(&mut self, py: Python<'_>, spectrum: PySpectrum) -> PyResult<()> {
         let writer = self.get_writer_mut()?;
         let spectrum_arrays = spectrum.into_arrays();
-        py.allow_threads(|| writer.write_spectrum_owned(spectrum_arrays).into_py_result())
+        py.allow_threads(|| {
+            writer
+                .write_spectrum_owned(spectrum_arrays)
+                .into_py_result()
+        })
     }
 
     /// Write a single spectrum using SoA arrays
@@ -1047,7 +1066,11 @@ impl PyRollingWriter {
     ) -> PyResult<()> {
         let writer = self.get_writer_mut()?;
         let rust_spectrum = spectrum.to_rust(py)?;
-        py.allow_threads(|| writer.write_spectrum_arrays(&rust_spectrum).into_py_result())
+        py.allow_threads(|| {
+            writer
+                .write_spectrum_arrays(&rust_spectrum)
+                .into_py_result()
+        })
     }
 
     /// Write multiple spectra in a batch
@@ -1149,9 +1172,9 @@ impl PyRollingWriter {
                 "Writer is closed",
             ));
         }
-        self.inner.as_ref().ok_or_else(|| {
-            pyo3::exceptions::PyRuntimeError::new_err("Writer is not initialized")
-        })
+        self.inner
+            .as_ref()
+            .ok_or_else(|| pyo3::exceptions::PyRuntimeError::new_err("Writer is not initialized"))
     }
 
     fn get_writer_mut(&mut self) -> PyResult<&mut RollingWriter> {
@@ -1160,9 +1183,9 @@ impl PyRollingWriter {
                 "Writer is closed",
             ));
         }
-        self.inner.as_mut().ok_or_else(|| {
-            pyo3::exceptions::PyRuntimeError::new_err("Writer is not initialized")
-        })
+        self.inner
+            .as_mut()
+            .ok_or_else(|| pyo3::exceptions::PyRuntimeError::new_err("Writer is not initialized"))
     }
 }
 
@@ -1200,18 +1223,13 @@ impl PyAsyncMzPeakWriter {
     ///     AsyncMzPeakWriter instance
     #[new]
     #[pyo3(signature = (path, config=None, buffer_capacity=8))]
-    fn new(
-        path: String,
-        config: Option<PyWriterConfig>,
-        buffer_capacity: usize,
-    ) -> PyResult<Self> {
+    fn new(path: String, config: Option<PyWriterConfig>, buffer_capacity: usize) -> PyResult<Self> {
         let mut writer_config = config.map(|c| c.inner).unwrap_or_default();
         writer_config.async_buffer_capacity = buffer_capacity;
         let metadata = MzPeakMetadata::new();
 
         let file = File::create(&path).into_py_result()?;
-        let writer =
-            AsyncMzPeakWriter::new(file, metadata, writer_config).into_py_result()?;
+        let writer = AsyncMzPeakWriter::new(file, metadata, writer_config).into_py_result()?;
 
         Ok(Self {
             inner: Some(writer),
@@ -1305,9 +1323,9 @@ impl PyAsyncMzPeakWriter {
                 "Writer is closed",
             ));
         }
-        self.inner.as_ref().ok_or_else(|| {
-            pyo3::exceptions::PyRuntimeError::new_err("Writer is not initialized")
-        })
+        self.inner
+            .as_ref()
+            .ok_or_else(|| pyo3::exceptions::PyRuntimeError::new_err("Writer is not initialized"))
     }
 }
 
@@ -1523,7 +1541,20 @@ impl PyOwnedColumnarBatch {
             ms_level,
             retention_time,
             polarity,
-            None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
         )
     }
 
@@ -1559,13 +1590,17 @@ impl PyOwnedColumnarBatch {
         let ion_mobility = extract_optional_column::<f64>(py, &self.ion_mobility, len)?;
         let precursor_mz = extract_optional_column::<f64>(py, &self.precursor_mz, len)?;
         let precursor_charge = extract_optional_column::<i16>(py, &self.precursor_charge, len)?;
-        let precursor_intensity = extract_optional_column::<f32>(py, &self.precursor_intensity, len)?;
-        let isolation_window_lower = extract_optional_column::<f32>(py, &self.isolation_window_lower, len)?;
-        let isolation_window_upper = extract_optional_column::<f32>(py, &self.isolation_window_upper, len)?;
+        let precursor_intensity =
+            extract_optional_column::<f32>(py, &self.precursor_intensity, len)?;
+        let isolation_window_lower =
+            extract_optional_column::<f32>(py, &self.isolation_window_lower, len)?;
+        let isolation_window_upper =
+            extract_optional_column::<f32>(py, &self.isolation_window_upper, len)?;
         let collision_energy = extract_optional_column::<f32>(py, &self.collision_energy, len)?;
         let total_ion_current = extract_optional_column::<f64>(py, &self.total_ion_current, len)?;
         let base_peak_mz = extract_optional_column::<f64>(py, &self.base_peak_mz, len)?;
-        let base_peak_intensity = extract_optional_column::<f32>(py, &self.base_peak_intensity, len)?;
+        let base_peak_intensity =
+            extract_optional_column::<f32>(py, &self.base_peak_intensity, len)?;
         let injection_time = extract_optional_column::<f32>(py, &self.injection_time, len)?;
         let pixel_x = extract_optional_column::<i32>(py, &self.pixel_x, len)?;
         let pixel_y = extract_optional_column::<i32>(py, &self.pixel_y, len)?;
@@ -1760,7 +1795,7 @@ impl PyIngestSpectrum {
     pub(crate) fn to_rust(&self, py: Python<'_>) -> PyResult<IngestSpectrum> {
         let mz = extract_vec_copy::<f64>(py, &self.mz, "mz")?;
         let intensity = extract_vec_copy::<f32>(py, &self.intensity, "intensity")?;
-        
+
         let ion_mobility = match &self.ion_mobility {
             None => OptionalColumnBuf::all_null(mz.len()),
             Some(obj) => {
@@ -1832,7 +1867,11 @@ impl PyIngestSpectrumConverter {
     ///
     /// Raises:
     ///     MzPeakValidationError: If contract validation fails
-    fn convert(&mut self, py: Python<'_>, ingest: PyRef<'_, PyIngestSpectrum>) -> PyResult<PySpectrumArrays> {
+    fn convert(
+        &mut self,
+        py: Python<'_>,
+        ingest: PyRef<'_, PyIngestSpectrum>,
+    ) -> PyResult<PySpectrumArrays> {
         let rust_ingest = ingest.to_rust(py)?;
         let spectrum_arrays = self.inner.convert(rust_ingest).into_py_result()?;
         Ok(PySpectrumArrays::from_rust(py, spectrum_arrays))
@@ -1870,11 +1909,9 @@ fn extract_vec_copy<T: numpy::Element + Copy>(
     label: &str,
 ) -> PyResult<Vec<T>> {
     let array: PyReadonlyArray1<T> = obj.extract(py)?;
-    let slice = array
-        .as_slice()
-        .map_err(|_| pyo3::exceptions::PyValueError::new_err(format!(
-            "{} must be a contiguous 1D array", label
-        )))?;
+    let slice = array.as_slice().map_err(|_| {
+        pyo3::exceptions::PyValueError::new_err(format!("{} must be a contiguous 1D array", label))
+    })?;
     Ok(slice.to_vec())
 }
 

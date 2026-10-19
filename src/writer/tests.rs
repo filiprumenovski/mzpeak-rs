@@ -3,11 +3,69 @@ use crate::metadata::MzPeakMetadata;
 use std::io::Cursor;
 
 #[test]
+fn zero_row_groups_return_errors_instead_of_panicking() {
+    let config = WriterConfig {
+        row_group_size: 0,
+        ..WriterConfig::default()
+    };
+    assert!(MzPeakWriter::new(Cursor::new(Vec::new()), &MzPeakMetadata::new(), config).is_err());
+    let config = SpectraWriterConfig {
+        row_group_size: 0,
+        ..SpectraWriterConfig::default()
+    };
+    assert!(SpectraWriter::new(Cursor::new(Vec::new()), &config).is_err());
+    let config = PeaksWriterV2Config {
+        row_group_size: 0,
+        ..PeaksWriterV2Config::default()
+    };
+    assert!(PeaksWriterV2::new(Cursor::new(Vec::new()), &config, false).is_err());
+}
+
+#[test]
+fn invalid_optional_columns_do_not_advance_writer_state() {
+    let mut writer = MzPeakWriter::new(
+        Cursor::new(Vec::new()),
+        &MzPeakMetadata::new(),
+        WriterConfig::default(),
+    )
+    .unwrap();
+    let batch = || {
+        OwnedColumnarBatch::new(
+            vec![100.0],
+            vec![10.0],
+            vec![0],
+            vec![1],
+            vec![1],
+            vec![0.0],
+            vec![1],
+        )
+    };
+    let mut malformed = batch();
+    malformed.precursor_mz = OptionalColumnBuf::AllPresent(vec![]);
+    assert!(writer.write_owned_batch(malformed).is_err());
+    let mut malformed = batch();
+    malformed.precursor_mz = OptionalColumnBuf::WithValidity {
+        values: vec![400.0],
+        validity: vec![],
+    };
+    assert!(writer.write_owned_batch(malformed).is_err());
+    assert_eq!(writer.peaks_written(), 0);
+    writer
+        .write_spectrum_owned(SpectrumArrays::new_ms1(
+            0,
+            1,
+            0.0,
+            1,
+            PeakArrays::new(vec![100.0], vec![10.0]),
+        ))
+        .unwrap();
+    let stats = writer.finish().unwrap();
+    assert_eq!((stats.spectra_written, stats.peaks_written), (1, 1));
+}
+
+#[test]
 fn test_spectrum_arrays_statistics() {
-    let peaks = PeakArrays::new(
-        vec![100.0, 200.0, 300.0],
-        vec![1000.0, 2000.0, 500.0],
-    );
+    let peaks = PeakArrays::new(vec![100.0, 200.0, 300.0], vec![1000.0, 2000.0, 500.0]);
     let mut spectrum = SpectrumArrays::new_ms2(0, 1, 100.5, 1, 500.25, peaks);
     spectrum.precursor_charge = Some(2);
     spectrum.precursor_intensity = Some(1e6);
@@ -51,13 +109,13 @@ fn test_write_owned_batch() -> Result<(), WriterError> {
 
     // Create owned batch with required columns only
     let batch = OwnedColumnarBatch::new(
-        vec![100.0, 200.0, 300.0],     // mz
-        vec![1000.0, 2000.0, 500.0],   // intensity
-        vec![0, 0, 0],                  // spectrum_id
-        vec![1, 1, 1],                  // scan_number
-        vec![1, 1, 1],                  // ms_level
-        vec![60.0, 60.0, 60.0],         // retention_time
-        vec![1, 1, 1],                  // polarity
+        vec![100.0, 200.0, 300.0],   // mz
+        vec![1000.0, 2000.0, 500.0], // intensity
+        vec![0, 0, 0],               // spectrum_id
+        vec![1, 1, 1],               // scan_number
+        vec![1, 1, 1],               // ms_level
+        vec![60.0, 60.0, 60.0],      // retention_time
+        vec![1, 1, 1],               // polarity
     );
 
     // The batch is consumed - ownership is transferred
@@ -79,12 +137,12 @@ fn test_write_owned_batch_with_optional_columns() -> Result<(), WriterError> {
 
     // Create owned batch with some optional columns
     let mut batch = OwnedColumnarBatch::new(
-        vec![100.0, 200.0, 300.0, 400.0],   // mz
+        vec![100.0, 200.0, 300.0, 400.0],    // mz
         vec![1000.0, 2000.0, 500.0, 3000.0], // intensity
         vec![0, 0, 1, 1],                    // spectrum_id (2 spectra)
         vec![1, 1, 2, 2],                    // scan_number
         vec![1, 1, 2, 2],                    // ms_level (MS1 and MS2)
-        vec![60.0, 60.0, 120.0, 120.0],     // retention_time
+        vec![60.0, 60.0, 120.0, 120.0],      // retention_time
         vec![1, 1, 1, 1],                    // polarity
     );
 

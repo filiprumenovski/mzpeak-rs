@@ -84,7 +84,8 @@ impl RunParameters {
 
     /// Add a vendor-specific parameter
     pub fn add_vendor_param(&mut self, key: &str, value: &str) {
-        self.vendor_params.insert(key.to_string(), value.to_string());
+        self.vendor_params
+            .insert(key.to_string(), value.to_string());
     }
 
     /// Add a CV parameter

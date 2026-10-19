@@ -51,10 +51,7 @@ impl PyPeak {
                 "Peak(mz={:.4}, intensity={:.1}, ion_mobility={:.4})",
                 self.mz, self.intensity, im
             ),
-            None => format!(
-                "Peak(mz={:.4}, intensity={:.1})",
-                self.mz, self.intensity
-            ),
+            None => format!("Peak(mz={:.4}, intensity={:.1})", self.mz, self.intensity),
         }
     }
 

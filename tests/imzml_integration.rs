@@ -1,5 +1,4 @@
 #![cfg(feature = "mzml")]
-use byteorder::{LittleEndian, WriteBytesExt};
 use mzpeak::mzml::MzMLConverter;
 use mzpeak::reader::MzPeakReader;
 use std::fs::File;
@@ -9,7 +8,7 @@ use tempfile::tempdir;
 fn append_f64s(buffer: &mut Vec<u8>, values: &[f64]) -> (u64, usize) {
     let offset = buffer.len() as u64;
     for &val in values {
-        buffer.write_f64::<LittleEndian>(val).unwrap();
+        buffer.extend_from_slice(&val.to_le_bytes());
     }
     let length = buffer.len() - offset as usize;
     (offset, length)
@@ -18,7 +17,7 @@ fn append_f64s(buffer: &mut Vec<u8>, values: &[f64]) -> (u64, usize) {
 fn append_f32s(buffer: &mut Vec<u8>, values: &[f32]) -> (u64, usize) {
     let offset = buffer.len() as u64;
     for &val in values {
-        buffer.write_f32::<LittleEndian>(val).unwrap();
+        buffer.extend_from_slice(&val.to_le_bytes());
     }
     let length = buffer.len() - offset as usize;
     (offset, length)

@@ -9,20 +9,20 @@ use quick_xml::Reader;
 
 use super::models::{MzMLFileMetadata, MzMLIndex};
 use crate::mzml::cv_params::CvParam;
-use crate::mzml::ExternalBinaryReader;
 use crate::mzml::streamer::spectrum::BinaryArrayContext;
+use crate::mzml::ExternalBinaryReader;
 
 pub use error::MzMLError;
 pub use index::DEFAULT_INPUT_BUFFER_SIZE;
 pub use iterators::{RawSpectrumIterator, SpectrumIterator};
 
+mod chromatogram;
 mod error;
 mod helpers;
 mod index;
 mod iterators;
 mod metadata;
 mod spectrum;
-mod chromatogram;
 
 #[cfg(test)]
 mod tests;

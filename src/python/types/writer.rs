@@ -15,11 +15,11 @@ impl PyWriterConfig {
     ///
     /// Args:
     ///     compression: Compression type ("zstd", "snappy", or "none")
-    ///     compression_level: ZSTD compression level (1-22, default 9)
+    ///     compression_level: ZSTD compression level (1-22, default 3)
     ///     row_group_size: Number of rows per row group (default 100000)
     ///     data_page_size: Data page size in bytes (default 1MB)
     #[new]
-    #[pyo3(signature = (compression="zstd", compression_level=9, row_group_size=100000, data_page_size=1048576))]
+    #[pyo3(signature = (compression="zstd", compression_level=3, row_group_size=100000, data_page_size=1048576))]
     fn new(
         compression: &str,
         compression_level: i32,

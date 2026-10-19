@@ -38,11 +38,15 @@ pub fn run(
 
     // Resolve settings with priority: CLI > config file > profile defaults
     let compression_level = cli_compression_level
-        .or(file_config.as_ref().and_then(|c| c.conversion.compression_level))
+        .or(file_config
+            .as_ref()
+            .and_then(|c| c.conversion.compression_level))
         .unwrap_or_else(|| profile.compression_level());
 
     let row_group_size = cli_row_group_size
-        .or(file_config.as_ref().and_then(|c| c.conversion.row_group_size))
+        .or(file_config
+            .as_ref()
+            .and_then(|c| c.conversion.row_group_size))
         .unwrap_or_else(|| profile.row_group_size());
 
     let batch_size = cli_batch_size
@@ -126,7 +130,9 @@ pub fn run(
                     .convert_parallel(&input, &output)
                     .context("Parallel conversion failed")?
             } else {
-                converter.convert(&input, &output).context("Conversion failed")?
+                converter
+                    .convert(&input, &output)
+                    .context("Conversion failed")?
             }
         }
         #[cfg(not(feature = "mzml-parallel"))]
@@ -134,7 +140,9 @@ pub fn run(
             if use_parallel {
                 warn!("Parallel decoding requested but binary was built without mzml-parallel feature; falling back to sequential conversion.");
             }
-            converter.convert(&input, &output).context("Conversion failed")?
+            converter
+                .convert(&input, &output)
+                .context("Conversion failed")?
         }
     };
 

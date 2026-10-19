@@ -28,45 +28,61 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let converter = TdfConverter::with_config(config);
     let spectra = converter.convert(&data_path)?;
     let load_time = load_start.elapsed();
-    
-    println!("Loaded {} spectra in {:.2}s\n", spectra.len(), load_time.as_secs_f64());
+
+    println!(
+        "Loaded {} spectra in {:.2}s\n",
+        spectra.len(),
+        load_time.as_secs_f64()
+    );
 
     let total_peaks: usize = spectra.iter().map(|s| s.peaks.mz.len()).sum();
-    println!("Total peaks: {} ({:.1}M)\n", total_peaks, total_peaks as f64 / 1_000_000.0);
+    println!(
+        "Total peaks: {} ({:.1}M)\n",
+        total_peaks,
+        total_peaks as f64 / 1_000_000.0
+    );
 
     // Test different batch sizes
     let batch_sizes = vec![500];
 
-    println!("{:<15} {:>12} {:>12} {:>15}", "Batch Size", "Write Time", "File Size", "Peaks/sec");
+    println!(
+        "{:<15} {:>12} {:>12} {:>15}",
+        "Batch Size", "Write Time", "File Size", "Peaks/sec"
+    );
     println!("{}", "-".repeat(58));
 
     for batch_size in batch_sizes {
         let output_path = output_dir.join(format!("batch_{}.mzpeak", batch_size));
-        
+
         let writer_config = WriterConfig::default();
         let metadata = mzpeak::metadata::MzPeakMetadata::default();
         let mut writer = MzPeakWriter::new_file(&output_path, &metadata, writer_config)?;
-        
+
         let start = Instant::now();
-        
+
         // Write in batches
         for chunk in spectra.chunks(batch_size) {
             writer.write_spectra_arrays(chunk)?;
         }
-        
+
         let _stats = writer.finish()?;
         let elapsed = start.elapsed();
-        
+
         let file_size = fs::metadata(&output_path)?.len();
         let peaks_per_sec = total_peaks as f64 / elapsed.as_secs_f64();
-        
-        println!("{:<15} {:>10.2}s {:>10.1} MB {:>12.1}M/s", 
-            if batch_size == 11811 { "ALL".to_string() } else { batch_size.to_string() },
+
+        println!(
+            "{:<15} {:>10.2}s {:>10.1} MB {:>12.1}M/s",
+            if batch_size == 11811 {
+                "ALL".to_string()
+            } else {
+                batch_size.to_string()
+            },
             elapsed.as_secs_f64(),
             file_size as f64 / 1_000_000.0,
             peaks_per_sec / 1_000_000.0
         );
-        
+
         // Clean up
         fs::remove_file(&output_path)?;
     }

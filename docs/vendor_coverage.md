@@ -1,71 +1,35 @@
-# Vendor + MS Type Coverage Matrix (Thin Waist Contract)
+# Input coverage
 
-This document defines the thin-waist ingestion contract and tracks coverage
-for vendor file types and MS acquisition modes. It is the source of truth for
-what "comprehensive coverage" means in mzpeak-rs.
+| Input | Current path | Verification |
+| --- | --- | --- |
+| Thermo RAW | Bundled native rawr executable → piped mzML → checked columns | Process failure/metadata fixtures and an opt-in real RAW roundtrip |
+| mzML | Streaming XML, f32/f64 arrays, plain or zlib | Parser, property, sequential/parallel and chromatogram tests |
+| imzML | mzML metadata with external IBD arrays | Imaging coordinates and peak roundtrip |
+| Bruker TDF | Optional pinned timsrust dependency | Synthetic MS1/MS2/mobility/imaging tests; external instrument corpus not part of CI |
+| Other vendors | Convert externally to mzML | No direct WIFF/Agilent/Waters reader is implemented |
 
-## Scope
+Thermo conversion selects source-saved centroids, without .NET or vendor peak
+picking. It preserves the exported scan metadata and represented numeric values,
+not the entire RAW file. The current exporter omits instrument identity,
+auxiliary devices, profile arrays and some vendor metadata. RAW collision
+energy is normalized energy and its unit is recorded in processing provenance.
 
-Vendors / file types:
-- Thermo RAW
-- Bruker TDF
-- SCIEX WIFF
-- Agilent D
-- Waters RAW
+The bundled executable is for macOS Apple Silicon. Other platforms require a
+compatible `rawr` executable through `MZPEAK_RAWR` or PATH. Unsupported packets,
+nonzero process exits and truncated streams fail the conversion. Existing
+outputs are not overwritten. v2 retains empty scans; the legacy v1 adapter
+rejects empty RAW scans rather than silently dropping them.
 
-MS types / modes:
-- DDA
-- DIA / SWATH
-- SRM / MRM
-- PRM
-- MALDI
-- MSI
-- Ion mobility: TIMS / FAIMS / DTIMS
+The ingestion contract uses seconds for retention time, f64 for m/z and f32 for
+intensity. Spectrum IDs follow stream order and native scan numbers remain
+separate. Equal array and validity lengths are checked before writing. Missing
+values remain explicit nulls. Recorded scan statistics take precedence over
+statistics computed from centroids.
 
-## Thin Waist Contract (v1)
+Mobility units are source dependent: the Bruker reader reports inverse reduced
+mobility (1/K₀). Existing generic drift-time schema annotations do not establish
+a universal physical unit; consumers must check source provenance. Full
+cross-vendor unit normalization requires a versioned schema change and corpus
+validation.
 
-All vendor readers and the mzML reader must emit data that conforms to this
-contract before writing to Parquet.
-
-Required spectrum-level fields:
-- spectrum_id (i64, unique, contiguous by write order)
-- scan_number (i64, vendor native where possible)
-- ms_level (i16)
-- retention_time (f32, seconds)
-- polarity (i8: 1, -1, 0 for unknown)
-- peaks.mz (Vec<f64>)
-- peaks.intensity (Vec<f32>)
-
-Optional spectrum-level fields:
-- precursor_mz, precursor_charge, precursor_intensity
-- isolation_window_lower, isolation_window_upper
-- collision_energy
-- total_ion_current, base_peak_mz, base_peak_intensity
-- injection_time
-- pixel_x, pixel_y, pixel_z (MSI)
-
-Optional per-peak fields:
-- ion_mobility (Vec<f64> + validity)
-
-Invariants:
-- All peak arrays for a spectrum must have identical lengths.
-- Each spectrum_id must be contiguous in the stream (no interleaving).
-- Units must match the contract (RT seconds, m/z in Th, mobility in ms unless
-  explicitly documented).
-- Missing data must be represented explicitly as None or all-null buffers.
-
-
-## Required Test Artifacts
-
-Each vendor/mode entry must include:
-- A minimal public sample file (or synthetic fixture) under `tests/fixtures/`
-- A conversion test that validates required fields + invariants
-- A readback test that checks roundtrip metadata consistency
-- A validator run that confirms schema + required columns
-
-## Next Actions
-
-1) Define a formal `IngestSpectrum` struct or trait boundary for vendor readers.
-2) Create per-vendor adapter stubs that emit the contract.
-3) Add a compliance checklist for each vendor/mode.
-4) Track completion in `audit/issues/issue-010-vendor-coverage/issue.md`.
+These independent v1/v2 layouts are not the current HUPO-PSI mzPeak format.

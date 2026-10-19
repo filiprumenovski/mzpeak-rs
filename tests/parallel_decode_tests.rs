@@ -9,9 +9,7 @@
 
 use std::io::{BufReader, Cursor};
 
-use mzpeak::mzml::{
-    BinaryCompression, BinaryEncoding, MzMLSpectrum, MzMLStreamer,
-};
+use mzpeak::mzml::{BinaryCompression, BinaryEncoding, MzMLSpectrum, MzMLStreamer};
 
 // ============================================================================
 // Helper Functions
@@ -19,10 +17,12 @@ use mzpeak::mzml::{
 
 /// Create a minimal mzML document for testing
 fn create_test_mzml(spectra_count: usize) -> String {
-    let mut mzml = String::from(r#"<?xml version="1.0" encoding="UTF-8"?>
+    let mut mzml = String::from(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
 <mzML xmlns="http://psi.hupo.org/ms/mzml" version="1.1.0">
   <run id="test_run">
-    <spectrumList count=""#);
+    <spectrumList count=""#,
+    );
     mzml.push_str(&spectra_count.to_string());
     mzml.push_str(r#"">"#);
 
@@ -31,19 +31,22 @@ fn create_test_mzml(spectra_count: usize) -> String {
         let rt = (i as f64) * 0.5;
 
         // Create test m/z and intensity arrays
-        let mz_values: Vec<f64> = (0..100).map(|j| 100.0 + (j as f64) * 10.0 + (i as f64) * 0.1).collect();
+        let mz_values: Vec<f64> = (0..100)
+            .map(|j| 100.0 + (j as f64) * 10.0 + (i as f64) * 0.1)
+            .collect();
         let intensity_values: Vec<f32> = (0..100).map(|j| 1000.0 + (j as f32) * 50.0).collect();
 
         // Encode as base64 (64-bit m/z, 32-bit intensity, uncompressed)
-        let mz_bytes: Vec<u8> = mz_values.iter()
-            .flat_map(|v| v.to_le_bytes())
-            .collect();
-        let intensity_bytes: Vec<u8> = intensity_values.iter()
+        let mz_bytes: Vec<u8> = mz_values.iter().flat_map(|v| v.to_le_bytes()).collect();
+        let intensity_bytes: Vec<u8> = intensity_values
+            .iter()
             .flat_map(|v| v.to_le_bytes())
             .collect();
 
-        let mz_base64 = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &mz_bytes);
-        let intensity_base64 = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &intensity_bytes);
+        let mz_base64 =
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &mz_bytes);
+        let intensity_base64 =
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &intensity_bytes);
 
         mzml.push_str(&format!(r#"
       <spectrum index="{}" id="scan={}" defaultArrayLength="100">
@@ -71,10 +74,12 @@ fn create_test_mzml(spectra_count: usize) -> String {
       </spectrum>"#, i, i + 1, ms_level, rt, mz_base64, intensity_base64));
     }
 
-    mzml.push_str(r#"
+    mzml.push_str(
+        r#"
     </spectrumList>
   </run>
-</mzML>"#);
+</mzML>"#,
+    );
 
     mzml
 }
@@ -88,8 +93,14 @@ fn spectra_are_equal(a: &MzMLSpectrum, b: &MzMLSpectrum) -> bool {
         && a.retention_time == b.retention_time
         && a.mz_array.len() == b.mz_array.len()
         && a.intensity_array.len() == b.intensity_array.len()
-        && a.mz_array.iter().zip(b.mz_array.iter()).all(|(x, y)| (x - y).abs() < 1e-10)
-        && a.intensity_array.iter().zip(b.intensity_array.iter()).all(|(x, y)| (x - y).abs() < 1e-5)
+        && a.mz_array
+            .iter()
+            .zip(b.mz_array.iter())
+            .all(|(x, y)| (x - y).abs() < 1e-10)
+        && a.intensity_array
+            .iter()
+            .zip(b.intensity_array.iter())
+            .all(|(x, y)| (x - y).abs() < 1e-5)
 }
 
 // ============================================================================
@@ -113,8 +124,14 @@ fn test_next_raw_spectrum_deferred_decoding() {
     assert_eq!(raw.default_array_length, 100);
 
     // Verify binary data is NOT decoded (stored as base64)
-    assert!(!raw.mz_data.base64.is_empty(), "m/z data should be stored as base64");
-    assert!(!raw.intensity_data.base64.is_empty(), "intensity data should be stored as base64");
+    assert!(
+        !raw.mz_data.base64.is_empty(),
+        "m/z data should be stored as base64"
+    );
+    assert!(
+        !raw.intensity_data.base64.is_empty(),
+        "intensity data should be stored as base64"
+    );
     assert_eq!(raw.mz_data.encoding, BinaryEncoding::Float64);
     assert_eq!(raw.intensity_data.encoding, BinaryEncoding::Float32);
     assert_eq!(raw.mz_data.compression, BinaryCompression::None);
@@ -167,7 +184,11 @@ fn test_raw_vs_sequential_fidelity() {
 
     // Compare
     assert_eq!(sequential_spectra.len(), raw_decoded_spectra.len());
-    for (i, (seq, raw_dec)) in sequential_spectra.iter().zip(raw_decoded_spectra.iter()).enumerate() {
+    for (i, (seq, raw_dec)) in sequential_spectra
+        .iter()
+        .zip(raw_decoded_spectra.iter())
+        .enumerate()
+    {
         assert!(
             spectra_are_equal(seq, raw_dec),
             "Spectrum {} differs between sequential and raw+decode paths",
@@ -245,7 +266,7 @@ fn test_f32_to_f64_conversion_consistency() {
 // SIMD Tests (only when parallel-decode feature is enabled)
 // ============================================================================
 
-#[cfg(feature = "parallel-decode")]
+#[cfg(feature = "mzml-parallel")]
 mod simd_tests {
     use super::*;
     use base64::Engine;
@@ -271,7 +292,11 @@ mod simd_tests {
 
         for (input, expected) in test_cases {
             let result = simd_remove_whitespace_bytes(&input);
-            assert_eq!(result, expected, "Whitespace removal failed for input: {:?}", input);
+            assert_eq!(
+                result, expected,
+                "Whitespace removal failed for input: {:?}",
+                input
+            );
         }
     }
 
@@ -319,7 +344,9 @@ mod simd_tests {
     /// Test SIMD decoder produces identical results to scalar decoder
     #[test]
     fn test_simd_vs_scalar_fidelity_f64() {
-        let values: Vec<f64> = (0..1000).map(|i| 100.0 + (i as f64) * 0.987654321).collect();
+        let values: Vec<f64> = (0..1000)
+            .map(|i| 100.0 + (i as f64) * 0.987654321)
+            .collect();
         let bytes: Vec<u8> = values.iter().flat_map(|v| v.to_le_bytes()).collect();
         let base64_data = base64::engine::general_purpose::STANDARD.encode(&bytes);
 
@@ -474,7 +501,7 @@ mod simd_tests {
 // Parallel Conversion Tests (only when parallel-decode feature is enabled)
 // ============================================================================
 
-#[cfg(feature = "parallel-decode")]
+#[cfg(feature = "mzml-parallel")]
 mod parallel_conversion_tests {
     use super::*;
     use mzpeak::mzml::converter::ConversionError;
@@ -499,7 +526,9 @@ mod parallel_conversion_tests {
             ..ConversionConfig::default()
         };
         let converter = MzMLConverter::with_config(config);
-        let stats = converter.convert_parallel(&input_path, &output_path).unwrap();
+        let stats = converter
+            .convert_parallel(&input_path, &output_path)
+            .unwrap();
 
         // Verify statistics
         assert_eq!(stats.spectra_count, 50);
@@ -559,7 +588,9 @@ mod parallel_conversion_tests {
             ..ConversionConfig::default()
         };
         let par_converter = MzMLConverter::with_config(par_config);
-        let par_stats = par_converter.convert_parallel(&input_path, &par_output).unwrap();
+        let par_stats = par_converter
+            .convert_parallel(&input_path, &par_output)
+            .unwrap();
 
         // Verify statistics are identical
         assert_eq!(seq_stats.spectra_count, par_stats.spectra_count);
@@ -590,7 +621,9 @@ mod parallel_conversion_tests {
                 ..ConversionConfig::default()
             };
             let converter = MzMLConverter::with_config(config);
-            let stats = converter.convert_parallel(&input_path, &output_path).unwrap();
+            let stats = converter
+                .convert_parallel(&input_path, &output_path)
+                .unwrap();
 
             assert_eq!(
                 stats.spectra_count, 100,

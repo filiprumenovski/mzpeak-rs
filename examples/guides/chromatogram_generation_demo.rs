@@ -38,7 +38,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let tic_values = vec![100000.0, 250000.0, 450000.0, 380000.0, 150000.0];
     let bpc_values = vec![50000.0, 120000.0, 180000.0, 150000.0, 80000.0];
 
-    println!("   Creating {} MS1 spectra across RT range 10-50 seconds", retention_times.len());
+    println!(
+        "   Creating {} MS1 spectra across RT range 10-50 seconds",
+        retention_times.len()
+    );
 
     for (i, (&rt, (&tic, &bpc))) in retention_times
         .iter()
@@ -49,12 +52,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         // Add peaks - the highest intensity will be BPC, sum will be TIC
         let peaks = PeakArrays::new(
             vec![400.0, 450.0, 500.0, 550.0],
-            vec![
-                bpc,
-                (tic - bpc) * 0.4,
-                (tic - bpc) * 0.3,
-                (tic - bpc) * 0.3,
-            ],
+            vec![bpc, (tic - bpc) * 0.4, (tic - bpc) * 0.3, (tic - bpc) * 0.3],
         );
         let spectrum = SpectrumArrays::new_ms1(i as i64, i as i64 + 1, rt, 1, peaks);
 
@@ -83,8 +81,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     dataset.write_chromatogram(&tic_chrom)?;
     dataset.write_chromatogram(&bpc_chrom)?;
 
-    println!("   ✓ Generated TIC chromatogram ({} points)", retention_times.len());
-    println!("   ✓ Generated BPC chromatogram ({} points)\n", retention_times.len());
+    println!(
+        "   ✓ Generated TIC chromatogram ({} points)",
+        retention_times.len()
+    );
+    println!(
+        "   ✓ Generated BPC chromatogram ({} points)\n",
+        retention_times.len()
+    );
 
     // Close the dataset
     let stats = dataset.close()?;
@@ -107,13 +111,23 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("   Chromatogram: {}", chrom.chromatogram_id);
         println!("     Type: {}", chrom.chromatogram_type);
         println!("     Data points: {}", chrom.time_array.len());
-        println!("     RT range: {:.1} - {:.1} seconds", 
+        println!(
+            "     RT range: {:.1} - {:.1} seconds",
             chrom.time_array.first().unwrap_or(&0.0),
             chrom.time_array.last().unwrap_or(&0.0)
         );
-        println!("     Intensity range: {:.0} - {:.0}", 
-            chrom.intensity_array.iter().min_by(|a, b| a.partial_cmp(b).unwrap()).unwrap_or(&0.0),
-            chrom.intensity_array.iter().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap_or(&0.0)
+        println!(
+            "     Intensity range: {:.0} - {:.0}",
+            chrom
+                .intensity_array
+                .iter()
+                .min_by(|a, b| a.partial_cmp(b).unwrap())
+                .unwrap_or(&0.0),
+            chrom
+                .intensity_array
+                .iter()
+                .max_by(|a, b| a.partial_cmp(b).unwrap())
+                .unwrap_or(&0.0)
         );
         println!();
     }

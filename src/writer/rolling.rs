@@ -46,8 +46,16 @@ impl RollingWriter {
         if part == 0 {
             self.base_path.clone()
         } else {
-            let stem = self.base_path.file_stem().unwrap_or_default().to_string_lossy();
-            let extension = self.base_path.extension().unwrap_or_default().to_string_lossy();
+            let stem = self
+                .base_path
+                .file_stem()
+                .unwrap_or_default()
+                .to_string_lossy();
+            let extension = self
+                .base_path
+                .extension()
+                .unwrap_or_default()
+                .to_string_lossy();
             let parent = self.base_path.parent().unwrap_or_else(|| Path::new("."));
 
             if extension.is_empty() {
@@ -77,10 +85,7 @@ impl RollingWriter {
     }
 
     /// Write a batch of spectra with SoA peak layout, auto-rotating files if needed.
-    pub fn write_spectra_arrays(
-        &mut self,
-        spectra: &[SpectrumArrays],
-    ) -> Result<(), WriterError> {
+    pub fn write_spectra_arrays(&mut self, spectra: &[SpectrumArrays]) -> Result<(), WriterError> {
         if spectra.is_empty() {
             return Ok(());
         }
@@ -115,10 +120,7 @@ impl RollingWriter {
     }
 
     /// Write owned spectra, transferring peak buffers into the writer.
-    pub fn write_spectra_owned(
-        &mut self,
-        spectra: Vec<SpectrumArrays>,
-    ) -> Result<(), WriterError> {
+    pub fn write_spectra_owned(&mut self, spectra: Vec<SpectrumArrays>) -> Result<(), WriterError> {
         if spectra.is_empty() {
             return Ok(());
         }
@@ -152,18 +154,12 @@ impl RollingWriter {
     }
 
     /// Write a single spectrum by transferring ownership of its peak arrays.
-    pub fn write_spectrum_owned(
-        &mut self,
-        spectrum: SpectrumArrays,
-    ) -> Result<(), WriterError> {
+    pub fn write_spectrum_owned(&mut self, spectrum: SpectrumArrays) -> Result<(), WriterError> {
         self.write_spectra_owned(vec![spectrum])
     }
 
     /// Write a single spectrum with SoA peak layout.
-    pub fn write_spectrum_arrays(
-        &mut self,
-        spectrum: &SpectrumArrays,
-    ) -> Result<(), WriterError> {
+    pub fn write_spectrum_arrays(&mut self, spectrum: &SpectrumArrays) -> Result<(), WriterError> {
         self.write_spectra_arrays(std::slice::from_ref(spectrum))
     }
 
@@ -188,7 +184,8 @@ impl RollingWriter {
         RollingWriterStats {
             total_spectra_written: self.total_spectra_written,
             total_peaks_written: self.total_peaks_written,
-            files_written: self.part_stats.len() + if self.current_writer.is_some() { 1 } else { 0 },
+            files_written: self.part_stats.len()
+                + if self.current_writer.is_some() { 1 } else { 0 },
             part_stats: self.part_stats.clone(),
         }
     }

@@ -21,7 +21,7 @@
 //! - **peaks.parquet**: One row per peak with spectrum_id, mz, intensity, [ion_mobility]
 //!
 //! This normalized architecture provides:
-//! - 30-40% smaller file sizes through reduced data duplication
+//! - Reduced metadata duplication across peak rows
 //! - Faster metadata-only queries (no need to scan peak data)
 //! - Better compression ratios with optimized encodings
 //!
@@ -39,7 +39,7 @@
 //! )?;
 //!
 //! // Write a spectrum
-//! let metadata = SpectrumMetadata::new_ms1(0, Some(1), 60.0, 1, 100);
+//! let metadata = SpectrumMetadata::new_ms1(0, Some(1), 60.0, 1, 2);
 //! let peaks = PeakArraysV2::new(vec![400.0, 500.0], vec![1000.0, 500.0]);
 //! writer.write_spectrum_v2(&metadata, &peaks)?;
 //!
@@ -56,6 +56,7 @@ use zip::write::SimpleFileOptions;
 use zip::CompressionMethod;
 use zip::ZipWriter;
 
+use crate::chromatogram_writer::{Chromatogram, ChromatogramWriter, ChromatogramWriterConfig};
 use crate::metadata::{MzPeakMetadata, VendorHints};
 use crate::schema::manifest::{Manifest, Modality};
 use crate::writer::{
@@ -194,6 +195,8 @@ pub struct MzPeakDatasetWriterV2 {
     /// Peaks writer (writes to temp file)
     peaks_writer: Option<PeaksWriterV2<ParquetTempFile>>,
 
+    chromatogram_writer: Option<ChromatogramWriter<ParquetTempFile>>,
+
     /// Data modality
     modality: Modality,
 
@@ -236,7 +239,12 @@ impl MzPeakDatasetWriterV2 {
         modality: Modality,
         vendor_hints: Option<VendorHints>,
     ) -> Result<Self, DatasetError> {
-        Self::with_config(path, modality, vendor_hints, DatasetWriterV2Config::default())
+        Self::with_config(
+            path,
+            modality,
+            vendor_hints,
+            DatasetWriterV2Config::default(),
+        )
     }
 
     /// Create a new v2.0 dataset writer with custom configuration.
@@ -286,13 +294,15 @@ impl MzPeakDatasetWriterV2 {
         // Initialize peaks writer to temp file
         let has_ion_mobility = modality.has_ion_mobility();
         let peaks_buffer = ParquetTempFile::new()?;
-        let peaks_writer = PeaksWriterV2::new(peaks_buffer, &config.peaks_config, has_ion_mobility)?;
+        let peaks_writer =
+            PeaksWriterV2::new(peaks_buffer, &config.peaks_config, has_ion_mobility)?;
 
         Ok(Self {
             output_path,
             zip_writer,
             spectra_writer: Some(spectra_writer),
             peaks_writer: Some(peaks_writer),
+            chromatogram_writer: None,
             modality,
             metadata: None,
             vendor_hints,
@@ -322,6 +332,22 @@ impl MzPeakDatasetWriterV2 {
     ) -> Result<(), DatasetError> {
         if self.finalized {
             return Err(DatasetError::NotInitialized);
+        }
+
+        peaks
+            .validate()
+            .map_err(crate::writer::WriterError::InvalidData)?;
+        if metadata.peak_count as usize != peaks.len() {
+            return Err(crate::writer::WriterError::InvalidData(
+                "peak_count does not match peak arrays".into(),
+            )
+            .into());
+        }
+        if self.modality.has_ion_mobility() != peaks.ion_mobility.is_some() {
+            return Err(crate::writer::WriterError::InvalidData(
+                "ion mobility does not match dataset modality".into(),
+            )
+            .into());
         }
 
         // Track if this has precursor info
@@ -364,6 +390,25 @@ impl MzPeakDatasetWriterV2 {
             self.write_spectrum(spectrum)?;
         }
         Ok(())
+    }
+
+    /// Writes an optional chromatogram using the existing chromatogram schema.
+    pub fn write_chromatogram(&mut self, chromatogram: &Chromatogram) -> Result<(), DatasetError> {
+        if self.chromatogram_writer.is_none() {
+            self.chromatogram_writer = Some(
+                ChromatogramWriter::new(
+                    ParquetTempFile::new()?,
+                    &self.metadata.clone().unwrap_or_default(),
+                    ChromatogramWriterConfig::default(),
+                )
+                .map_err(|e| DatasetError::ChromatogramWriterError(e.to_string()))?,
+            );
+        }
+        self.chromatogram_writer
+            .as_mut()
+            .ok_or(DatasetError::NotInitialized)?
+            .write_chromatogram(chromatogram)
+            .map_err(|e| DatasetError::ChromatogramWriterError(e.to_string()))
     }
 
     /// Get current statistics (without closing).
@@ -524,12 +569,23 @@ impl MzPeakDatasetWriterV2 {
         let options = SimpleFileOptions::default()
             .compression_method(CompressionMethod::Stored)
             .unix_permissions(0o644);
-        self.zip_writer.start_file("spectra/spectra.parquet", options)?;
+        self.zip_writer
+            .start_file("spectra/spectra.parquet", options)?;
         stream_copy_to_zip(spectra_reader, &mut self.zip_writer)?;
 
         // Write peaks/peaks.parquet (MUST be uncompressed/Stored for seekability)
         self.zip_writer.start_file("peaks/peaks.parquet", options)?;
         stream_copy_to_zip(peaks_reader, &mut self.zip_writer)?;
+
+        if let Some(writer) = self.chromatogram_writer.take() {
+            let temp_file = writer
+                .finish_into_inner()
+                .map_err(|e| DatasetError::ChromatogramWriterError(e.to_string()))?;
+            let (_, reader) = temp_file.into_reader()?;
+            self.zip_writer
+                .start_file("chromatograms/chromatograms.parquet", options)?;
+            stream_copy_to_zip(reader, &mut self.zip_writer)?;
+        }
 
         // Finalize the ZIP archive
         let inner = self.zip_writer.finish()?;
@@ -590,17 +646,19 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let output_path = temp_dir.path().join("test.mzpeak");
 
-        let mut writer =
-            MzPeakDatasetWriterV2::new(&output_path, Modality::LcMs, None).expect("Failed to create writer");
+        let mut writer = MzPeakDatasetWriterV2::new(&output_path, Modality::LcMs, None)
+            .expect("Failed to create writer");
 
         // Write some spectra
         for i in 0..10 {
-            let metadata = SpectrumMetadata::new_ms1(i, Some(i as i32 + 1), i as f32 * 0.1, 1, 50);
+            let metadata = SpectrumMetadata::new_ms1(i, Some(i as i32 + 1), i as f32 * 0.1, 1, 2);
             let peaks = PeakArraysV2::new(
                 vec![100.0 + i as f64, 200.0 + i as f64],
                 vec![1000.0, 500.0],
             );
-            writer.write_spectrum_v2(&metadata, &peaks).expect("Failed to write spectrum");
+            writer
+                .write_spectrum_v2(&metadata, &peaks)
+                .expect("Failed to write spectrum");
         }
 
         let (spectra_count, peaks_count) = writer.stats();
@@ -621,17 +679,19 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let output_path = temp_dir.path().join("test_4d.mzpeak");
 
-        let mut writer =
-            MzPeakDatasetWriterV2::new(&output_path, Modality::LcImsMs, None).expect("Failed to create writer");
+        let mut writer = MzPeakDatasetWriterV2::new(&output_path, Modality::LcImsMs, None)
+            .expect("Failed to create writer");
 
         // Write spectrum with ion mobility
-        let metadata = SpectrumMetadata::new_ms1(0, Some(1), 60.0, 1, 100);
+        let metadata = SpectrumMetadata::new_ms1(0, Some(1), 60.0, 1, 2);
         let peaks = PeakArraysV2::with_ion_mobility(
             vec![100.0, 200.0],
             vec![1000.0, 500.0],
             vec![1.5, 1.6],
         );
-        writer.write_spectrum_v2(&metadata, &peaks).expect("Failed to write spectrum");
+        writer
+            .write_spectrum_v2(&metadata, &peaks)
+            .expect("Failed to write spectrum");
 
         let stats = writer.close().expect("Failed to close writer");
         assert_eq!(stats.peaks_stats.peaks_written, 2);
@@ -642,16 +702,16 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let output_path = temp_dir.path().join("test_ms2.mzpeak");
 
-        let mut writer =
-            MzPeakDatasetWriterV2::new(&output_path, Modality::LcMs, None).expect("Failed to create writer");
+        let mut writer = MzPeakDatasetWriterV2::new(&output_path, Modality::LcMs, None)
+            .expect("Failed to create writer");
 
         // Write MS1
-        let ms1_metadata = SpectrumMetadata::new_ms1(0, Some(1), 60.0, 1, 100);
+        let ms1_metadata = SpectrumMetadata::new_ms1(0, Some(1), 60.0, 1, 1);
         let ms1_peaks = PeakArraysV2::new(vec![500.0], vec![10000.0]);
         writer.write_spectrum_v2(&ms1_metadata, &ms1_peaks).unwrap();
 
         // Write MS2 with precursor
-        let mut ms2_metadata = SpectrumMetadata::new_ms2(1, Some(2), 60.1, 1, 50, 456.789);
+        let mut ms2_metadata = SpectrumMetadata::new_ms2(1, Some(2), 60.1, 1, 2, 456.789);
         ms2_metadata.precursor_charge = Some(2);
         ms2_metadata.collision_energy = Some(30.0);
         let ms2_peaks = PeakArraysV2::new(vec![100.0, 200.0], vec![500.0, 250.0]);
@@ -667,12 +727,12 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let output_path = temp_dir.path().join("test_v2_type.mzpeak");
 
-        let mut writer =
-            MzPeakDatasetWriterV2::new(&output_path, Modality::LcMs, None).expect("Failed to create writer");
+        let mut writer = MzPeakDatasetWriterV2::new(&output_path, Modality::LcMs, None)
+            .expect("Failed to create writer");
 
         // Use SpectrumV2 convenience type
         let spectrum = SpectrumV2::new(
-            SpectrumMetadata::new_ms1(0, Some(1), 60.0, 1, 100),
+            SpectrumMetadata::new_ms1(0, Some(1), 60.0, 1, 1),
             PeakArraysV2::new(vec![100.0], vec![1000.0]),
         );
         writer.write_spectrum(&spectrum).unwrap();
@@ -706,10 +766,11 @@ mod tests {
             conversion_path: vec!["RAW".to_string(), "mzML".to_string(), "mzpeak".to_string()],
         };
 
-        let mut writer = MzPeakDatasetWriterV2::new(&output_path, Modality::LcMs, Some(vendor_hints))
-            .expect("Failed to create writer");
+        let mut writer =
+            MzPeakDatasetWriterV2::new(&output_path, Modality::LcMs, Some(vendor_hints))
+                .expect("Failed to create writer");
 
-        let metadata = SpectrumMetadata::new_ms1(0, Some(1), 60.0, 1, 100);
+        let metadata = SpectrumMetadata::new_ms1(0, Some(1), 60.0, 1, 1);
         let peaks = PeakArraysV2::new(vec![100.0], vec![1000.0]);
         writer.write_spectrum_v2(&metadata, &peaks).unwrap();
 

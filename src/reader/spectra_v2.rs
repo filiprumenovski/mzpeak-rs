@@ -26,8 +26,7 @@ use crate::schema::spectra_columns;
 
 use super::config::ReaderSource;
 use super::utils::{get_optional_f32, get_optional_f64};
-use super::{MzPeakReader, RecordBatchIterator, ReaderError};
-
+use super::{MzPeakReader, ReaderError, RecordBatchIterator};
 
 // =============================================================================
 // Spectrum Metadata View
@@ -109,7 +108,10 @@ fn get_uint64_column<'a>(
         .ok_or_else(|| ReaderError::InvalidFormat(format!("{} is not UInt64", name)))
 }
 
-fn get_uint8_column<'a>(batch: &'a RecordBatch, name: &str) -> Result<&'a arrow::array::UInt8Array, ReaderError> {
+fn get_uint8_column<'a>(
+    batch: &'a RecordBatch,
+    name: &str,
+) -> Result<&'a arrow::array::UInt8Array, ReaderError> {
     batch
         .column_by_name(name)
         .ok_or_else(|| ReaderError::ColumnNotFound(name.to_string()))?
@@ -150,28 +152,31 @@ fn get_optional_int32_column<'a>(
 }
 
 fn get_optional_int8_column<'a>(batch: &'a RecordBatch, name: &str) -> Option<&'a Int8Array> {
-    batch.column_by_name(name)?.as_any().downcast_ref::<Int8Array>()
+    batch
+        .column_by_name(name)?
+        .as_any()
+        .downcast_ref::<Int8Array>()
 }
 
-fn get_optional_uint16_column<'a>(
-    batch: &'a RecordBatch,
-    name: &str,
-) -> Option<&'a UInt16Array> {
-    batch.column_by_name(name)?.as_any().downcast_ref::<UInt16Array>()
+fn get_optional_uint16_column<'a>(batch: &'a RecordBatch, name: &str) -> Option<&'a UInt16Array> {
+    batch
+        .column_by_name(name)?
+        .as_any()
+        .downcast_ref::<UInt16Array>()
 }
 
-fn get_optional_float32_column<'a>(
-    batch: &'a RecordBatch,
-    name: &str,
-) -> Option<&'a Float32Array> {
-    batch.column_by_name(name)?.as_any().downcast_ref::<Float32Array>()
+fn get_optional_float32_column<'a>(batch: &'a RecordBatch, name: &str) -> Option<&'a Float32Array> {
+    batch
+        .column_by_name(name)?
+        .as_any()
+        .downcast_ref::<Float32Array>()
 }
 
-fn get_optional_float64_column<'a>(
-    batch: &'a RecordBatch,
-    name: &str,
-) -> Option<&'a Float64Array> {
-    batch.column_by_name(name)?.as_any().downcast_ref::<Float64Array>()
+fn get_optional_float64_column<'a>(batch: &'a RecordBatch, name: &str) -> Option<&'a Float64Array> {
+    batch
+        .column_by_name(name)?
+        .as_any()
+        .downcast_ref::<Float64Array>()
 }
 
 fn get_optional_i32(array: Option<&arrow::array::Int32Array>, idx: usize) -> Option<i32> {
@@ -209,7 +214,10 @@ fn get_optional_u16(array: Option<&UInt16Array>, idx: usize) -> Option<u16> {
 // =============================================================================
 
 /// Extract spectrum metadata from a record batch row.
-fn extract_spectrum_metadata(batch: &RecordBatch, row: usize) -> Result<SpectrumMetadataView, ReaderError> {
+fn extract_spectrum_metadata(
+    batch: &RecordBatch,
+    row: usize,
+) -> Result<SpectrumMetadataView, ReaderError> {
     let spectrum_ids = get_uint32_column(batch, spectra_columns::SPECTRUM_ID)?;
     let ms_levels = get_uint8_column(batch, spectra_columns::MS_LEVEL)?;
     let retention_times = get_float32_column(batch, spectra_columns::RETENTION_TIME)?;
@@ -221,13 +229,17 @@ fn extract_spectrum_metadata(batch: &RecordBatch, row: usize) -> Result<Spectrum
     let scan_numbers = get_optional_int32_column(batch, spectra_columns::SCAN_NUMBER);
     let precursor_mzs = get_optional_float64_column(batch, spectra_columns::PRECURSOR_MZ);
     let precursor_charges = get_optional_int8_column(batch, spectra_columns::PRECURSOR_CHARGE);
-    let precursor_intensities = get_optional_float32_column(batch, spectra_columns::PRECURSOR_INTENSITY);
-    let isolation_lowers = get_optional_float32_column(batch, spectra_columns::ISOLATION_WINDOW_LOWER);
-    let isolation_uppers = get_optional_float32_column(batch, spectra_columns::ISOLATION_WINDOW_UPPER);
+    let precursor_intensities =
+        get_optional_float32_column(batch, spectra_columns::PRECURSOR_INTENSITY);
+    let isolation_lowers =
+        get_optional_float32_column(batch, spectra_columns::ISOLATION_WINDOW_LOWER);
+    let isolation_uppers =
+        get_optional_float32_column(batch, spectra_columns::ISOLATION_WINDOW_UPPER);
     let collision_energies = get_optional_float32_column(batch, spectra_columns::COLLISION_ENERGY);
     let tics = get_optional_float64_column(batch, spectra_columns::TOTAL_ION_CURRENT);
     let base_peak_mzs = get_optional_float64_column(batch, spectra_columns::BASE_PEAK_MZ);
-    let base_peak_intensities = get_optional_float32_column(batch, spectra_columns::BASE_PEAK_INTENSITY);
+    let base_peak_intensities =
+        get_optional_float32_column(batch, spectra_columns::BASE_PEAK_INTENSITY);
     let injection_times = get_optional_float32_column(batch, spectra_columns::INJECTION_TIME);
     let pixel_xs = get_optional_uint16_column(batch, spectra_columns::PIXEL_X);
     let pixel_ys = get_optional_uint16_column(batch, spectra_columns::PIXEL_Y);
@@ -506,7 +518,10 @@ impl MzPeakReader {
     /// Get spectrum metadata by ID (v2 format only).
     ///
     /// Returns the spectrum metadata for the given spectrum_id, or None if not found.
-    pub fn get_spectrum_metadata(&self, spectrum_id: u32) -> Result<Option<SpectrumMetadataView>, ReaderError> {
+    pub fn get_spectrum_metadata(
+        &self,
+        spectrum_id: u32,
+    ) -> Result<Option<SpectrumMetadataView>, ReaderError> {
         for spectrum_result in self.iter_spectra_metadata()? {
             let spectrum = spectrum_result?;
             if spectrum.spectrum_id == spectrum_id {

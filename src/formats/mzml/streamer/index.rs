@@ -7,8 +7,8 @@ use quick_xml::Reader;
 
 use super::helpers::get_attribute;
 use super::{MzMLError, MzMLStreamer};
-use crate::mzml::ExternalBinaryReader;
 use crate::mzml::models::{IndexEntry, MzMLIndex};
+use crate::mzml::ExternalBinaryReader;
 
 /// Default input buffer size for mzML parsing (64KB)
 pub const DEFAULT_INPUT_BUFFER_SIZE: usize = 64 * 1024;

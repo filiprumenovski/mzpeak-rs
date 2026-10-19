@@ -10,10 +10,10 @@ use zip::ZipWriter;
 use crate::chromatogram_writer::{
     Chromatogram, ChromatogramWriter, ChromatogramWriterConfig, ChromatogramWriterStats,
 };
+use crate::metadata::MzPeakMetadata;
 use crate::mobilogram_writer::{
     Mobilogram, MobilogramWriter, MobilogramWriterConfig, MobilogramWriterStats,
 };
-use crate::metadata::MzPeakMetadata;
 use crate::schema::MZPEAK_MIMETYPE;
 use crate::writer::{MzPeakWriter, SpectrumArrays, WriterConfig, WriterStats};
 
@@ -151,11 +151,8 @@ impl MzPeakDatasetWriter {
         let path = path.as_ref();
 
         // Determine mode: Container if .mzpeak extension and not an existing directory
-        let use_container = path
-            .extension()
-            .map(|ext| ext == "mzpeak")
-            .unwrap_or(false)
-            && !path.is_dir();
+        let use_container =
+            path.extension().map(|ext| ext == "mzpeak").unwrap_or(false) && !path.is_dir();
 
         if use_container {
             Self::new_container(path, metadata, config)
@@ -300,10 +297,7 @@ impl MzPeakDatasetWriter {
     }
 
     /// Write a single spectrum with SoA peak layout to the dataset.
-    pub fn write_spectrum_arrays(
-        &mut self,
-        spectrum: &SpectrumArrays,
-    ) -> Result<(), DatasetError> {
+    pub fn write_spectrum_arrays(&mut self, spectrum: &SpectrumArrays) -> Result<(), DatasetError> {
         if self.finalized {
             return Err(DatasetError::NotInitialized);
         }
@@ -322,10 +316,7 @@ impl MzPeakDatasetWriter {
     }
 
     /// Write a single spectrum by transferring ownership of its peak arrays.
-    pub fn write_spectrum_owned(
-        &mut self,
-        spectrum: SpectrumArrays,
-    ) -> Result<(), DatasetError> {
+    pub fn write_spectrum_owned(&mut self, spectrum: SpectrumArrays) -> Result<(), DatasetError> {
         if self.finalized {
             return Err(DatasetError::NotInitialized);
         }
@@ -344,10 +335,7 @@ impl MzPeakDatasetWriter {
     }
 
     /// Write multiple spectra with SoA peak layout to the dataset.
-    pub fn write_spectra_arrays(
-        &mut self,
-        spectra: &[SpectrumArrays],
-    ) -> Result<(), DatasetError> {
+    pub fn write_spectra_arrays(&mut self, spectra: &[SpectrumArrays]) -> Result<(), DatasetError> {
         if self.finalized {
             return Err(DatasetError::NotInitialized);
         }
@@ -464,8 +452,7 @@ impl MzPeakDatasetWriter {
 
         match &mut self.sink {
             DatasetSink::Directory {
-                mobilogram_writer,
-                ..
+                mobilogram_writer, ..
             } => {
                 let writer = mobilogram_writer
                     .as_mut()
@@ -475,8 +462,7 @@ impl MzPeakDatasetWriter {
                     .map_err(|e| DatasetError::MobilogramWriterError(e.to_string()))?;
             }
             DatasetSink::Container {
-                mobilogram_writer,
-                ..
+                mobilogram_writer, ..
             } => {
                 let writer = mobilogram_writer
                     .as_mut()
@@ -490,18 +476,14 @@ impl MzPeakDatasetWriter {
     }
 
     /// Write multiple mobilograms to the dataset
-    pub fn write_mobilograms(
-        &mut self,
-        mobilograms: &[Mobilogram],
-    ) -> Result<(), DatasetError> {
+    pub fn write_mobilograms(&mut self, mobilograms: &[Mobilogram]) -> Result<(), DatasetError> {
         if self.finalized {
             return Err(DatasetError::NotInitialized);
         }
 
         match &mut self.sink {
             DatasetSink::Directory {
-                mobilogram_writer,
-                ..
+                mobilogram_writer, ..
             } => {
                 let writer = mobilogram_writer
                     .as_mut()
@@ -511,8 +493,7 @@ impl MzPeakDatasetWriter {
                     .map_err(|e| DatasetError::MobilogramWriterError(e.to_string()))?;
             }
             DatasetSink::Container {
-                mobilogram_writer,
-                ..
+                mobilogram_writer, ..
             } => {
                 let writer = mobilogram_writer
                     .as_mut()
@@ -714,40 +695,40 @@ impl MzPeakDatasetWriter {
                     };
 
                 // Finalize mobilogram writer and get streaming reader
-                let (mobilogram_stats, mob_reader_opt) = if let Some(writer) = mobilogram_writer.take()
-                {
-                    // Check if any mobilograms were written
-                    let stats = writer.stats();
-                    if stats.mobilograms_written > 0 {
-                        // Extract the temp file and get a reader
-                        match writer.finish_into_inner() {
-                            Ok(temp_file) => match temp_file.into_reader() {
-                                Ok((size, reader)) => {
-                                    let final_stats = MobilogramWriterStats {
-                                        mobilograms_written: stats.mobilograms_written,
-                                        data_points_written: stats.data_points_written,
-                                        row_groups_written: 0, // Estimated
-                                        file_size_bytes: size,
-                                    };
-                                    (Some(final_stats), Some(reader))
-                                }
+                let (mobilogram_stats, mob_reader_opt) =
+                    if let Some(writer) = mobilogram_writer.take() {
+                        // Check if any mobilograms were written
+                        let stats = writer.stats();
+                        if stats.mobilograms_written > 0 {
+                            // Extract the temp file and get a reader
+                            match writer.finish_into_inner() {
+                                Ok(temp_file) => match temp_file.into_reader() {
+                                    Ok((size, reader)) => {
+                                        let final_stats = MobilogramWriterStats {
+                                            mobilograms_written: stats.mobilograms_written,
+                                            data_points_written: stats.data_points_written,
+                                            row_groups_written: 0, // Estimated
+                                            file_size_bytes: size,
+                                        };
+                                        (Some(final_stats), Some(reader))
+                                    }
+                                    Err(e) => {
+                                        log::warn!("Failed to read mobilogram temp file: {}", e);
+                                        (None, None)
+                                    }
+                                },
                                 Err(e) => {
-                                    log::warn!("Failed to read mobilogram temp file: {}", e);
+                                    log::warn!("Failed to finalize mobilogram writer: {}", e);
                                     (None, None)
                                 }
-                            },
-                            Err(e) => {
-                                log::warn!("Failed to finalize mobilogram writer: {}", e);
-                                (None, None)
                             }
+                        } else {
+                            // No mobilograms written, don't include in ZIP
+                            (None, None)
                         }
                     } else {
-                        // No mobilograms written, don't include in ZIP
                         (None, None)
-                    }
-                } else {
-                    (None, None)
-                };
+                    };
 
                 // Write metadata.json (Deflate compressed)
                 let options = SimpleFileOptions::default()

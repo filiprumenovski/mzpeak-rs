@@ -61,9 +61,7 @@ impl PySpectrumMetadata {
             return Err(PyValueError::new_err("ms_level must be >= 1"));
         }
         if !matches!(polarity, -1 | 0 | 1) {
-            return Err(PyValueError::new_err(
-                "polarity must be -1, 0, or 1",
-            ));
+            return Err(PyValueError::new_err("polarity must be -1, 0, or 1"));
         }
 
         Ok(Self {
@@ -101,9 +99,7 @@ impl PySpectrumMetadata {
         peak_count: u32,
     ) -> PyResult<Self> {
         if !matches!(polarity, -1 | 0 | 1) {
-            return Err(PyValueError::new_err(
-                "polarity must be -1, 0, or 1",
-            ));
+            return Err(PyValueError::new_err("polarity must be -1, 0, or 1"));
         }
         Ok(Self {
             inner: SpectrumMetadata::new_ms1(
@@ -127,9 +123,7 @@ impl PySpectrumMetadata {
         precursor_mz: f64,
     ) -> PyResult<Self> {
         if !matches!(polarity, -1 | 0 | 1) {
-            return Err(PyValueError::new_err(
-                "polarity must be -1, 0, or 1",
-            ));
+            return Err(PyValueError::new_err("polarity must be -1, 0, or 1"));
         }
         Ok(Self {
             inner: SpectrumMetadata::new_ms2(

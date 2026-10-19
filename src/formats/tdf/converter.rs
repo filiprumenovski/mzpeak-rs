@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-#[cfg(feature = "parallel-decode")]
+#[cfg(feature = "mzml-parallel")]
 use rayon::prelude::*;
 use timsrust::converters::{ConvertableDomain, Scan2ImConverter, Tof2MzConverter};
 use timsrust::readers::PrecursorReader;
@@ -139,13 +139,13 @@ impl TdfConverter {
             }
 
             // Parallel decode if available
-            #[cfg(feature = "parallel-decode")]
+            #[cfg(feature = "mzml-parallel")]
             let decoded: Vec<IngestSpectrum> = indexed
                 .into_par_iter()
                 .map(|raw| decode_raw_frame(raw, &ctx))
                 .collect::<Result<_, _>>()?;
 
-            #[cfg(not(feature = "parallel-decode"))]
+            #[cfg(not(feature = "mzml-parallel"))]
             let decoded: Vec<IngestSpectrum> = indexed
                 .into_iter()
                 .map(|raw| decode_raw_frame(raw, &ctx))
@@ -237,13 +237,13 @@ impl TdfConverter {
                 next_spectrum_id += 1;
             }
 
-            #[cfg(feature = "parallel-decode")]
+            #[cfg(feature = "mzml-parallel")]
             let decoded: Vec<IngestSpectrum> = indexed
                 .into_par_iter()
                 .map(|raw| decode_raw_frame(raw, &ctx))
                 .collect::<Result<_, _>>()?;
 
-            #[cfg(not(feature = "parallel-decode"))]
+            #[cfg(not(feature = "mzml-parallel"))]
             let decoded: Vec<IngestSpectrum> = indexed
                 .into_iter()
                 .map(|raw| decode_raw_frame(raw, &ctx))
@@ -290,8 +290,7 @@ impl TdfConverter {
                     2 => stats.ms2_count += 1,
                     _ => {}
                 }
-                if spectrum_v2.metadata.pixel_x.is_some()
-                    && spectrum_v2.metadata.pixel_y.is_some()
+                if spectrum_v2.metadata.pixel_x.is_some() && spectrum_v2.metadata.pixel_y.is_some()
                 {
                     stats.imaging_frames += 1;
                 }
@@ -312,7 +311,10 @@ impl Default for TdfConverter {
     }
 }
 
-fn decode_raw_frame(raw: IndexedRawFrame, ctx: &DecoderContext) -> Result<IngestSpectrum, TdfError> {
+fn decode_raw_frame(
+    raw: IndexedRawFrame,
+    ctx: &DecoderContext,
+) -> Result<IngestSpectrum, TdfError> {
     let IndexedRawFrame { spectrum_id, frame } = raw;
 
     let peak_count = frame.peak_count();

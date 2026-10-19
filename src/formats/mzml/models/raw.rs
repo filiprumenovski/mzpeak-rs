@@ -48,7 +48,6 @@ pub struct RawMzMLSpectrum {
     // ========================================================================
     // Metadata fields (same as MzMLSpectrum)
     // ========================================================================
-
     /// Spectrum index (0-based)
     pub index: i64,
 
@@ -115,7 +114,6 @@ pub struct RawMzMLSpectrum {
     // ========================================================================
     // Raw Binary Data Containers (NOT decoded yet)
     // ========================================================================
-
     /// Raw m/z array data (Base64 + encoding info)
     pub mz_data: RawBinaryData,
 
@@ -128,7 +126,6 @@ pub struct RawMzMLSpectrum {
     // ========================================================================
     // CV and User Parameters
     // ========================================================================
-
     /// All CV parameters for this spectrum
     pub cv_params: Vec<CvParam>,
 
@@ -165,7 +162,7 @@ impl RawMzMLSpectrum {
     ///
     /// # Errors
     /// Returns an error if decoding fails (invalid Base64, decompression error, etc.)
-    #[cfg(feature = "parallel-decode")]
+    #[cfg(feature = "mzml-parallel")]
     pub fn decode(self) -> Result<MzMLSpectrum, crate::mzml::binary::BinaryDecodeError> {
         use crate::mzml::simd::decode_binary_array_simd;
 
@@ -239,7 +236,7 @@ impl RawMzMLSpectrum {
     ///
     /// This uses the standard BinaryDecoder when the `parallel-decode` feature
     /// is not enabled.
-    #[cfg(not(feature = "parallel-decode"))]
+    #[cfg(not(feature = "mzml-parallel"))]
     pub fn decode(self) -> Result<MzMLSpectrum, crate::mzml::binary::BinaryDecodeError> {
         use crate::mzml::binary::BinaryDecoder;
 

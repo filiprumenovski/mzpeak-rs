@@ -46,10 +46,19 @@ fn mzpeak(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     pyo3_log::init();
 
     // Register exception types
-    m.add("MzPeakException", py.get_type::<exceptions::MzPeakException>())?;
+    m.add(
+        "MzPeakException",
+        py.get_type::<exceptions::MzPeakException>(),
+    )?;
     m.add("MzPeakIOError", py.get_type::<exceptions::MzPeakIOError>())?;
-    m.add("MzPeakFormatError", py.get_type::<exceptions::MzPeakFormatError>())?;
-    m.add("MzPeakValidationError", py.get_type::<exceptions::MzPeakValidationError>())?;
+    m.add(
+        "MzPeakFormatError",
+        py.get_type::<exceptions::MzPeakFormatError>(),
+    )?;
+    m.add(
+        "MzPeakValidationError",
+        py.get_type::<exceptions::MzPeakValidationError>(),
+    )?;
 
     // Register data types
     m.add_class::<types::PyPeak>()?;
@@ -153,4 +162,3 @@ fn mzpeak(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     Ok(())
 }
-

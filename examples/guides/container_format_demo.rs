@@ -35,7 +35,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Generate synthetic MS1 and MS2 spectra
     println!("   - Writing 100 MS1 spectra...");
     println!("   - Writing 900 MS2 spectra...");
-    
+
     for i in 0..1000 {
         let is_ms1 = i % 10 == 0;
         let retention_time = (i as f32) * 0.1;
@@ -77,7 +77,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         time_array: (0..1000).map(|i| i as f64 * 0.1).collect(),
         intensity_array: (0..1000).map(|i| 1e6 + (i as f32) * 1000.0).collect(),
     };
-    
+
     let bpc = Chromatogram {
         chromatogram_id: "BPC".to_string(),
         chromatogram_type: "BPC".to_string(),
@@ -89,24 +89,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     dataset.write_chromatogram(&bpc)?;
 
     let stats = dataset.close()?;
-    
+
     let file_size_mb = stats.total_size_bytes as f64 / 1_048_576.0;
     println!("   ✓ Container created: {:.2} MB", file_size_mb);
-    println!("   ✓ {} spectra, {} peaks", stats.peak_stats.spectra_written, stats.peak_stats.peaks_written);
+    println!(
+        "   ✓ {} spectra, {} peaks",
+        stats.peak_stats.spectra_written, stats.peak_stats.peaks_written
+    );
     println!("   ✓ {} chromatograms", stats.chromatograms_written);
 
     // 3. Validate container
     println!("\n3. Validating container...");
     let report = validate_mzpeak_file(&container_path)?;
-    
+
     if report.has_failures() {
         println!("   ✗ Validation FAILED");
         println!("{}", report);
         return Ok(());
     }
-    
+
     println!("   ✓ Validation passed: {} checks", report.success_count());
-    
+
     // Show some validation details
     for check in report.checks.iter().take(10) {
         match &check.status {
@@ -125,7 +128,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 4. Read without extraction
     println!("\n4. Reading container (zero-extraction)...");
     let reader = MzPeakReader::open(&container_path)?;
-    
+
     let file_metadata = reader.metadata();
     println!("   Format version: {}", file_metadata.format_version);
     println!("   Total peaks: {}", file_metadata.total_rows);
@@ -133,13 +136,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 5. Query operations
     println!("\n5. Running queries...");
-    
+
     // Get file summary
     let summary = reader.summary()?;
     println!("   Total spectra: {}", summary.num_spectra);
     println!("   MS1 spectra: {}", summary.num_ms1_spectra);
     println!("   MS2 spectra: {}", summary.num_ms2_spectra);
-    
+
     if let Some((min_rt, max_rt)) = summary.rt_range {
         println!("   RT range: {:.2} - {:.2} seconds", min_rt, max_rt);
     }
@@ -164,14 +167,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let chromatograms = reader.read_chromatograms()?;
     println!("   Chromatograms: {}", chromatograms.len());
     for chrom in &chromatograms {
-        println!("     - {}: {} points", chrom.chromatogram_id, chrom.time_array.len());
+        println!(
+            "     - {}: {} points",
+            chrom.chromatogram_id,
+            chrom.time_array.len()
+        );
     }
 
     // 6. Performance comparison
     println!("\n6. Performance comparison...");
-    
+
     use std::time::Instant;
-    
+
     // Measure open time
     let start = Instant::now();
     let _reader = MzPeakReader::open(&container_path)?;
@@ -182,7 +189,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let start = Instant::now();
     let all_spectra = reader.iter_spectra_arrays()?;
     let read_duration = start.elapsed();
-    println!("   Read all spectra: {:?} ({} spectra)", read_duration, all_spectra.len());
+    println!(
+        "   Read all spectra: {:?} ({} spectra)",
+        read_duration,
+        all_spectra.len()
+    );
 
     // Measure random access
     let reader = MzPeakReader::open(&container_path)?;
@@ -194,10 +205,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n7. Container structure:");
     use std::fs::File;
     use zip::ZipArchive;
-    
+
     let file = File::open(&container_path)?;
     let mut archive = ZipArchive::new(file)?;
-    
+
     println!("   Total entries: {}", archive.len());
     for i in 0..archive.len() {
         let entry = archive.by_index(i)?;
@@ -206,18 +217,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             zip::CompressionMethod::Deflated => "Deflated",
             _ => "Other",
         };
-        println!("   [{:2}] {} - {} bytes ({})", 
-                 i, entry.name(), entry.size(), compression);
+        println!(
+            "   [{:2}] {} - {} bytes ({})",
+            i,
+            entry.name(),
+            entry.size(),
+            compression
+        );
     }
 
     // 8. Compare with directory format
     println!("\n8. Creating directory format for comparison...");
     let dir_path = temp.path().join("example_dir");
-    
-    let mut dir_dataset = MzPeakDatasetWriter::new_directory(
-        &dir_path, &metadata, WriterConfig::default()
-    )?;
-    
+
+    let mut dir_dataset =
+        MzPeakDatasetWriter::new_directory(&dir_path, &metadata, WriterConfig::default())?;
+
     // Write same data
     for i in 0..1000 {
         let is_ms1 = i % 10 == 0;
@@ -251,17 +266,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         dir_dataset.write_spectrum_arrays(&spectrum)?;
     }
-    
+
     dir_dataset.close()?;
 
     // Calculate directory size
     let dir_size = calculate_dir_size(&dir_path)?;
     let container_size = fs::metadata(&container_path)?.len();
-    
-    println!("   Container: {:.2} MB", container_size as f64 / 1_048_576.0);
+
+    println!(
+        "   Container: {:.2} MB",
+        container_size as f64 / 1_048_576.0
+    );
     println!("   Directory: {:.2} MB", dir_size as f64 / 1_048_576.0);
-    println!("   Size difference: {:.1}%", 
-             ((container_size as f64 - dir_size as f64) / dir_size as f64) * 100.0);
+    println!(
+        "   Size difference: {:.1}%",
+        ((container_size as f64 - dir_size as f64) / dir_size as f64) * 100.0
+    );
 
     println!("\n=== Example Complete ===");
     println!("\nKey Takeaways:");

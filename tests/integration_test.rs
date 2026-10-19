@@ -5,9 +5,7 @@
 use mzpeak::dataset::MzPeakDatasetWriter;
 use mzpeak::metadata::{MzPeakMetadata, RunParameters, SdrfMetadata, SourceFileInfo};
 use mzpeak::reader::MzPeakReader;
-use mzpeak::writer::{
-    MzPeakWriter, OptionalColumnBuf, PeakArrays, SpectrumArrays, WriterConfig,
-};
+use mzpeak::writer::{MzPeakWriter, OptionalColumnBuf, PeakArrays, SpectrumArrays, WriterConfig};
 use parquet::file::reader::{FileReader, SerializedFileReader};
 use std::fs::{self, File};
 use tempfile::tempdir;
@@ -30,7 +28,13 @@ fn make_ms1_spectrum(
     peaks: &[(f64, f32)],
 ) -> SpectrumArrays {
     let peak_arrays = peak_arrays_from_pairs(peaks);
-    SpectrumArrays::new_ms1(spectrum_id, scan_number, retention_time, polarity, peak_arrays)
+    SpectrumArrays::new_ms1(
+        spectrum_id,
+        scan_number,
+        retention_time,
+        polarity,
+        peak_arrays,
+    )
 }
 
 fn make_ms2_spectrum(
@@ -73,19 +77,20 @@ fn test_write_read_cycle() {
         .map(|i| {
             let ms_level = if i % 10 == 0 { 1 } else { 2 };
             let peaks: Vec<(f64, f32)> = (0..50)
-                .map(|j| {
-                    (
-                        100.0 + (j as f64) * 10.0,
-                        1000.0 + (j as f32) * 100.0,
-                    )
-                })
+                .map(|j| (100.0 + (j as f64) * 10.0, 1000.0 + (j as f32) * 100.0))
                 .collect();
 
             if ms_level == 1 {
                 make_ms1_spectrum(i, i + 1, (i as f32) * 0.5, 1, &peaks)
             } else {
-                let mut spectrum =
-                    make_ms2_spectrum(i, i + 1, (i as f32) * 0.5, 1, 500.0 + (i as f64) * 0.1, &peaks);
+                let mut spectrum = make_ms2_spectrum(
+                    i,
+                    i + 1,
+                    (i as f32) * 0.5,
+                    1,
+                    500.0 + (i as f64) * 0.1,
+                    &peaks,
+                );
                 spectrum.precursor_charge = Some(2);
                 spectrum.precursor_intensity = Some(1e6);
                 spectrum
@@ -159,13 +164,7 @@ fn test_write_read_cycle_arrays() {
     assert_eq!(spectrum.peaks.mz.len(), 3);
 
     let expected_mz = [150.0, 250.0, 350.0];
-    for (idx, (actual, expected)) in spectrum
-        .peaks
-        .mz
-        .iter()
-        .zip(expected_mz.iter())
-        .enumerate()
-    {
+    for (idx, (actual, expected)) in spectrum.peaks.mz.iter().zip(expected_mz.iter()).enumerate() {
         assert!(
             (actual - expected).abs() < 1e-6,
             "mz mismatch at {}: actual {} expected {}",
@@ -337,13 +336,19 @@ fn test_metadata_roundtrip() {
     let kv = file_metadata.key_value_metadata().unwrap();
 
     // Check SDRF metadata
-    let sdrf_kv = kv.iter().find(|kv| kv.key == "mzpeak:sdrf_metadata").unwrap();
+    let sdrf_kv = kv
+        .iter()
+        .find(|kv| kv.key == "mzpeak:sdrf_metadata")
+        .unwrap();
     let sdrf_json = sdrf_kv.value.as_ref().unwrap();
     assert!(sdrf_json.contains("HeLa_sample_01"));
     assert!(sdrf_json.contains("Homo sapiens"));
 
     // Check instrument config
-    let inst_kv = kv.iter().find(|kv| kv.key == "mzpeak:instrument_config").unwrap();
+    let inst_kv = kv
+        .iter()
+        .find(|kv| kv.key == "mzpeak:instrument_config")
+        .unwrap();
     let inst_json = inst_kv.value.as_ref().unwrap();
     assert!(inst_json.contains("Orbitrap Exploris 480"));
 
@@ -374,10 +379,7 @@ fn test_dataset_bundle_structure() {
                 i + 1,
                 (i as f32) * 0.5,
                 1,
-                &[
-                    (400.0 + (i as f64), 10000.0),
-                    (500.0 + (i as f64), 15000.0),
-                ],
+                &[(400.0 + (i as f64), 10000.0), (500.0 + (i as f64), 15000.0)],
             )
         })
         .collect();
@@ -427,10 +429,19 @@ fn test_dataset_bundle_structure() {
     assert_eq!(parquet_metadata.file_metadata().num_rows(), 100);
 
     // Verify peak file has correct schema (18 original + 3 MSI = 21)
-    assert_eq!(parquet_metadata.file_metadata().schema_descr().num_columns(), 21);
+    assert_eq!(
+        parquet_metadata
+            .file_metadata()
+            .schema_descr()
+            .num_columns(),
+        21
+    );
 
     // Verify peak file has metadata in footer
-    let kv = parquet_metadata.file_metadata().key_value_metadata().unwrap();
+    let kv = parquet_metadata
+        .file_metadata()
+        .key_value_metadata()
+        .unwrap();
     let format_version = kv.iter().find(|kv| kv.key == "mzpeak:format_version");
     assert!(format_version.is_some());
 }
@@ -550,21 +561,24 @@ fn test_read_chromatograms_directory() {
     let chrom_path = chrom_dir.join("chromatograms.parquet");
 
     let chrom_config = ChromatogramWriterConfig::default();
-    let mut chrom_writer = ChromatogramWriter::new_file(&chrom_path, &metadata, chrom_config).unwrap();
+    let mut chrom_writer =
+        ChromatogramWriter::new_file(&chrom_path, &metadata, chrom_config).unwrap();
 
     let tic = Chromatogram::new(
         "TIC".to_string(),
         "total ion current chromatogram".to_string(),
         vec![10.0, 20.0, 30.0, 40.0],
         vec![1000.0, 2000.0, 1500.0, 1200.0],
-    ).unwrap();
+    )
+    .unwrap();
 
     let bpc = Chromatogram::new(
         "BPC".to_string(),
         "base peak chromatogram".to_string(),
         vec![10.0, 20.0, 30.0, 40.0],
         vec![800.0, 1800.0, 1400.0, 1000.0],
-    ).unwrap();
+    )
+    .unwrap();
 
     chrom_writer.write_chromatogram(&tic).unwrap();
     chrom_writer.write_chromatogram(&bpc).unwrap();
@@ -578,7 +592,10 @@ fn test_read_chromatograms_directory() {
 
     // Verify TIC
     assert_eq!(chromatograms[0].chromatogram_id, "TIC");
-    assert_eq!(chromatograms[0].chromatogram_type, "total ion current chromatogram");
+    assert_eq!(
+        chromatograms[0].chromatogram_type,
+        "total ion current chromatogram"
+    );
     assert_eq!(chromatograms[0].time_array.len(), 4);
     assert_eq!(chromatograms[0].time_array[0], 10.0);
     assert_eq!(chromatograms[0].intensity_array[1], 2000.0);
@@ -619,14 +636,16 @@ fn test_read_mobilograms_directory() {
         "extracted ion mobilogram".to_string(),
         vec![0.5, 0.6, 0.7, 0.8, 0.9],
         vec![1000.0, 2000.0, 3000.0, 2500.0, 1500.0],
-    ).unwrap();
+    )
+    .unwrap();
 
     let eim2 = Mobilogram::new(
         "EIM_600.30".to_string(),
         "extracted ion mobilogram".to_string(),
         vec![0.5, 0.6, 0.7, 0.8, 0.9],
         vec![500.0, 800.0, 1200.0, 900.0, 600.0],
-    ).unwrap();
+    )
+    .unwrap();
 
     mob_writer.write_mobilogram(&eim1).unwrap();
     mob_writer.write_mobilogram(&eim2).unwrap();
@@ -707,7 +726,7 @@ fn test_read_chromatograms_zip_container() {
 
     let metadata = MzPeakMetadata::new();
     let config = WriterConfig::default();
-    
+
     // Create container with chromatograms
     let mut dataset = MzPeakDatasetWriter::new(&container_path, &metadata, config).unwrap();
 
@@ -721,14 +740,16 @@ fn test_read_chromatograms_zip_container() {
         "total ion current chromatogram".to_string(),
         vec![10.0, 20.0, 30.0],
         vec![1000.0, 2000.0, 1500.0],
-    ).unwrap();
+    )
+    .unwrap();
 
     let bpc = Chromatogram::new(
         "BPC".to_string(),
         "base peak chromatogram".to_string(),
         vec![10.0, 20.0, 30.0],
         vec![800.0, 1800.0, 1400.0],
-    ).unwrap();
+    )
+    .unwrap();
 
     dataset.write_chromatogram(&tic).unwrap();
     dataset.write_chromatogram(&bpc).unwrap();
@@ -755,7 +776,7 @@ fn test_read_mobilograms_zip_container() {
 
     let metadata = MzPeakMetadata::new();
     let config = WriterConfig::default();
-    
+
     // Create container with mobilograms
     let mut dataset = MzPeakDatasetWriter::new(&container_path, &metadata, config).unwrap();
 
@@ -769,7 +790,8 @@ fn test_read_mobilograms_zip_container() {
         "extracted ion mobilogram".to_string(),
         vec![0.5, 0.6, 0.7, 0.8],
         vec![1000.0, 2000.0, 3000.0, 2500.0],
-    ).unwrap();
+    )
+    .unwrap();
 
     dataset.write_mobilogram(&eim1).unwrap();
     dataset.close().unwrap();
@@ -933,22 +955,31 @@ fn test_mzml_conversion_with_chromatograms() {
 
     // Verify statistics
     assert_eq!(stats.spectra_count, 2, "Should have converted 2 spectra");
-    assert_eq!(stats.chromatograms_converted, 2, "Should have converted 2 chromatograms");
+    assert_eq!(
+        stats.chromatograms_converted, 2,
+        "Should have converted 2 chromatograms"
+    );
 
     // Read back and verify chromatograms
     let reader = MzPeakReader::open(&output_path).unwrap();
     let chromatograms = reader.read_chromatograms().unwrap();
 
     assert_eq!(chromatograms.len(), 2, "Should have 2 chromatograms");
-    
+
     // Verify TIC chromatogram
-    let tic = chromatograms.iter().find(|c| c.chromatogram_id == "TIC").unwrap();
+    let tic = chromatograms
+        .iter()
+        .find(|c| c.chromatogram_id == "TIC")
+        .unwrap();
     assert_eq!(tic.chromatogram_type, "TIC");
     assert_eq!(tic.time_array.len(), 3);
     assert_eq!(tic.intensity_array.len(), 3);
-    
+
     // Verify BPC chromatogram
-    let bpc = chromatograms.iter().find(|c| c.chromatogram_id == "BPC").unwrap();
+    let bpc = chromatograms
+        .iter()
+        .find(|c| c.chromatogram_id == "BPC")
+        .unwrap();
     assert_eq!(bpc.chromatogram_type, "BPC");
     assert_eq!(bpc.time_array.len(), 3);
     assert_eq!(bpc.intensity_array.len(), 3);
@@ -976,12 +1007,12 @@ fn arb_peak() -> impl Strategy<Value = (f64, f32, Option<f64>)> {
 fn arb_spectrum() -> impl Strategy<Value = SpectrumArrays> {
     // Core fields (under 12 elements)
     let core_fields = (
-        0..1_000_000_i64,                          // spectrum_id
-        1..1_000_000_i64,                          // scan_number
-        1..11_i16,                                 // ms_level (1-10)
-        0.0..10_000.0_f32,                         // retention_time
+        0..1_000_000_i64,                                     // spectrum_id
+        1..1_000_000_i64,                                     // scan_number
+        1..11_i16,                                            // ms_level (1-10)
+        0.0..10_000.0_f32,                                    // retention_time
         prop::bool::ANY.prop_map(|b| if b { 1 } else { -1 }), // polarity
-        prop::collection::vec(arb_peak(), 1..50),  // peaks (1-50 per spectrum)
+        prop::collection::vec(arb_peak(), 1..50),             // peaks (1-50 per spectrum)
     );
 
     // Optional precursor fields (under 12 elements)
@@ -1172,53 +1203,95 @@ fn test_all_footer_metadata_keys() {
     // 2. mzpeak:conversion_timestamp (always present)
     let timestamp = find_key("mzpeak:conversion_timestamp");
     assert!(timestamp.is_some(), "mzpeak:conversion_timestamp missing");
-    assert!(timestamp.unwrap().contains("T"), "Timestamp should be ISO 8601 format");
+    assert!(
+        timestamp.unwrap().contains("T"),
+        "Timestamp should be ISO 8601 format"
+    );
 
     // 3. mzpeak:converter_info (always present)
     let converter_info = find_key("mzpeak:converter_info");
     assert!(converter_info.is_some(), "mzpeak:converter_info missing");
-    assert!(converter_info.unwrap().contains("mzpeak-rs"), "Converter info should contain mzpeak-rs");
+    assert!(
+        converter_info.unwrap().contains("mzpeak-rs"),
+        "Converter info should contain mzpeak-rs"
+    );
 
     // 4. mzpeak:sdrf_metadata
     let sdrf_json = find_key("mzpeak:sdrf_metadata");
     assert!(sdrf_json.is_some(), "mzpeak:sdrf_metadata missing");
     let sdrf_str = sdrf_json.unwrap();
-    assert!(sdrf_str.contains("Sample_001"), "SDRF should contain source_name");
-    assert!(sdrf_str.contains("Homo sapiens"), "SDRF should contain organism");
+    assert!(
+        sdrf_str.contains("Sample_001"),
+        "SDRF should contain source_name"
+    );
+    assert!(
+        sdrf_str.contains("Homo sapiens"),
+        "SDRF should contain organism"
+    );
 
     // 5. mzpeak:instrument_config
     let instrument_json = find_key("mzpeak:instrument_config");
-    assert!(instrument_json.is_some(), "mzpeak:instrument_config missing");
+    assert!(
+        instrument_json.is_some(),
+        "mzpeak:instrument_config missing"
+    );
     let instrument_str = instrument_json.unwrap();
-    assert!(instrument_str.contains("Q Exactive HF"), "Instrument should contain model");
-    assert!(instrument_str.contains("SN12345"), "Instrument should contain serial number");
+    assert!(
+        instrument_str.contains("Q Exactive HF"),
+        "Instrument should contain model"
+    );
+    assert!(
+        instrument_str.contains("SN12345"),
+        "Instrument should contain serial number"
+    );
 
     // 6. mzpeak:lc_config
     let lc_json = find_key("mzpeak:lc_config");
     assert!(lc_json.is_some(), "mzpeak:lc_config missing");
     let lc_str = lc_json.unwrap();
-    assert!(lc_str.contains("Dionex"), "LC config should contain system model");
+    assert!(
+        lc_str.contains("Dionex"),
+        "LC config should contain system model"
+    );
 
     // 7. mzpeak:run_parameters
     let run_json = find_key("mzpeak:run_parameters");
     assert!(run_json.is_some(), "mzpeak:run_parameters missing");
     let run_str = run_json.unwrap();
-    assert!(run_str.contains("2024-01-15T10:00:00Z"), "Run params should contain start_time");
-    assert!(run_str.contains("Test Operator"), "Run params should contain operator");
+    assert!(
+        run_str.contains("2024-01-15T10:00:00Z"),
+        "Run params should contain start_time"
+    );
+    assert!(
+        run_str.contains("Test Operator"),
+        "Run params should contain operator"
+    );
 
     // 8. mzpeak:source_file
     let source_json = find_key("mzpeak:source_file");
     assert!(source_json.is_some(), "mzpeak:source_file missing");
     let source_str = source_json.unwrap();
-    assert!(source_str.contains("sample.raw"), "Source file should contain name");
-    assert!(source_str.contains("Thermo RAW"), "Source file should contain format");
+    assert!(
+        source_str.contains("sample.raw"),
+        "Source file should contain name"
+    );
+    assert!(
+        source_str.contains("Thermo RAW"),
+        "Source file should contain format"
+    );
 
     // 9. mzpeak:processing_history
     let history_json = find_key("mzpeak:processing_history");
     assert!(history_json.is_some(), "mzpeak:processing_history missing");
     let history_str = history_json.unwrap();
-    assert!(history_str.contains("conversion"), "Processing history should contain processing_type");
-    assert!(history_str.contains("mzpeak-rs"), "Processing history should contain software");
+    assert!(
+        history_str.contains("conversion"),
+        "Processing history should contain processing_type"
+    );
+    assert!(
+        history_str.contains("mzpeak-rs"),
+        "Processing history should contain software"
+    );
 
     // 10. mzpeak:raw_file_checksum
     let checksum = find_key("mzpeak:raw_file_checksum");
@@ -1281,31 +1354,61 @@ fn test_metadata_from_parquet_roundtrip() {
     let file_metadata = reader.metadata();
 
     // Verify mzpeak_metadata was parsed
-    assert!(file_metadata.mzpeak_metadata.is_some(), "mzpeak_metadata should be parsed from footer");
+    assert!(
+        file_metadata.mzpeak_metadata.is_some(),
+        "mzpeak_metadata should be parsed from footer"
+    );
     let parsed = file_metadata.mzpeak_metadata.as_ref().unwrap();
 
     // Verify each component roundtripped correctly
     assert!(parsed.sdrf.is_some(), "SDRF should roundtrip");
-    assert_eq!(parsed.sdrf.as_ref().unwrap().source_name, "Roundtrip_Sample");
+    assert_eq!(
+        parsed.sdrf.as_ref().unwrap().source_name,
+        "Roundtrip_Sample"
+    );
 
     assert!(parsed.instrument.is_some(), "Instrument should roundtrip");
-    assert_eq!(parsed.instrument.as_ref().unwrap().model, Some("Test Instrument".to_string()));
+    assert_eq!(
+        parsed.instrument.as_ref().unwrap().model,
+        Some("Test Instrument".to_string())
+    );
 
     assert!(parsed.lc_config.is_some(), "LC config should roundtrip");
-    assert_eq!(parsed.lc_config.as_ref().unwrap().flow_rate_ul_min, Some(500.0));
+    assert_eq!(
+        parsed.lc_config.as_ref().unwrap().flow_rate_ul_min,
+        Some(500.0)
+    );
 
-    assert!(parsed.run_parameters.is_some(), "Run params should roundtrip");
-    assert_eq!(parsed.run_parameters.as_ref().unwrap().spray_voltage_kv, Some(3.5));
+    assert!(
+        parsed.run_parameters.is_some(),
+        "Run params should roundtrip"
+    );
+    assert_eq!(
+        parsed.run_parameters.as_ref().unwrap().spray_voltage_kv,
+        Some(3.5)
+    );
 
     assert!(parsed.source_file.is_some(), "Source file should roundtrip");
     assert_eq!(parsed.source_file.as_ref().unwrap().name, "roundtrip.raw");
 
-    assert!(parsed.processing_history.is_some(), "Processing history should roundtrip");
+    assert!(
+        parsed.processing_history.is_some(),
+        "Processing history should roundtrip"
+    );
     assert_eq!(parsed.processing_history.as_ref().unwrap().steps.len(), 1);
-    assert_eq!(parsed.processing_history.as_ref().unwrap().steps[0].software, "test");
+    assert_eq!(
+        parsed.processing_history.as_ref().unwrap().steps[0].software,
+        "test"
+    );
 
-    assert!(parsed.raw_file_checksum.is_some(), "Raw file checksum should roundtrip");
-    assert_eq!(parsed.raw_file_checksum.as_ref().unwrap(), "sha256:roundtrip_test");
+    assert!(
+        parsed.raw_file_checksum.is_some(),
+        "Raw file checksum should roundtrip"
+    );
+    assert_eq!(
+        parsed.raw_file_checksum.as_ref().unwrap(),
+        "sha256:roundtrip_test"
+    );
 }
 
 /// Test processing history serialization
@@ -1363,22 +1466,45 @@ fn test_processing_history_footer_serialization() {
     let file_metadata = reader.metadata().file_metadata();
     let kv = file_metadata.key_value_metadata().unwrap();
 
-    let history_json = kv.iter()
+    let history_json = kv
+        .iter()
         .find(|kv| kv.key == "mzpeak:processing_history")
         .and_then(|kv| kv.value.clone())
         .expect("processing_history should be present");
 
     // Verify JSON contains both steps
-    assert!(history_json.contains("conversion"), "Should contain conversion step");
-    assert!(history_json.contains("peak picking"), "Should contain peak picking step");
-    assert!(history_json.contains("mzpeak-rs"), "Should contain mzpeak-rs software");
-    assert!(history_json.contains("msconvert"), "Should contain msconvert software");
-    assert!(history_json.contains("centroid"), "Should contain algorithm parameter");
-    assert!(history_json.contains("snr_threshold"), "Should contain snr_threshold parameter");
+    assert!(
+        history_json.contains("conversion"),
+        "Should contain conversion step"
+    );
+    assert!(
+        history_json.contains("peak picking"),
+        "Should contain peak picking step"
+    );
+    assert!(
+        history_json.contains("mzpeak-rs"),
+        "Should contain mzpeak-rs software"
+    );
+    assert!(
+        history_json.contains("msconvert"),
+        "Should contain msconvert software"
+    );
+    assert!(
+        history_json.contains("centroid"),
+        "Should contain algorithm parameter"
+    );
+    assert!(
+        history_json.contains("snr_threshold"),
+        "Should contain snr_threshold parameter"
+    );
 
     // Parse back and verify structure
     let parsed_history: ProcessingHistory = serde_json::from_str(&history_json).unwrap();
-    assert_eq!(parsed_history.steps.len(), 2, "Should have 2 processing steps");
+    assert_eq!(
+        parsed_history.steps.len(),
+        2,
+        "Should have 2 processing steps"
+    );
     assert_eq!(parsed_history.steps[0].order, 1);
     assert_eq!(parsed_history.steps[0].processing_type, "conversion");
     assert_eq!(parsed_history.steps[1].order, 2);
@@ -1393,31 +1519,31 @@ proptest! {
     #[test]
     fn property_roundtrip_spectrum(spectra in prop::collection::vec(arb_spectrum(), 1..10)) {
         use mzpeak::reader::MzPeakReader;
-        
+
         let dir = tempdir().unwrap();
         let path = dir.path().join("proptest.mzpeak.parquet");
-        
+
         // Write spectra
         let metadata = MzPeakMetadata::new();
         let config = WriterConfig::default();
         let mut writer = MzPeakWriter::new_file(&path, &metadata, config).unwrap();
-        
+
         writer.write_spectra_arrays(&spectra).unwrap();
         let write_stats = writer.finish().unwrap();
-        
+
         // Calculate expected totals
         let expected_spectra = spectra.len();
         let expected_peaks: usize = spectra.iter().map(|s| s.peak_count()).sum();
-        
+
         prop_assert_eq!(write_stats.spectra_written, expected_spectra, "Spectra count mismatch");
         prop_assert_eq!(write_stats.peaks_written, expected_peaks, "Peak count mismatch");
-        
+
         // Read back
         let reader = MzPeakReader::open(&path).unwrap();
         let read_spectra = reader.iter_spectra_arrays().unwrap();
-        
+
         prop_assert_eq!(read_spectra.len(), spectra.len(), "Read spectrum count mismatch");
-        
+
         // Verify each spectrum
         for (original, read_back) in spectra.iter().zip(read_spectra.iter()) {
             let read_back = read_back.to_owned().unwrap();

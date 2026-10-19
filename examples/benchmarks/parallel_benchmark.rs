@@ -13,7 +13,7 @@ use mzpeak::writer::{MzPeakWriter, WriterConfig};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let output_dir = PathBuf::from("/Volumes/NVMe 2TB/Test/parallel_benchmark");
-    
+
     // Create output directories
     let sequential_dir = output_dir.join("sequential");
     let parallel_dir = output_dir.join("parallel");
@@ -63,24 +63,36 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   Total spectra: {}", stats.total_spectra);
     println!("   Total peaks:   {}", stats.total_peaks);
     println!("   Wall time:     {:.2}s", parallel_time.as_secs_f64());
-    println!("   Throughput:    {:.0} spectra/sec", stats.total_spectra as f64 / parallel_time.as_secs_f64());
-    println!("   Peak rate:     {:.1}M peaks/sec", stats.total_peaks as f64 / parallel_time.as_secs_f64() / 1_000_000.0);
+    println!(
+        "   Throughput:    {:.0} spectra/sec",
+        stats.total_spectra as f64 / parallel_time.as_secs_f64()
+    );
+    println!(
+        "   Peak rate:     {:.1}M peaks/sec",
+        stats.total_peaks as f64 / parallel_time.as_secs_f64() / 1_000_000.0
+    );
 
     println!("\n   Shard breakdown:");
     for shard in &stats.shard_stats {
-        println!("     Shard {}: {} spectra, {} peaks", 
-            shard.shard_id, shard.spectra_written, shard.peaks_written);
+        println!(
+            "     Shard {}: {} spectra, {} peaks",
+            shard.shard_id, shard.spectra_written, shard.peaks_written
+        );
     }
 
     // Calculate load balance
     if stats.shard_stats.len() > 1 {
-        let spectra_counts: Vec<f64> = stats.shard_stats.iter()
+        let spectra_counts: Vec<f64> = stats
+            .shard_stats
+            .iter()
             .map(|s| s.spectra_written as f64)
             .collect();
         let mean = spectra_counts.iter().sum::<f64>() / spectra_counts.len() as f64;
-        let variance = spectra_counts.iter()
+        let variance = spectra_counts
+            .iter()
             .map(|x| (x - mean).powi(2))
-            .sum::<f64>() / spectra_counts.len() as f64;
+            .sum::<f64>()
+            / spectra_counts.len() as f64;
         let std_dev = variance.sqrt();
         let cv = std_dev / mean * 100.0;
         println!("\n   Load balance CV: {:.1}% (lower is better)", cv);
@@ -101,7 +113,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let spectra = converter.convert(&data_path)?;
     let sequential_convert_time = start.elapsed();
 
-    println!("\n   Conversion time: {:.2}s", sequential_convert_time.as_secs_f64());
+    println!(
+        "\n   Conversion time: {:.2}s",
+        sequential_convert_time.as_secs_f64()
+    );
 
     // Write to file
     let output_path = sequential_dir.join("output.mzpeak");
@@ -118,16 +133,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let sequential_total = sequential_convert_time + sequential_write_time;
 
-    println!("   Write time:      {:.2}s", sequential_write_time.as_secs_f64());
+    println!(
+        "   Write time:      {:.2}s",
+        sequential_write_time.as_secs_f64()
+    );
     println!("\n📊 Sequential Results:");
     println!("   Total spectra: {}", write_stats.spectra_written);
     println!("   Total peaks:   {}", write_stats.peaks_written);
-    println!("   Wall time:     {:.2}s (convert) + {:.2}s (write) = {:.2}s total",
+    println!(
+        "   Wall time:     {:.2}s (convert) + {:.2}s (write) = {:.2}s total",
         sequential_convert_time.as_secs_f64(),
         sequential_write_time.as_secs_f64(),
         sequential_total.as_secs_f64()
     );
-    println!("   Throughput:    {:.0} spectra/sec", write_stats.spectra_written as f64 / sequential_total.as_secs_f64());
+    println!(
+        "   Throughput:    {:.0} spectra/sec",
+        write_stats.spectra_written as f64 / sequential_total.as_secs_f64()
+    );
 
     // =========================================================================
     // Comparison
@@ -135,12 +157,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n╔══════════════════════════════════════════════════════════════════╗");
     println!("║                         COMPARISON                               ║");
     println!("╚══════════════════════════════════════════════════════════════════╝");
-    
+
     let speedup = sequential_total.as_secs_f64() / parallel_time.as_secs_f64();
     println!("\n   Sequential: {:.2}s", sequential_total.as_secs_f64());
     println!("   Parallel:   {:.2}s", parallel_time.as_secs_f64());
     println!("   Speedup:    {:.2}× faster", speedup);
-    println!("   Efficiency: {:.0}% (speedup / workers)", speedup / num_workers as f64 * 100.0);
+    println!(
+        "   Efficiency: {:.0}% (speedup / workers)",
+        speedup / num_workers as f64 * 100.0
+    );
 
     Ok(())
 }

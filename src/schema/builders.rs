@@ -196,7 +196,10 @@ pub fn create_mzpeak_schema() -> Schema {
 
     // Add schema-level metadata
     let mut metadata = HashMap::new();
-    metadata.insert(KEY_FORMAT_VERSION.to_string(), MZPEAK_FORMAT_VERSION.to_string());
+    metadata.insert(
+        KEY_FORMAT_VERSION.to_string(),
+        MZPEAK_FORMAT_VERSION.to_string(),
+    );
     metadata.insert(
         "mzpeak:schema_description".to_string(),
         "Long-format LC-MS peak data with RLE-optimized spectrum metadata".to_string(),
@@ -277,10 +280,14 @@ pub fn create_chromatogram_schema() -> Schema {
 
     // Add schema-level metadata
     let mut metadata = HashMap::new();
-    metadata.insert(KEY_FORMAT_VERSION.to_string(), MZPEAK_FORMAT_VERSION.to_string());
+    metadata.insert(
+        KEY_FORMAT_VERSION.to_string(),
+        MZPEAK_FORMAT_VERSION.to_string(),
+    );
     metadata.insert(
         "mzpeak:schema_description".to_string(),
-        "Wide-format chromatogram data with array storage for instant trace visualization".to_string(),
+        "Wide-format chromatogram data with array storage for instant trace visualization"
+            .to_string(),
     );
     metadata.insert(
         "mzpeak:cv_namespace".to_string(),

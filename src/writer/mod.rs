@@ -37,8 +37,7 @@ pub use rolling::{RollingWriter, RollingWriterStats};
 pub use spectra_writer::{SpectraWriter, SpectraWriterConfig, SpectraWriterStats};
 pub use stats::WriterStats;
 pub use types::{
-    ColumnarBatch, OptionalColumn, OptionalColumnBuf, OwnedColumnarBatch, PeakArrays,
-    PeakArraysV2, SpectrumArrays, SpectrumMetadata, SpectrumV2,
+    ColumnarBatch, OptionalColumn, OptionalColumnBuf, OwnedColumnarBatch, PeakArrays, PeakArraysV2,
+    SpectrumArrays, SpectrumMetadata, SpectrumV2,
 };
 pub use writer_impl::MzPeakWriter;
-

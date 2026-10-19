@@ -1,7 +1,8 @@
 use std::collections::HashSet;
 use std::fs::File;
 
-use arrow::array::{Array, Float32Array, Float64Array};
+use super::spectra_v2::{SpectrumMetadataIterator, SpectrumMetadataView};
+use arrow::array::{Array, Float32Array, Float64Array, UInt32Array};
 use arrow::record_batch::RecordBatch;
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use parquet::file::metadata::ParquetMetaData;
@@ -101,11 +102,12 @@ impl MzPeakReader {
                     max_id,
                 )
             }
-            ReaderSource::ZipContainer { chunk_reader, .. } => self.build_iter_for_spectrum_id_range(
-                ParquetRecordBatchReaderBuilder::try_new(chunk_reader.clone())?,
-                min_id,
-                max_id,
-            ),
+            ReaderSource::ZipContainer { chunk_reader, .. } => self
+                .build_iter_for_spectrum_id_range(
+                    ParquetRecordBatchReaderBuilder::try_new(chunk_reader.clone())?,
+                    min_id,
+                    max_id,
+                ),
             ReaderSource::ZipContainerV2 {
                 peaks_chunk_reader, ..
             } => self.build_iter_for_spectrum_id_range(
@@ -141,7 +143,12 @@ impl MzPeakReader {
         &self,
     ) -> Result<StreamingSpectrumArraysViewIterator, ReaderError> {
         let batch_iter = self.iter_batches()?;
-        Ok(StreamingSpectrumArraysViewIterator::new(batch_iter))
+        let mut iterator = StreamingSpectrumArraysViewIterator::new(batch_iter);
+        if self.is_v2_format() {
+            iterator.v2_metadata = Some(self.iter_spectra_metadata()?);
+            iterator.v2_has_mobility = self.schema().field_with_name(columns::ION_MOBILITY).is_ok();
+        }
+        Ok(iterator)
     }
 
     /// Query spectra by retention time range (inclusive), SoA layout
@@ -174,6 +181,16 @@ impl MzPeakReader {
         &self,
         spectrum_id: i64,
     ) -> Result<Option<SpectrumArraysView>, ReaderError> {
+        // shortcut: v2 ID lookup streams the tables; add row-group seeking when random-access workloads require it.
+        if self.is_v2_format() {
+            for spectrum in self.iter_spectra_arrays_streaming()? {
+                let spectrum = spectrum?;
+                if spectrum.spectrum_id == spectrum_id {
+                    return Ok(Some(spectrum));
+                }
+            }
+            return Ok(None);
+        }
         let batch_iter = self.iter_batches_for_spectrum_id_range(spectrum_id, spectrum_id)?;
         let iter = StreamingSpectrumArraysViewIterator::new(batch_iter);
         for spectrum in iter {
@@ -195,6 +212,16 @@ impl MzPeakReader {
             return Ok(Vec::new());
         }
 
+        if self.is_v2_format() {
+            return self
+                .iter_spectra_arrays_streaming()?
+                .filter_map(|result| match result {
+                    Ok(spectrum) if id_set.contains(&spectrum.spectrum_id) => Some(Ok(spectrum)),
+                    Ok(_) => None,
+                    Err(error) => Some(Err(error)),
+                })
+                .collect();
+        }
         let min_id = **id_set.iter().min().unwrap();
         let max_id = **id_set.iter().max().unwrap();
         let batch_iter = self.iter_batches_for_spectrum_id_range(min_id, max_id)?;
@@ -257,6 +284,7 @@ pub struct SpectrumArraysView {
     /// MSI Z pixel coordinate.
     pub pixel_z: Option<i32>,
     num_peaks: usize,
+    has_mobility: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -285,10 +313,8 @@ impl SpectrumArraysView {
         let precursor_charges = get_optional_int16_column(&batch, columns::PRECURSOR_CHARGE);
         let precursor_intensities =
             get_optional_float32_column(&batch, columns::PRECURSOR_INTENSITY);
-        let isolation_lowers =
-            get_optional_float32_column(&batch, columns::ISOLATION_WINDOW_LOWER);
-        let isolation_uppers =
-            get_optional_float32_column(&batch, columns::ISOLATION_WINDOW_UPPER);
+        let isolation_lowers = get_optional_float32_column(&batch, columns::ISOLATION_WINDOW_LOWER);
+        let isolation_uppers = get_optional_float32_column(&batch, columns::ISOLATION_WINDOW_UPPER);
         let collision_energies = get_optional_float32_column(&batch, columns::COLLISION_ENERGY);
         let tics = get_optional_float64_column(&batch, columns::TOTAL_ION_CURRENT);
         let base_peak_mzs = get_optional_float64_column(&batch, columns::BASE_PEAK_MZ);
@@ -322,7 +348,42 @@ impl SpectrumArraysView {
             pixel_y: get_optional_i32(pixel_ys, row),
             pixel_z: get_optional_i32(pixel_zs, row),
             num_peaks,
+            has_mobility: batch
+                .schema()
+                .field_with_name(columns::ION_MOBILITY)
+                .is_ok(),
         })
+    }
+
+    fn from_v2_segments(
+        metadata: SpectrumMetadataView,
+        segments: Vec<SpectrumArraysViewSegment>,
+        has_mobility: bool,
+    ) -> Self {
+        Self {
+            num_peaks: metadata.peak_count as usize,
+            has_mobility,
+            segments,
+            spectrum_id: i64::from(metadata.spectrum_id),
+            // The legacy view has a required native number; zero means absent.
+            scan_number: metadata.scan_number.map(i64::from).unwrap_or(0),
+            ms_level: i16::from(metadata.ms_level),
+            retention_time: metadata.retention_time,
+            polarity: metadata.polarity,
+            precursor_mz: metadata.precursor_mz,
+            precursor_charge: metadata.precursor_charge.map(i16::from),
+            precursor_intensity: metadata.precursor_intensity,
+            isolation_window_lower: metadata.isolation_window_lower,
+            isolation_window_upper: metadata.isolation_window_upper,
+            collision_energy: metadata.collision_energy,
+            total_ion_current: metadata.total_ion_current,
+            base_peak_mz: metadata.base_peak_mz,
+            base_peak_intensity: metadata.base_peak_intensity,
+            injection_time: metadata.injection_time,
+            pixel_x: metadata.pixel_x.map(i32::from),
+            pixel_y: metadata.pixel_y.map(i32::from),
+            pixel_z: metadata.pixel_z.map(i32::from),
+        }
     }
 
     /// Number of peaks in this spectrum.
@@ -348,9 +409,17 @@ impl SpectrumArraysView {
 
     /// Return ion mobility arrays for each segment (zero-copy slices), if present.
     pub fn ion_mobility_arrays(&self) -> Result<Option<Vec<Float64Array>>, ReaderError> {
+        if !self.has_mobility {
+            return Ok(None);
+        }
         let mut arrays = Vec::with_capacity(self.segments.len());
         for seg in &self.segments {
-            match slice_optional_float64_column(&seg.batch, columns::ION_MOBILITY, seg.start, seg.len)? {
+            match slice_optional_float64_column(
+                &seg.batch,
+                columns::ION_MOBILITY,
+                seg.start,
+                seg.len,
+            )? {
                 Some(array) => arrays.push(array),
                 None => return Ok(None),
             }
@@ -360,11 +429,7 @@ impl SpectrumArraysView {
 
     /// Materialize this view into an owned SpectrumArrays.
     pub fn to_owned(&self) -> Result<SpectrumArrays, ReaderError> {
-        let has_ion_mobility = self
-            .segments
-            .first()
-            .and_then(|seg| get_optional_float64_column(&seg.batch, columns::ION_MOBILITY))
-            .is_some();
+        let has_ion_mobility = self.has_mobility;
 
         let mut builder = SpectrumArraysBuilder::new(
             self.spectrum_id,
@@ -403,7 +468,11 @@ impl SpectrumArraysView {
             }
         }
 
-        Ok(builder.finish())
+        let mut spectrum = builder.finish();
+        if self.has_mobility && self.num_peaks == 0 {
+            spectrum.peaks.ion_mobility = OptionalColumnBuf::AllPresent(Vec::new());
+        }
+        Ok(spectrum)
     }
 }
 
@@ -464,6 +533,9 @@ pub struct StreamingSpectrumArraysViewIterator {
     pending: Option<SpectrumArraysViewBuilder>,
     ready: std::collections::VecDeque<SpectrumArraysView>,
     exhausted: bool,
+    v2_metadata: Option<SpectrumMetadataIterator>,
+    peak_offset: u64,
+    v2_has_mobility: bool,
 }
 
 impl StreamingSpectrumArraysViewIterator {
@@ -475,25 +547,95 @@ impl StreamingSpectrumArraysViewIterator {
             pending: None,
             ready: std::collections::VecDeque::new(),
             exhausted: false,
+            v2_metadata: None,
+            peak_offset: 0,
+            v2_has_mobility: false,
         }
     }
 
-    fn load_next_batch(&mut self) -> Option<RecordBatch> {
-        match self.batch_iter.next() {
-            Some(Ok(batch)) => {
-                self.current_row = 0;
-                Some(batch)
-            }
-            Some(Err(e)) => {
-                log::error!("Error reading batch: {}", e);
-                self.exhausted = true;
-                None
-            }
+    fn next_v2(&mut self) -> Result<Option<SpectrumArraysView>, ReaderError> {
+        let metadata = match self.v2_metadata.as_mut().and_then(Iterator::next) {
+            Some(metadata) => metadata?,
             None => {
-                self.exhausted = true;
-                None
+                if self
+                    .current_batch
+                    .as_ref()
+                    .is_some_and(|batch| self.current_row < batch.num_rows())
+                {
+                    return Err(ReaderError::InvalidFormat(
+                        "unreferenced rows in v2 peaks table".into(),
+                    ));
+                }
+                for batch in self.batch_iter.by_ref() {
+                    if batch?.num_rows() != 0 {
+                        return Err(ReaderError::InvalidFormat(
+                            "unreferenced rows in v2 peaks table".into(),
+                        ));
+                    }
+                }
+                return Ok(None);
             }
+        };
+        if metadata.peak_offset != self.peak_offset {
+            return Err(ReaderError::InvalidFormat(format!(
+                "spectrum {}: peak offset {} does not follow {}",
+                metadata.spectrum_id, metadata.peak_offset, self.peak_offset
+            )));
         }
+        let mut remaining = metadata.peak_count as usize;
+        let mut segments = Vec::new();
+        while remaining > 0 {
+            if self
+                .current_batch
+                .as_ref()
+                .is_none_or(|batch| self.current_row == batch.num_rows())
+            {
+                self.current_batch = self.batch_iter.next().transpose()?;
+                self.current_row = 0;
+            }
+            let batch = self.current_batch.as_ref().ok_or_else(|| {
+                ReaderError::InvalidFormat(format!(
+                    "truncated peaks for spectrum {}",
+                    metadata.spectrum_id
+                ))
+            })?;
+            let len = remaining.min(batch.num_rows() - self.current_row);
+            if len == 0 {
+                continue;
+            }
+            let ids = batch
+                .column_by_name(columns::SPECTRUM_ID)
+                .and_then(|array| array.as_any().downcast_ref::<UInt32Array>())
+                .ok_or_else(|| ReaderError::InvalidFormat("v2 spectrum_id is not UInt32".into()))?;
+            for row in self.current_row..self.current_row + len {
+                if ids.is_null(row) || ids.value(row) != metadata.spectrum_id {
+                    return Err(ReaderError::InvalidFormat(format!(
+                        "peaks do not belong to spectrum {}",
+                        metadata.spectrum_id
+                    )));
+                }
+            }
+            segments.push(SpectrumArraysViewSegment {
+                batch: batch.clone(),
+                start: self.current_row,
+                len,
+            });
+            self.current_row += len;
+            self.peak_offset += len as u64;
+            remaining -= len;
+        }
+        Ok(Some(SpectrumArraysView::from_v2_segments(
+            metadata,
+            segments,
+            self.v2_has_mobility,
+        )))
+    }
+
+    fn load_next_batch(&mut self) -> Result<Option<RecordBatch>, ReaderError> {
+        let batch = self.batch_iter.next().transpose()?;
+        self.current_row = 0;
+        self.exhausted = batch.is_none();
+        Ok(batch)
     }
 }
 
@@ -501,6 +643,22 @@ impl Iterator for StreamingSpectrumArraysViewIterator {
     type Item = Result<SpectrumArraysView, ReaderError>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        if self.v2_metadata.is_some() {
+            if self.exhausted {
+                return None;
+            }
+            return match self.next_v2() {
+                Ok(Some(view)) => Some(Ok(view)),
+                Ok(None) => {
+                    self.exhausted = true;
+                    None
+                }
+                Err(error) => {
+                    self.exhausted = true;
+                    Some(Err(error))
+                }
+            };
+        }
         loop {
             if let Some(view) = self.ready.pop_front() {
                 return Some(Ok(view));
@@ -513,7 +671,14 @@ impl Iterator for StreamingSpectrumArraysViewIterator {
                         .take()
                         .map(|pending| pending.finish().map_err(|e| e));
                 }
-                self.current_batch = self.load_next_batch();
+                self.current_batch = match self.load_next_batch() {
+                    Ok(batch) => batch,
+                    Err(error) => {
+                        self.exhausted = true;
+                        self.pending = None;
+                        return Some(Err(error));
+                    }
+                };
                 if self.current_batch.is_none() {
                     return self
                         .pending
@@ -531,7 +696,12 @@ impl Iterator for StreamingSpectrumArraysViewIterator {
 
             let spectrum_ids = match get_int64_column(batch, columns::SPECTRUM_ID) {
                 Ok(col) => col,
-                Err(e) => return Some(Err(e)),
+                Err(e) => {
+                    self.exhausted = true;
+                    self.current_batch = None;
+                    self.pending = None;
+                    return Some(Err(e));
+                }
             };
 
             let start = self.current_row;

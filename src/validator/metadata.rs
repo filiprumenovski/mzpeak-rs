@@ -9,8 +9,8 @@ use zip::ZipArchive;
 
 use crate::metadata::MzPeakMetadata;
 use crate::reader::ZipEntryChunkReader;
-use crate::schema::{KEY_FORMAT_VERSION, MZPEAK_FORMAT_VERSION};
 use crate::schema::manifest::Manifest;
+use crate::schema::{KEY_FORMAT_VERSION, MZPEAK_FORMAT_VERSION};
 
 use super::structure::is_zip_file;
 use super::{ParquetSource, SchemaVersion, ValidationCheck, ValidationReport, ValidationTarget};
@@ -176,22 +176,19 @@ fn validate_metadata_json_content(json_content: &str, report: &mut ValidationRep
     Ok(())
 }
 
-fn read_parquet_kv_metadata(
-    source: &ParquetSource,
-) -> Result<Option<HashMap<String, String>>> {
+fn read_parquet_kv_metadata(source: &ParquetSource) -> Result<Option<HashMap<String, String>>> {
     let metadata = match source {
         ParquetSource::FilePath(path) => {
             let file = File::open(path)?;
             let reader = SerializedFileReader::new(file)?;
             reader.metadata().clone()
         }
-        ParquetSource::ZipEntry { zip_path, entry_name } => {
+        ParquetSource::ZipEntry {
+            zip_path,
+            entry_name,
+        } => {
             let reader = ZipEntryChunkReader::new(zip_path, entry_name)?;
             let reader = SerializedFileReader::new(reader)?;
-            reader.metadata().clone()
-        }
-        ParquetSource::InMemory(bytes) => {
-            let reader = SerializedFileReader::new(bytes.clone())?;
             reader.metadata().clone()
         }
     };

@@ -160,7 +160,10 @@ impl MzPeakMetadata {
 
         let mut metadata = HashMap::new();
 
-        metadata.insert(KEY_FORMAT_VERSION.to_string(), MZPEAK_FORMAT_VERSION.to_string());
+        metadata.insert(
+            KEY_FORMAT_VERSION.to_string(),
+            MZPEAK_FORMAT_VERSION.to_string(),
+        );
 
         metadata.insert(
             KEY_CONVERSION_TIMESTAMP.to_string(),

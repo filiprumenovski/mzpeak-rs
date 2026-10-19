@@ -4,7 +4,9 @@ use std::ops::Range;
 use std::path::Path;
 use std::sync::Arc;
 
-use timsrust::converters::{ConvertableDomain, Frame2RtConverter, Scan2ImConverter, Tof2MzConverter};
+use timsrust::converters::{
+    ConvertableDomain, Frame2RtConverter, Scan2ImConverter, Tof2MzConverter,
+};
 use timsrust::readers::{FrameReader, MetadataReader};
 
 use crate::tdf::error::TdfError;
@@ -87,8 +89,10 @@ impl TdfStreamer {
                         self.rt_converter.convert(frame.index as u32)
                     } else {
                         // Fallback for out-of-bounds frame index (shouldn't happen in normal operation)
-                        eprintln!("⚠️  Frame {} has out-of-bounds index, using native RT: {:.2}s",
-                            frame_idx, frame.rt_in_seconds);
+                        eprintln!(
+                            "⚠️  Frame {} has out-of-bounds index, using native RT: {:.2}s",
+                            frame_idx, frame.rt_in_seconds
+                        );
                         frame.rt_in_seconds
                     };
                     batch.push(RawTdfFrame::from_frame(frame, rt_seconds));
@@ -97,7 +101,10 @@ impl TdfStreamer {
                     // Skip decompression errors (known issue with some AlphaTims samples)
                     let err_str = format!("{e}");
                     if err_str.contains("Decompression") {
-                        eprintln!("⚠️  Skipping frame {} (decompression error): {}", frame_idx, e);
+                        eprintln!(
+                            "⚠️  Skipping frame {} (decompression error): {}",
+                            frame_idx, e
+                        );
                         continue;
                     }
                     // Propagate other errors
@@ -168,7 +175,10 @@ impl TdfStreamer {
                 Err(e) => {
                     let err_str = format!("{e}");
                     if err_str.contains("Decompression") {
-                        eprintln!("⚠️  Skipping frame {} (decompression error): {}", frame_idx, e);
+                        eprintln!(
+                            "⚠️  Skipping frame {} (decompression error): {}",
+                            frame_idx, e
+                        );
                         continue;
                     }
                     return Err(TdfError::FrameParsingError(format!(
