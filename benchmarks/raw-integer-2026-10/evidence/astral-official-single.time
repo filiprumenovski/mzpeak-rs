@@ -1,0 +1,33 @@
+[2026-10-20T22:44:32Z ERROR mzdata_param::cv] Error while initializing MS vocabulary database: error: CV cache file could not be openend
+    [<remote-home>/.local/share/mzcore/MS.bin]
+    No such file or directory (os error 2)
+    
+[2026-10-20T22:44:32Z ERROR mzdata_param::cv] Error while initializing MS vocabulary database: error: Default path does not exist
+    [<remote-home>/.local/share/mzcore/MS.obo.gz]
+    The default path does not exist
+    
+1373.89 seconds elapsed
+<query-workdir>/data/official.mzpeak was 11.072GB
+	Command being timed: "<query-workdir>/runtime/reference/target/release/examples/convert <query-workdir>/data/astral.raw -k 3 -o <query-workdir>/data/official.mzpeak"
+	User time (seconds): 1664.48
+	System time (seconds): 73.00
+	Percent of CPU this job got: 126%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 22:54.09
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1668944
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 2396
+	Minor (reclaiming a frame) page faults: 7293635
+	Voluntary context switches: 1305519
+	Involuntary context switches: 6427
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 38861912
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

@@ -88,3 +88,7 @@ This streams every point, checks source-array identity against the prior validat
 ## Current release gaps
 
 Astral30 complete metadata support, vendor metadata tail latency, native-reader memory and eager index parsing remain open. The source has research-environment paths and is not yet a polished installer. Preserve the original RAW files: this archive is lossy and experimental. A general-purpose release needs a portable setup flow, broader interoperability tests and downstream proteomics validation.
+
+## Successful official Astral query preparation
+
+Allocation 40648979 on mem4 produced a complete official-default Astral archive after the paired campaigns had enforced a 600-second conversion limit. The retained archive is 11,071,619,496 bytes. GNU time records one successful conversion at 1,374.09 seconds and 1,708,998,656 bytes maximum process RSS. This was query preparation, not a matched repeated conversion benchmark. Query-selected points were checked; no full-source official validation is recorded for this output. It is excluded from campaign aggregates. See the [record](evidence/astral-official-single.json) and [sanitized timing log](evidence/astral-official-single.time). The original log hash and query-recorded archive hash are preserved in the record.

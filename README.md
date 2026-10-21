@@ -53,11 +53,22 @@ Each baseline uses its latest matched campaign. Default and delta used different
 | [Q Exactive Plus](https://www.ebi.ac.uk/pride/archive/projects/PXD002370) | Label-free; UPS1 / yeast | **4.30×** | **4.98×** | 75.3% | 64.2% |
 | [Exploris 480](https://www.ebi.ac.uk/pride/archive/projects/PXD063416) | DIA; HeLa / yeast, 10 m/z | **5.18×** | **7.70×** | 53.8% | 44.1% |
 | [Astral (30 min)](https://www.ebi.ac.uk/pride/archive/projects/PXD046453) | DIA; 2 Th, 30 min | Metadata failed | Metadata failed | — | — |
-| [Astral (60 min)](https://www.ebi.ac.uk/pride/archive/projects/PXD049028) | DIA; 2 Th, 60 min; **native validated** | Official timeout | Official timeout | — | — |
+| [Astral (60 min)](https://www.ebi.ac.uk/pride/archive/projects/PXD049028) | DIA; 2 Th, 60 min; **native validated** | [Single run¹](#completed-big-astral-conversions) | Official timeout | — | — |
 
-**Big Astral completed and passed validation:** 21.78 GB RAW → **5.47 GB archive**, **268.10 s** median conversion, **3.62 GiB** peak process RAM. These are the latest default-campaign native results, with three measured repeats. All **744,726 scans and 1,511,811,155 points** passed; all **162,582,445 zeros** were preserved.
+¹ **Official default also completed the big Astral.** Its successful single run is shown below. The repeated campaigns stopped official runs at 600 seconds. The single run continued beyond that limit.
 
-“Official timeout” refers only to the 600-second conversion limit in the paired campaigns. It does not mean native Astral conversion failed or was skipped. The separate Astral query benchmark also used a successfully created official archive. We do not infer a conversion speedup from that query run.
+#### Completed big Astral conversions
+
+**Same 21.78 GB RAW file; separate allocations and validation scopes. These times do not form a paired speedup.**
+
+| Conversion | Runs | Time, s | Peak RAM, GiB | Archive, GB | Validation |
+|:--|--:|--:|--:|--:|:--|
+| Native, latest campaign (mem1) | 3 | **268.10** median | 3.62 | **5.47** | All 1,511,811,155 points |
+| Official default, query setup (mem4) | 1 | **1374.09** | 1.59 | **11.07** | Query selections only |
+
+Native validation covered all **744,726 scans** and preserved all **162,582,445 zeros**. The official run exited successfully in **22m 54s**. Its selected query arrays passed comparison; whole-archive official validation is not recorded for this run. It is excluded from speedup and storage-saving aggregates. Official delta has no completed Astral conversion in the saved evidence.
+
+[Successful official conversion evidence](benchmarks/raw-integer-2026-10/evidence/astral-official-single.json) · [Timing log](benchmarks/raw-integer-2026-10/evidence/astral-official-single.time) · [Query validation](benchmarks/raw-integer-2026-10/evidence/astral-queries.json)
 
 The separate 30-minute Astral file failed complete metadata export. It remains excluded. A dash in storage savings means that no eligible official archive size is available for comparison.
 
@@ -216,7 +227,7 @@ XIC means extracted ion chromatogram. Each query uses the same selected scans. S
 |:--|:--|:--|
 | Astral30 | Both custom paths encoded signal, then failed instrument metadata; official also failed metadata mapping | No complete-archive ratio |
 | Exploris, vendor mode | Retained output validated; third measured conversion timed out | Vendor comparison excluded |
-| Big Astral | Native completed and validated; vendor and official timed out during warmup | Native median **268.10 s**; no baseline speedup |
+| Big Astral | Native passed; timed campaign baselines stopped at 600 s. A separate official default run completed in 1,374.09 s | Native median **268.10 s**; single official run has query-only validation, so no paired speedup |
 
 The latest default campaign used eight CPUs and a 64 GiB allocation. Each mode had one warmup run. The analysis excludes warmup time. The first three completed cases retain seven measured repeats. The remaining cases use three repeats after a documented protocol change. The binaries and error limits did not change.
 

@@ -20,6 +20,7 @@ The test set contains 49.48 GB in 13 RAW files. Custom output has total limits o
 - [Independent validation details](evidence/validation.json)
 - [HeLa loss distributions](evidence/hela-fidelity.json) and [big-Astral loss distributions](evidence/astral-fidelity.json)
 - [Astral query measurements](evidence/astral-queries.json)
+- [Successful official Astral conversion](evidence/astral-official-single.json): separate single run, query-selected validation only; excluded from campaign aggregates
 - [Delta paired runs and validation](evidence/native-delta-results.json)
 - [Full native/default/delta campaign summary](evidence/supplementary-summary.json)
 - [Frozen runtime hashes](evidence/execution.json) and [repeat amendment](evidence/protocol-amendment.json)
