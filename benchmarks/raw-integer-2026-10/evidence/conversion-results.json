@@ -1,0 +1,4166 @@
+[
+  {
+    "case": "00-HeLa_control",
+    "dataset": "HeLa_control",
+    "instrument": "Q Exactive HF Orbitrap",
+    "source_filename": "hela.raw",
+    "source_sha256": "01522aefd49d2eb7eaf764687ae2ed591605a99d57c06113b97d2be32eb4f025",
+    "source_bytes": 714378661,
+    "mode": "rawr",
+    "required_repeats": 7,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 7,
+      "attempted_runs": 7,
+      "required_runs": 7,
+      "all_wall_seconds": [
+        15.016065580770373,
+        14.727825062349439,
+        15.391128070652485,
+        14.80710200406611,
+        14.864127423614264,
+        14.798496341332793,
+        15.109853088855743
+      ],
+      "input_bytes_per_second": 48060585.101355135,
+      "source_points_per_second": 9240421.121645814,
+      "median_seconds": 14.864127423614264,
+      "output_bytes": 240474751,
+      "median_peak_process_rss_bytes": 1744777216,
+      "median_tree_rss_bytes": 1766141952
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 15.016065580770373,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 240474751,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1743847424,
+        "sampled_tree_rss_bytes": 1765433344,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "c9a2d4ca421cdceba9b7f3e526d424f7e9a2f2515f8b441458da984bd109556c",
+          "signal.index.zst": "5d60cb04b96d8f7a1958b4c44b9a2f4397ae03930aa4cb8e23d00ac9972f65d0"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 14.727825062349439,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 240474751,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1743900672,
+        "sampled_tree_rss_bytes": 1765695488,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "c9a2d4ca421cdceba9b7f3e526d424f7e9a2f2515f8b441458da984bd109556c",
+          "signal.index.zst": "5d60cb04b96d8f7a1958b4c44b9a2f4397ae03930aa4cb8e23d00ac9972f65d0"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 15.391128070652485,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 240474751,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1745190912,
+        "sampled_tree_rss_bytes": 1766789120,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "c9a2d4ca421cdceba9b7f3e526d424f7e9a2f2515f8b441458da984bd109556c",
+          "signal.index.zst": "5d60cb04b96d8f7a1958b4c44b9a2f4397ae03930aa4cb8e23d00ac9972f65d0"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 3,
+        "wall_seconds": 14.80710200406611,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 240474751,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1744330752,
+        "sampled_tree_rss_bytes": 1766141952,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "c9a2d4ca421cdceba9b7f3e526d424f7e9a2f2515f8b441458da984bd109556c",
+          "signal.index.zst": "5d60cb04b96d8f7a1958b4c44b9a2f4397ae03930aa4cb8e23d00ac9972f65d0"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 4,
+        "wall_seconds": 14.864127423614264,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 240474751,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1744777216,
+        "sampled_tree_rss_bytes": 1766359040,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "c9a2d4ca421cdceba9b7f3e526d424f7e9a2f2515f8b441458da984bd109556c",
+          "signal.index.zst": "5d60cb04b96d8f7a1958b4c44b9a2f4397ae03930aa4cb8e23d00ac9972f65d0"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 5,
+        "wall_seconds": 14.798496341332793,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 240474751,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1744859136,
+        "sampled_tree_rss_bytes": 1766555648,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "c9a2d4ca421cdceba9b7f3e526d424f7e9a2f2515f8b441458da984bd109556c",
+          "signal.index.zst": "5d60cb04b96d8f7a1958b4c44b9a2f4397ae03930aa4cb8e23d00ac9972f65d0"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 6,
+        "wall_seconds": 15.109853088855743,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 240474751,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1745911808,
+        "sampled_tree_rss_bytes": 1764233216,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "c9a2d4ca421cdceba9b7f3e526d424f7e9a2f2515f8b441458da984bd109556c",
+          "signal.index.zst": "5d60cb04b96d8f7a1958b4c44b9a2f4397ae03930aa4cb8e23d00ac9972f65d0"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 15.023752363398671,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 240474751,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1747247104,
+        "sampled_tree_rss_bytes": 1768775680,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "c9a2d4ca421cdceba9b7f3e526d424f7e9a2f2515f8b441458da984bd109556c",
+          "signal.index.zst": "5d60cb04b96d8f7a1958b4c44b9a2f4397ae03930aa4cb8e23d00ac9972f65d0"
+        }
+      }
+    ]
+  },
+  {
+    "case": "00-HeLa_control",
+    "dataset": "HeLa_control",
+    "instrument": "Q Exactive HF Orbitrap",
+    "source_filename": "hela.raw",
+    "source_sha256": "01522aefd49d2eb7eaf764687ae2ed591605a99d57c06113b97d2be32eb4f025",
+    "source_bytes": 714378661,
+    "mode": "vendor",
+    "required_repeats": 7,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 7,
+      "attempted_runs": 7,
+      "required_runs": 7,
+      "all_wall_seconds": [
+        34.313940370455384,
+        34.42938659898937,
+        34.69307401962578,
+        34.909910751506686,
+        35.21854316443205,
+        34.99958338961005,
+        34.66089506447315
+      ],
+      "input_bytes_per_second": 20591391.25566901,
+      "source_points_per_second": 3959026.4305290733,
+      "median_seconds": 34.69307401962578,
+      "output_bytes": 240474965,
+      "median_peak_process_rss_bytes": 534429696,
+      "median_tree_rss_bytes": 794783744
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 34.313940370455384,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 240474965,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 595156992,
+        "sampled_tree_rss_bytes": 854708224,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "a54da34ea4609b57817015ee8f72b28fa8ec4c38f1ff775c89c32b039db3a6cd",
+          "signal.index.zst": "f6ff83942a3bc9a1cef04e7ecd6b65ada2989f3b215b4fbce6af753f95fec2ac"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 34.42938659898937,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 240474965,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 534429696,
+        "sampled_tree_rss_bytes": 794783744,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "a54da34ea4609b57817015ee8f72b28fa8ec4c38f1ff775c89c32b039db3a6cd",
+          "signal.index.zst": "f6ff83942a3bc9a1cef04e7ecd6b65ada2989f3b215b4fbce6af753f95fec2ac"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 34.69307401962578,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 240474965,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 521535488,
+        "sampled_tree_rss_bytes": 781746176,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "a54da34ea4609b57817015ee8f72b28fa8ec4c38f1ff775c89c32b039db3a6cd",
+          "signal.index.zst": "f6ff83942a3bc9a1cef04e7ecd6b65ada2989f3b215b4fbce6af753f95fec2ac"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 3,
+        "wall_seconds": 34.909910751506686,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 240474965,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 643477504,
+        "sampled_tree_rss_bytes": 904278016,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "a54da34ea4609b57817015ee8f72b28fa8ec4c38f1ff775c89c32b039db3a6cd",
+          "signal.index.zst": "f6ff83942a3bc9a1cef04e7ecd6b65ada2989f3b215b4fbce6af753f95fec2ac"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 4,
+        "wall_seconds": 35.21854316443205,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 240474965,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 618356736,
+        "sampled_tree_rss_bytes": 872579072,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "a54da34ea4609b57817015ee8f72b28fa8ec4c38f1ff775c89c32b039db3a6cd",
+          "signal.index.zst": "f6ff83942a3bc9a1cef04e7ecd6b65ada2989f3b215b4fbce6af753f95fec2ac"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 5,
+        "wall_seconds": 34.99958338961005,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 240474965,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 533299200,
+        "sampled_tree_rss_bytes": 786399232,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "a54da34ea4609b57817015ee8f72b28fa8ec4c38f1ff775c89c32b039db3a6cd",
+          "signal.index.zst": "f6ff83942a3bc9a1cef04e7ecd6b65ada2989f3b215b4fbce6af753f95fec2ac"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 6,
+        "wall_seconds": 34.66089506447315,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 240474965,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 528674816,
+        "sampled_tree_rss_bytes": 789274624,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "a54da34ea4609b57817015ee8f72b28fa8ec4c38f1ff775c89c32b039db3a6cd",
+          "signal.index.zst": "f6ff83942a3bc9a1cef04e7ecd6b65ada2989f3b215b4fbce6af753f95fec2ac"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 34.82118717208505,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 240474965,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 635789312,
+        "sampled_tree_rss_bytes": 906190848,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "a54da34ea4609b57817015ee8f72b28fa8ec4c38f1ff775c89c32b039db3a6cd",
+          "signal.index.zst": "f6ff83942a3bc9a1cef04e7ecd6b65ada2989f3b215b4fbce6af753f95fec2ac"
+        }
+      }
+    ]
+  },
+  {
+    "case": "00-HeLa_control",
+    "dataset": "HeLa_control",
+    "instrument": "Q Exactive HF Orbitrap",
+    "source_filename": "hela.raw",
+    "source_sha256": "01522aefd49d2eb7eaf764687ae2ed591605a99d57c06113b97d2be32eb4f025",
+    "source_bytes": 714378661,
+    "mode": "official_default_z3",
+    "required_repeats": 7,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 7,
+      "attempted_runs": 7,
+      "required_runs": 7,
+      "all_wall_seconds": [
+        62.11158038303256,
+        61.92540715448558,
+        61.15346744842827,
+        61.82413915544748,
+        60.83533650264144,
+        61.5674920193851,
+        62.028164364397526
+      ],
+      "input_bytes_per_second": 11555011.85716153,
+      "source_points_per_second": 2221637.0316884173,
+      "median_seconds": 61.82413915544748,
+      "output_bytes": 1080103415,
+      "median_peak_process_rss_bytes": 1348042752,
+      "median_tree_rss_bytes": 1334996992
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 62.11158038303256,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 1080103415,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1348857856,
+        "sampled_tree_rss_bytes": 1349525504,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "f0ab1d58f3548af7001fa43b7509ef0dbaf68810b363c3917701dea58092f1ca",
+          "spectra_peaks.parquet": "7fd87881f1f2d959d2637d8b41090b381056c1e4869c80f93d605e8cd2cbbe56"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 61.92540715448558,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 1080103415,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1530900480,
+        "sampled_tree_rss_bytes": 1531580416,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "f0ab1d58f3548af7001fa43b7509ef0dbaf68810b363c3917701dea58092f1ca",
+          "spectra_peaks.parquet": "7fd87881f1f2d959d2637d8b41090b381056c1e4869c80f93d605e8cd2cbbe56"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 61.15346744842827,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 1080103415,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1348042752,
+        "sampled_tree_rss_bytes": 1333731328,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "f0ab1d58f3548af7001fa43b7509ef0dbaf68810b363c3917701dea58092f1ca",
+          "spectra_peaks.parquet": "7fd87881f1f2d959d2637d8b41090b381056c1e4869c80f93d605e8cd2cbbe56"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 3,
+        "wall_seconds": 61.82413915544748,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 1080103415,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1284067328,
+        "sampled_tree_rss_bytes": 1270362112,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "f0ab1d58f3548af7001fa43b7509ef0dbaf68810b363c3917701dea58092f1ca",
+          "spectra_peaks.parquet": "7fd87881f1f2d959d2637d8b41090b381056c1e4869c80f93d605e8cd2cbbe56"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 4,
+        "wall_seconds": 60.83533650264144,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 1080103415,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1384497152,
+        "sampled_tree_rss_bytes": 1385160704,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "f0ab1d58f3548af7001fa43b7509ef0dbaf68810b363c3917701dea58092f1ca",
+          "spectra_peaks.parquet": "7fd87881f1f2d959d2637d8b41090b381056c1e4869c80f93d605e8cd2cbbe56"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 5,
+        "wall_seconds": 61.5674920193851,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 1080103415,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1322344448,
+        "sampled_tree_rss_bytes": 1315516416,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "f0ab1d58f3548af7001fa43b7509ef0dbaf68810b363c3917701dea58092f1ca",
+          "spectra_peaks.parquet": "7fd87881f1f2d959d2637d8b41090b381056c1e4869c80f93d605e8cd2cbbe56"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 6,
+        "wall_seconds": 62.028164364397526,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 1080103415,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1334345728,
+        "sampled_tree_rss_bytes": 1334996992,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "f0ab1d58f3548af7001fa43b7509ef0dbaf68810b363c3917701dea58092f1ca",
+          "spectra_peaks.parquet": "7fd87881f1f2d959d2637d8b41090b381056c1e4869c80f93d605e8cd2cbbe56"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 60.43659470975399,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 1080103415,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1517735936,
+        "sampled_tree_rss_bytes": 1512423424,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "f0ab1d58f3548af7001fa43b7509ef0dbaf68810b363c3917701dea58092f1ca",
+          "spectra_peaks.parquet": "7fd87881f1f2d959d2637d8b41090b381056c1e4869c80f93d605e8cd2cbbe56"
+        }
+      }
+    ]
+  },
+  {
+    "case": "01-PXD017803",
+    "dataset": "PXD017803",
+    "instrument": "Orbitrap Fusion",
+    "source_filename": "Fig2_m23142_hrMS2.raw",
+    "source_sha256": "e90c16244adfd80d2785d6d1abf1bb95ac778474bbe212536b39fa284f32628f",
+    "source_bytes": 115881108,
+    "mode": "rawr",
+    "required_repeats": 7,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 7,
+      "attempted_runs": 7,
+      "required_runs": 7,
+      "all_wall_seconds": [
+        3.2532825116068125,
+        3.203875944018364,
+        3.2535291239619255,
+        3.2875130213797092,
+        3.2563320100307465,
+        3.4130400829017162,
+        3.303366418927908
+      ],
+      "input_bytes_per_second": 35586392.1869889,
+      "source_points_per_second": 1687301.2282147857,
+      "median_seconds": 3.2563320100307465,
+      "output_bytes": 26367708,
+      "median_peak_process_rss_bytes": 167018496,
+      "median_tree_rss_bytes": 166801408
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 3.2532825116068125,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 26367708,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 166801408,
+        "sampled_tree_rss_bytes": 166133760,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "d1022ab1d60caa1fa248cc4730696e92a3883037206be23a10cde349a58acb21",
+          "signal.index.zst": "46189fa4abc1e8b0b39a96a41913ecb65241cc0b148c5b8ef331d174a1ee89fa"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 3.203875944018364,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 26367708,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 167170048,
+        "sampled_tree_rss_bytes": 166961152,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "d1022ab1d60caa1fa248cc4730696e92a3883037206be23a10cde349a58acb21",
+          "signal.index.zst": "46189fa4abc1e8b0b39a96a41913ecb65241cc0b148c5b8ef331d174a1ee89fa"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 3.2535291239619255,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 26367708,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 167243776,
+        "sampled_tree_rss_bytes": 167923712,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "d1022ab1d60caa1fa248cc4730696e92a3883037206be23a10cde349a58acb21",
+          "signal.index.zst": "46189fa4abc1e8b0b39a96a41913ecb65241cc0b148c5b8ef331d174a1ee89fa"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 3,
+        "wall_seconds": 3.2875130213797092,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 26367708,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 167034880,
+        "sampled_tree_rss_bytes": 166801408,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "d1022ab1d60caa1fa248cc4730696e92a3883037206be23a10cde349a58acb21",
+          "signal.index.zst": "46189fa4abc1e8b0b39a96a41913ecb65241cc0b148c5b8ef331d174a1ee89fa"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 4,
+        "wall_seconds": 3.2563320100307465,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 26367708,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 167018496,
+        "sampled_tree_rss_bytes": 167677952,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "d1022ab1d60caa1fa248cc4730696e92a3883037206be23a10cde349a58acb21",
+          "signal.index.zst": "46189fa4abc1e8b0b39a96a41913ecb65241cc0b148c5b8ef331d174a1ee89fa"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 5,
+        "wall_seconds": 3.4130400829017162,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 26367708,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 166727680,
+        "sampled_tree_rss_bytes": 166559744,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "d1022ab1d60caa1fa248cc4730696e92a3883037206be23a10cde349a58acb21",
+          "signal.index.zst": "46189fa4abc1e8b0b39a96a41913ecb65241cc0b148c5b8ef331d174a1ee89fa"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 6,
+        "wall_seconds": 3.303366418927908,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 26367708,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 166891520,
+        "sampled_tree_rss_bytes": 166281216,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "d1022ab1d60caa1fa248cc4730696e92a3883037206be23a10cde349a58acb21",
+          "signal.index.zst": "46189fa4abc1e8b0b39a96a41913ecb65241cc0b148c5b8ef331d174a1ee89fa"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 3.357794677838683,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 26367708,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 166940672,
+        "sampled_tree_rss_bytes": 166150144,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "d1022ab1d60caa1fa248cc4730696e92a3883037206be23a10cde349a58acb21",
+          "signal.index.zst": "46189fa4abc1e8b0b39a96a41913ecb65241cc0b148c5b8ef331d174a1ee89fa"
+        }
+      }
+    ]
+  },
+  {
+    "case": "01-PXD017803",
+    "dataset": "PXD017803",
+    "instrument": "Orbitrap Fusion",
+    "source_filename": "Fig2_m23142_hrMS2.raw",
+    "source_sha256": "e90c16244adfd80d2785d6d1abf1bb95ac778474bbe212536b39fa284f32628f",
+    "source_bytes": 115881108,
+    "mode": "vendor",
+    "required_repeats": 7,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 7,
+      "attempted_runs": 7,
+      "required_runs": 7,
+      "all_wall_seconds": [
+        14.774280104786158,
+        14.79460071772337,
+        14.816370364278555,
+        14.88155908510089,
+        14.814178401604295,
+        15.043207114562392,
+        14.8712029568851
+      ],
+      "input_bytes_per_second": 7821153.572090969,
+      "source_points_per_second": 370833.9400887767,
+      "median_seconds": 14.816370364278555,
+      "output_bytes": 26367616,
+      "median_peak_process_rss_bytes": 250195968,
+      "median_tree_rss_bytes": 336867328
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 14.774280104786158,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 26367616,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 248844288,
+        "sampled_tree_rss_bytes": 336867328,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "d1022ab1d60caa1fa248cc4730696e92a3883037206be23a10cde349a58acb21",
+          "signal.index.zst": "46189fa4abc1e8b0b39a96a41913ecb65241cc0b148c5b8ef331d174a1ee89fa"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 14.79460071772337,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 26367616,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 249696256,
+        "sampled_tree_rss_bytes": 342831104,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "d1022ab1d60caa1fa248cc4730696e92a3883037206be23a10cde349a58acb21",
+          "signal.index.zst": "46189fa4abc1e8b0b39a96a41913ecb65241cc0b148c5b8ef331d174a1ee89fa"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 14.816370364278555,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 26367616,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 249987072,
+        "sampled_tree_rss_bytes": 336297984,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "d1022ab1d60caa1fa248cc4730696e92a3883037206be23a10cde349a58acb21",
+          "signal.index.zst": "46189fa4abc1e8b0b39a96a41913ecb65241cc0b148c5b8ef331d174a1ee89fa"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 3,
+        "wall_seconds": 14.88155908510089,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 26367616,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 251564032,
+        "sampled_tree_rss_bytes": 331677696,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "d1022ab1d60caa1fa248cc4730696e92a3883037206be23a10cde349a58acb21",
+          "signal.index.zst": "46189fa4abc1e8b0b39a96a41913ecb65241cc0b148c5b8ef331d174a1ee89fa"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 4,
+        "wall_seconds": 14.814178401604295,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 26367616,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 250195968,
+        "sampled_tree_rss_bytes": 343150592,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "d1022ab1d60caa1fa248cc4730696e92a3883037206be23a10cde349a58acb21",
+          "signal.index.zst": "46189fa4abc1e8b0b39a96a41913ecb65241cc0b148c5b8ef331d174a1ee89fa"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 5,
+        "wall_seconds": 15.043207114562392,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 26367616,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 251187200,
+        "sampled_tree_rss_bytes": 335781888,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "d1022ab1d60caa1fa248cc4730696e92a3883037206be23a10cde349a58acb21",
+          "signal.index.zst": "46189fa4abc1e8b0b39a96a41913ecb65241cc0b148c5b8ef331d174a1ee89fa"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 6,
+        "wall_seconds": 14.8712029568851,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 26367616,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 250699776,
+        "sampled_tree_rss_bytes": 338046976,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "d1022ab1d60caa1fa248cc4730696e92a3883037206be23a10cde349a58acb21",
+          "signal.index.zst": "46189fa4abc1e8b0b39a96a41913ecb65241cc0b148c5b8ef331d174a1ee89fa"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 14.803350243717432,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 26367616,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 249589760,
+        "sampled_tree_rss_bytes": 337244160,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "d1022ab1d60caa1fa248cc4730696e92a3883037206be23a10cde349a58acb21",
+          "signal.index.zst": "46189fa4abc1e8b0b39a96a41913ecb65241cc0b148c5b8ef331d174a1ee89fa"
+        }
+      }
+    ]
+  },
+  {
+    "case": "01-PXD017803",
+    "dataset": "PXD017803",
+    "instrument": "Orbitrap Fusion",
+    "source_filename": "Fig2_m23142_hrMS2.raw",
+    "source_sha256": "e90c16244adfd80d2785d6d1abf1bb95ac778474bbe212536b39fa284f32628f",
+    "source_bytes": 115881108,
+    "mode": "official_default_z3",
+    "required_repeats": 7,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 7,
+      "attempted_runs": 7,
+      "required_runs": 7,
+      "all_wall_seconds": [
+        16.972616946324706,
+        16.826693503186107,
+        16.63173132017255,
+        17.070568457245827,
+        17.02415707334876,
+        17.06421845406294,
+        16.803644809871912
+      ],
+      "input_bytes_per_second": 6827533.335988779,
+      "source_points_per_second": 323722.2060319799,
+      "median_seconds": 16.972616946324706,
+      "output_bytes": 45412125,
+      "median_peak_process_rss_bytes": 324632576,
+      "median_tree_rss_bytes": 323330048
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 16.972616946324706,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 45412125,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 326815744,
+        "sampled_tree_rss_bytes": 323522560,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "48b9e6c52da7bad3941b4028e29ac2d81b551f3c07e512aac67a756e07e80467",
+          "spectra_peaks.parquet": "f576f8687f0c1673ec8d0e97ae27fb17fcdc4c5e23ac6b80e22b7ceaa7e6a40f"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 16.826693503186107,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 45412125,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 324632576,
+        "sampled_tree_rss_bytes": 317329408,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "48b9e6c52da7bad3941b4028e29ac2d81b551f3c07e512aac67a756e07e80467",
+          "spectra_peaks.parquet": "f576f8687f0c1673ec8d0e97ae27fb17fcdc4c5e23ac6b80e22b7ceaa7e6a40f"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 16.63173132017255,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 45412125,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 329945088,
+        "sampled_tree_rss_bytes": 330686464,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "48b9e6c52da7bad3941b4028e29ac2d81b551f3c07e512aac67a756e07e80467",
+          "spectra_peaks.parquet": "f576f8687f0c1673ec8d0e97ae27fb17fcdc4c5e23ac6b80e22b7ceaa7e6a40f"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 3,
+        "wall_seconds": 17.070568457245827,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 45412125,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 322674688,
+        "sampled_tree_rss_bytes": 323330048,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "48b9e6c52da7bad3941b4028e29ac2d81b551f3c07e512aac67a756e07e80467",
+          "spectra_peaks.parquet": "f576f8687f0c1673ec8d0e97ae27fb17fcdc4c5e23ac6b80e22b7ceaa7e6a40f"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 4,
+        "wall_seconds": 17.02415707334876,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 45412125,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 317915136,
+        "sampled_tree_rss_bytes": 317755392,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "48b9e6c52da7bad3941b4028e29ac2d81b551f3c07e512aac67a756e07e80467",
+          "spectra_peaks.parquet": "f576f8687f0c1673ec8d0e97ae27fb17fcdc4c5e23ac6b80e22b7ceaa7e6a40f"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 5,
+        "wall_seconds": 17.06421845406294,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 45412125,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 326807552,
+        "sampled_tree_rss_bytes": 327548928,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "48b9e6c52da7bad3941b4028e29ac2d81b551f3c07e512aac67a756e07e80467",
+          "spectra_peaks.parquet": "f576f8687f0c1673ec8d0e97ae27fb17fcdc4c5e23ac6b80e22b7ceaa7e6a40f"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 6,
+        "wall_seconds": 16.803644809871912,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 45412125,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 320761856,
+        "sampled_tree_rss_bytes": 318156800,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "48b9e6c52da7bad3941b4028e29ac2d81b551f3c07e512aac67a756e07e80467",
+          "spectra_peaks.parquet": "f576f8687f0c1673ec8d0e97ae27fb17fcdc4c5e23ac6b80e22b7ceaa7e6a40f"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 17.18565947562456,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 45412125,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 325156864,
+        "sampled_tree_rss_bytes": 325836800,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "48b9e6c52da7bad3941b4028e29ac2d81b551f3c07e512aac67a756e07e80467",
+          "spectra_peaks.parquet": "f576f8687f0c1673ec8d0e97ae27fb17fcdc4c5e23ac6b80e22b7ceaa7e6a40f"
+        }
+      }
+    ]
+  },
+  {
+    "case": "02-PXD023203",
+    "dataset": "PXD023203",
+    "instrument": "Orbitrap Eclipse",
+    "source_filename": "FAIMS_SPS_ea02045.raw",
+    "source_sha256": "a3047ed6c0dbac9bd030d201b23fb7a83c970b58ac9f182ba97122a515b20f78",
+    "source_bytes": 228860164,
+    "mode": "rawr",
+    "required_repeats": 7,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 7,
+      "attempted_runs": 7,
+      "required_runs": 7,
+      "all_wall_seconds": [
+        7.465924959629774,
+        7.414910726249218,
+        7.446942061185837,
+        7.470067301765084,
+        7.359032141044736,
+        7.44426354020834,
+        7.44273941218853
+      ],
+      "input_bytes_per_second": 30743157.165765114,
+      "source_points_per_second": 1734765.2901120398,
+      "median_seconds": 7.44426354020834,
+      "output_bytes": 63474363,
+      "median_peak_process_rss_bytes": 238882816,
+      "median_tree_rss_bytes": 236974080
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 7.465924959629774,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 63474363,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 239857664,
+        "sampled_tree_rss_bytes": 236974080,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "65313264de3ca9679b76818b857db269709dc9d553fe206e7561d0fd2b7d5d93",
+          "signal.index.zst": "374c626dc1dc88b4232f2c0f72863757881ea8e0f6b2daaf06f4404af35699bd"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 7.414910726249218,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 63474363,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 238727168,
+        "sampled_tree_rss_bytes": 239382528,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "65313264de3ca9679b76818b857db269709dc9d553fe206e7561d0fd2b7d5d93",
+          "signal.index.zst": "374c626dc1dc88b4232f2c0f72863757881ea8e0f6b2daaf06f4404af35699bd"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 7.446942061185837,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 63474363,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 238641152,
+        "sampled_tree_rss_bytes": 234278912,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "65313264de3ca9679b76818b857db269709dc9d553fe206e7561d0fd2b7d5d93",
+          "signal.index.zst": "374c626dc1dc88b4232f2c0f72863757881ea8e0f6b2daaf06f4404af35699bd"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 3,
+        "wall_seconds": 7.470067301765084,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 63474363,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 238907392,
+        "sampled_tree_rss_bytes": 237563904,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "65313264de3ca9679b76818b857db269709dc9d553fe206e7561d0fd2b7d5d93",
+          "signal.index.zst": "374c626dc1dc88b4232f2c0f72863757881ea8e0f6b2daaf06f4404af35699bd"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 4,
+        "wall_seconds": 7.359032141044736,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 63474363,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 238882816,
+        "sampled_tree_rss_bytes": 239529984,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "65313264de3ca9679b76818b857db269709dc9d553fe206e7561d0fd2b7d5d93",
+          "signal.index.zst": "374c626dc1dc88b4232f2c0f72863757881ea8e0f6b2daaf06f4404af35699bd"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 5,
+        "wall_seconds": 7.44426354020834,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 63474363,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 239714304,
+        "sampled_tree_rss_bytes": 235282432,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "65313264de3ca9679b76818b857db269709dc9d553fe206e7561d0fd2b7d5d93",
+          "signal.index.zst": "374c626dc1dc88b4232f2c0f72863757881ea8e0f6b2daaf06f4404af35699bd"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 6,
+        "wall_seconds": 7.44273941218853,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 63474363,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 238424064,
+        "sampled_tree_rss_bytes": 234008576,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "65313264de3ca9679b76818b857db269709dc9d553fe206e7561d0fd2b7d5d93",
+          "signal.index.zst": "374c626dc1dc88b4232f2c0f72863757881ea8e0f6b2daaf06f4404af35699bd"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 7.416496776044369,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 63474363,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 238530560,
+        "sampled_tree_rss_bytes": 239161344,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "65313264de3ca9679b76818b857db269709dc9d553fe206e7561d0fd2b7d5d93",
+          "signal.index.zst": "374c626dc1dc88b4232f2c0f72863757881ea8e0f6b2daaf06f4404af35699bd"
+        }
+      }
+    ]
+  },
+  {
+    "case": "02-PXD023203",
+    "dataset": "PXD023203",
+    "instrument": "Orbitrap Eclipse",
+    "source_filename": "FAIMS_SPS_ea02045.raw",
+    "source_sha256": "a3047ed6c0dbac9bd030d201b23fb7a83c970b58ac9f182ba97122a515b20f78",
+    "source_bytes": 228860164,
+    "mode": "vendor",
+    "required_repeats": 7,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 7,
+      "attempted_runs": 7,
+      "required_runs": 7,
+      "all_wall_seconds": [
+        34.56252967938781,
+        34.82233669795096,
+        34.678395638242364,
+        34.26733851805329,
+        34.700284684076905,
+        34.555403750389814,
+        233.64813678339124
+      ],
+      "input_bytes_per_second": 6599502.652528118,
+      "source_points_per_second": 372394.6786557434,
+      "median_seconds": 34.678395638242364,
+      "output_bytes": 63474271,
+      "median_peak_process_rss_bytes": 237842432,
+      "median_tree_rss_bytes": 367050752
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 34.56252967938781,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 63474271,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 237686784,
+        "sampled_tree_rss_bytes": 365371392,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "65313264de3ca9679b76818b857db269709dc9d553fe206e7561d0fd2b7d5d93",
+          "signal.index.zst": "374c626dc1dc88b4232f2c0f72863757881ea8e0f6b2daaf06f4404af35699bd"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 34.82233669795096,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 63474271,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 237842432,
+        "sampled_tree_rss_bytes": 367050752,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "65313264de3ca9679b76818b857db269709dc9d553fe206e7561d0fd2b7d5d93",
+          "signal.index.zst": "374c626dc1dc88b4232f2c0f72863757881ea8e0f6b2daaf06f4404af35699bd"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 34.678395638242364,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 63474271,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 236605440,
+        "sampled_tree_rss_bytes": 367927296,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "65313264de3ca9679b76818b857db269709dc9d553fe206e7561d0fd2b7d5d93",
+          "signal.index.zst": "374c626dc1dc88b4232f2c0f72863757881ea8e0f6b2daaf06f4404af35699bd"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 3,
+        "wall_seconds": 34.26733851805329,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 63474271,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 241799168,
+        "sampled_tree_rss_bytes": 366288896,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "65313264de3ca9679b76818b857db269709dc9d553fe206e7561d0fd2b7d5d93",
+          "signal.index.zst": "374c626dc1dc88b4232f2c0f72863757881ea8e0f6b2daaf06f4404af35699bd"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 4,
+        "wall_seconds": 34.700284684076905,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 63474271,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 236544000,
+        "sampled_tree_rss_bytes": 369065984,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "65313264de3ca9679b76818b857db269709dc9d553fe206e7561d0fd2b7d5d93",
+          "signal.index.zst": "374c626dc1dc88b4232f2c0f72863757881ea8e0f6b2daaf06f4404af35699bd"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 5,
+        "wall_seconds": 34.555403750389814,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 63474271,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 239435776,
+        "sampled_tree_rss_bytes": 367656960,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "65313264de3ca9679b76818b857db269709dc9d553fe206e7561d0fd2b7d5d93",
+          "signal.index.zst": "374c626dc1dc88b4232f2c0f72863757881ea8e0f6b2daaf06f4404af35699bd"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 6,
+        "wall_seconds": 233.64813678339124,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 63474271,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 239988736,
+        "sampled_tree_rss_bytes": 367042560,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "65313264de3ca9679b76818b857db269709dc9d553fe206e7561d0fd2b7d5d93",
+          "signal.index.zst": "374c626dc1dc88b4232f2c0f72863757881ea8e0f6b2daaf06f4404af35699bd"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 35.22568651475012,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 63474271,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 238985216,
+        "sampled_tree_rss_bytes": 367861760,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "65313264de3ca9679b76818b857db269709dc9d553fe206e7561d0fd2b7d5d93",
+          "signal.index.zst": "374c626dc1dc88b4232f2c0f72863757881ea8e0f6b2daaf06f4404af35699bd"
+        }
+      }
+    ]
+  },
+  {
+    "case": "02-PXD023203",
+    "dataset": "PXD023203",
+    "instrument": "Orbitrap Eclipse",
+    "source_filename": "FAIMS_SPS_ea02045.raw",
+    "source_sha256": "a3047ed6c0dbac9bd030d201b23fb7a83c970b58ac9f182ba97122a515b20f78",
+    "source_bytes": 228860164,
+    "mode": "official_default_z3",
+    "required_repeats": 7,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 7,
+      "attempted_runs": 7,
+      "required_runs": 7,
+      "all_wall_seconds": [
+        39.75384013913572,
+        40.23957994021475,
+        39.89336942881346,
+        40.055825144052505,
+        40.328377682715654,
+        40.0810320135206,
+        39.67581946775317
+      ],
+      "input_bytes_per_second": 5713530.133930624,
+      "source_points_per_second": 322401.2975280695,
+      "median_seconds": 40.055825144052505,
+      "output_bytes": 107140185,
+      "median_peak_process_rss_bytes": 284315648,
+      "median_tree_rss_bytes": 284938240
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 39.75384013913572,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 107140185,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 284315648,
+        "sampled_tree_rss_bytes": 284938240,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "d79e35091b913b3adae245cafc68b08690fa9cc0efdbe468acd52a6a34b48659",
+          "spectra_peaks.parquet": "14f4087641bb8b0ddcd281cd408dbb1f5e9b65e921e1191e770b15f6d3901f79"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 40.23957994021475,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 107140185,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 285986816,
+        "sampled_tree_rss_bytes": 286388224,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "d79e35091b913b3adae245cafc68b08690fa9cc0efdbe468acd52a6a34b48659",
+          "spectra_peaks.parquet": "14f4087641bb8b0ddcd281cd408dbb1f5e9b65e921e1191e770b15f6d3901f79"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 39.89336942881346,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 107140185,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 271241216,
+        "sampled_tree_rss_bytes": 271822848,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "d79e35091b913b3adae245cafc68b08690fa9cc0efdbe468acd52a6a34b48659",
+          "spectra_peaks.parquet": "14f4087641bb8b0ddcd281cd408dbb1f5e9b65e921e1191e770b15f6d3901f79"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 3,
+        "wall_seconds": 40.055825144052505,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 107140185,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 268316672,
+        "sampled_tree_rss_bytes": 268972032,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "d79e35091b913b3adae245cafc68b08690fa9cc0efdbe468acd52a6a34b48659",
+          "spectra_peaks.parquet": "14f4087641bb8b0ddcd281cd408dbb1f5e9b65e921e1191e770b15f6d3901f79"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 4,
+        "wall_seconds": 40.328377682715654,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 107140185,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 270606336,
+        "sampled_tree_rss_bytes": 271032320,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "d79e35091b913b3adae245cafc68b08690fa9cc0efdbe468acd52a6a34b48659",
+          "spectra_peaks.parquet": "14f4087641bb8b0ddcd281cd408dbb1f5e9b65e921e1191e770b15f6d3901f79"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 5,
+        "wall_seconds": 40.0810320135206,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 107140185,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 287223808,
+        "sampled_tree_rss_bytes": 287981568,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "d79e35091b913b3adae245cafc68b08690fa9cc0efdbe468acd52a6a34b48659",
+          "spectra_peaks.parquet": "14f4087641bb8b0ddcd281cd408dbb1f5e9b65e921e1191e770b15f6d3901f79"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 6,
+        "wall_seconds": 39.67581946775317,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 107140185,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 288829440,
+        "sampled_tree_rss_bytes": 289566720,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "d79e35091b913b3adae245cafc68b08690fa9cc0efdbe468acd52a6a34b48659",
+          "spectra_peaks.parquet": "14f4087641bb8b0ddcd281cd408dbb1f5e9b65e921e1191e770b15f6d3901f79"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 40.13374536111951,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 107140185,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 268054528,
+        "sampled_tree_rss_bytes": 268754944,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "d79e35091b913b3adae245cafc68b08690fa9cc0efdbe468acd52a6a34b48659",
+          "spectra_peaks.parquet": "14f4087641bb8b0ddcd281cd408dbb1f5e9b65e921e1191e770b15f6d3901f79"
+        }
+      }
+    ]
+  },
+  {
+    "case": "03-PXD043660",
+    "dataset": "PXD043660",
+    "instrument": "Orbitrap Ascend",
+    "source_filename": "20220726_Ascend_2ProteomeMix_Keese_qysrsColumn_HYpro_TMT16_G65min_HrMS2_HCD36_IT54_30K_phiSDM_028.raw",
+    "source_sha256": "23950e3e03aec8118a7c4ae6c6139defecdcec7898f810c66249ae1f34406f56",
+    "source_bytes": 688570668,
+    "mode": "rawr",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        15.21350385248661,
+        15.496612997725606,
+        15.33280523866415
+      ],
+      "input_bytes_per_second": 44908329.38147923,
+      "source_points_per_second": 8651209.282011118,
+      "median_seconds": 15.33280523866415,
+      "output_bytes": 222729572,
+      "median_peak_process_rss_bytes": 1631272960,
+      "median_tree_rss_bytes": 1653104640
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 15.21350385248661,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 222729572,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1631272960,
+        "sampled_tree_rss_bytes": 1653104640,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "aee99fc32d8d4581b5a8b775b410983f279f2d5c1396b7f1d53d41077f1365f1",
+          "signal.index.zst": "51c0c514036a22602cbda8dc0491fbd978af6a1a80ac3c38456647e41553fc97"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 15.496612997725606,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 222729572,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1630081024,
+        "sampled_tree_rss_bytes": 1651634176,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "aee99fc32d8d4581b5a8b775b410983f279f2d5c1396b7f1d53d41077f1365f1",
+          "signal.index.zst": "51c0c514036a22602cbda8dc0491fbd978af6a1a80ac3c38456647e41553fc97"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 15.33280523866415,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 222729572,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1631952896,
+        "sampled_tree_rss_bytes": 1653698560,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "aee99fc32d8d4581b5a8b775b410983f279f2d5c1396b7f1d53d41077f1365f1",
+          "signal.index.zst": "51c0c514036a22602cbda8dc0491fbd978af6a1a80ac3c38456647e41553fc97"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 15.454933097586036,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 222729572,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1628811264,
+        "sampled_tree_rss_bytes": 1650167808,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "aee99fc32d8d4581b5a8b775b410983f279f2d5c1396b7f1d53d41077f1365f1",
+          "signal.index.zst": "51c0c514036a22602cbda8dc0491fbd978af6a1a80ac3c38456647e41553fc97"
+        }
+      },
+      {
+        "phase": "extra_before_protocol_amendment",
+        "block": 3,
+        "wall_seconds": 15.16240856796503,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 222729572,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1627381760,
+        "sampled_tree_rss_bytes": 1649008640,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "aee99fc32d8d4581b5a8b775b410983f279f2d5c1396b7f1d53d41077f1365f1",
+          "signal.index.zst": "51c0c514036a22602cbda8dc0491fbd978af6a1a80ac3c38456647e41553fc97"
+        }
+      }
+    ]
+  },
+  {
+    "case": "03-PXD043660",
+    "dataset": "PXD043660",
+    "instrument": "Orbitrap Ascend",
+    "source_filename": "20220726_Ascend_2ProteomeMix_Keese_qysrsColumn_HYpro_TMT16_G65min_HrMS2_HCD36_IT54_30K_phiSDM_028.raw",
+    "source_sha256": "23950e3e03aec8118a7c4ae6c6139defecdcec7898f810c66249ae1f34406f56",
+    "source_bytes": 688570668,
+    "mode": "vendor",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        34.494139082729816,
+        33.62009987607598,
+        33.391979187726974
+      ],
+      "input_bytes_per_second": 20480922.737828806,
+      "source_points_per_second": 3945476.2921270095,
+      "median_seconds": 33.62009987607598,
+      "output_bytes": 222729179,
+      "median_peak_process_rss_bytes": 252039168,
+      "median_tree_rss_bytes": 467468288
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 34.494139082729816,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 222729179,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 252039168,
+        "sampled_tree_rss_bytes": 467468288,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "aee99fc32d8d4581b5a8b775b410983f279f2d5c1396b7f1d53d41077f1365f1",
+          "signal.index.zst": "c8b6a512ccd1b490e770deb4f5b501af3ca761a87a9bdf055ae020f582c6d959"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 33.62009987607598,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 222729179,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 251449344,
+        "sampled_tree_rss_bytes": 451489792,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "aee99fc32d8d4581b5a8b775b410983f279f2d5c1396b7f1d53d41077f1365f1",
+          "signal.index.zst": "c8b6a512ccd1b490e770deb4f5b501af3ca761a87a9bdf055ae020f582c6d959"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 33.391979187726974,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 222729179,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 299970560,
+        "sampled_tree_rss_bytes": 530345984,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "aee99fc32d8d4581b5a8b775b410983f279f2d5c1396b7f1d53d41077f1365f1",
+          "signal.index.zst": "c8b6a512ccd1b490e770deb4f5b501af3ca761a87a9bdf055ae020f582c6d959"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 33.200028447434306,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 222729179,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 224854016,
+        "sampled_tree_rss_bytes": 428195840,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "aee99fc32d8d4581b5a8b775b410983f279f2d5c1396b7f1d53d41077f1365f1",
+          "signal.index.zst": "c8b6a512ccd1b490e770deb4f5b501af3ca761a87a9bdf055ae020f582c6d959"
+        }
+      },
+      {
+        "phase": "extra_before_protocol_amendment",
+        "block": 3,
+        "wall_seconds": 34.24507365189493,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 222729179,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 252792832,
+        "sampled_tree_rss_bytes": 461225984,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "aee99fc32d8d4581b5a8b775b410983f279f2d5c1396b7f1d53d41077f1365f1",
+          "signal.index.zst": "c8b6a512ccd1b490e770deb4f5b501af3ca761a87a9bdf055ae020f582c6d959"
+        }
+      },
+      {
+        "phase": "extra_before_protocol_amendment",
+        "block": 4,
+        "wall_seconds": 33.88046476058662,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 222729179,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 337350656,
+        "sampled_tree_rss_bytes": 549953536,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "aee99fc32d8d4581b5a8b775b410983f279f2d5c1396b7f1d53d41077f1365f1",
+          "signal.index.zst": "c8b6a512ccd1b490e770deb4f5b501af3ca761a87a9bdf055ae020f582c6d959"
+        }
+      }
+    ]
+  },
+  {
+    "case": "03-PXD043660",
+    "dataset": "PXD043660",
+    "instrument": "Orbitrap Ascend",
+    "source_filename": "20220726_Ascend_2ProteomeMix_Keese_qysrsColumn_HYpro_TMT16_G65min_HrMS2_HCD36_IT54_30K_phiSDM_028.raw",
+    "source_sha256": "23950e3e03aec8118a7c4ae6c6139defecdcec7898f810c66249ae1f34406f56",
+    "source_bytes": 688570668,
+    "mode": "official_default_z3",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        62.468041902408004,
+        59.793230049312115,
+        59.34691206365824
+      ],
+      "input_bytes_per_second": 11515863.375036411,
+      "source_points_per_second": 2218433.5398941375,
+      "median_seconds": 59.793230049312115,
+      "output_bytes": 829944874,
+      "median_peak_process_rss_bytes": 688066560,
+      "median_tree_rss_bytes": 687996928
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 62.468041902408004,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 829944874,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 694718464,
+        "sampled_tree_rss_bytes": 687996928,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "d85e3bfa3f802477729c1bbd4accaf856ff046ea12bcd20e92ab57d9bdc79f5a",
+          "spectra_peaks.parquet": "f3fb406802145935e3c6fc632869c7808e6aca87065192cb738bf12d772ea781"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 59.793230049312115,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 829944874,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 688066560,
+        "sampled_tree_rss_bytes": 688779264,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "d85e3bfa3f802477729c1bbd4accaf856ff046ea12bcd20e92ab57d9bdc79f5a",
+          "spectra_peaks.parquet": "f3fb406802145935e3c6fc632869c7808e6aca87065192cb738bf12d772ea781"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 59.34691206365824,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 829944874,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 575778816,
+        "sampled_tree_rss_bytes": 565821440,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "d85e3bfa3f802477729c1bbd4accaf856ff046ea12bcd20e92ab57d9bdc79f5a",
+          "spectra_peaks.parquet": "f3fb406802145935e3c6fc632869c7808e6aca87065192cb738bf12d772ea781"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 60.17206725105643,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 829944874,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 616165376,
+        "sampled_tree_rss_bytes": 610934784,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "d85e3bfa3f802477729c1bbd4accaf856ff046ea12bcd20e92ab57d9bdc79f5a",
+          "spectra_peaks.parquet": "f3fb406802145935e3c6fc632869c7808e6aca87065192cb738bf12d772ea781"
+        }
+      },
+      {
+        "phase": "extra_before_protocol_amendment",
+        "block": 3,
+        "wall_seconds": 60.32292159460485,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 829944874,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 599138304,
+        "sampled_tree_rss_bytes": 598917120,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "d85e3bfa3f802477729c1bbd4accaf856ff046ea12bcd20e92ab57d9bdc79f5a",
+          "spectra_peaks.parquet": "f3fb406802145935e3c6fc632869c7808e6aca87065192cb738bf12d772ea781"
+        }
+      }
+    ]
+  },
+  {
+    "case": "04-PXD019848",
+    "dataset": "PXD019848",
+    "instrument": "Q Exactive HF Orbitrap",
+    "source_filename": "500ng_HeLa_350_1150mz_nonFAIMS_Rs30000_200ms_Rep4.raw",
+    "source_sha256": "d83092d054293c6c3e962f8d0f223032e73265dfc3d3c9e7e4a89b55ae65cc49",
+    "source_bytes": 688981291,
+    "mode": "rawr",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        15.367218477651477,
+        14.988507587462664,
+        14.958640590310097
+      ],
+      "input_bytes_per_second": 45967304.415037796,
+      "source_points_per_second": 8785179.66059161,
+      "median_seconds": 14.988507587462664,
+      "output_bytes": 231612442,
+      "median_peak_process_rss_bytes": 1675182080,
+      "median_tree_rss_bytes": 1694474240
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 15.367218477651477,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 231612442,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1675755520,
+        "sampled_tree_rss_bytes": 1697439744,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "ff81694657241c4aa4dbde5e40778a5e40cc0efa8d7bece71bfbe2261ee4a030",
+          "signal.index.zst": "0e21bc0aaf488c4192aaa032c12fb9ad09df27de4d2e605e0bab4c58ffe8f859"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 14.988507587462664,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 231612442,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1672974336,
+        "sampled_tree_rss_bytes": 1694474240,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "ff81694657241c4aa4dbde5e40778a5e40cc0efa8d7bece71bfbe2261ee4a030",
+          "signal.index.zst": "0e21bc0aaf488c4192aaa032c12fb9ad09df27de4d2e605e0bab4c58ffe8f859"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 14.958640590310097,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 231612442,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1675182080,
+        "sampled_tree_rss_bytes": 1692196864,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "ff81694657241c4aa4dbde5e40778a5e40cc0efa8d7bece71bfbe2261ee4a030",
+          "signal.index.zst": "0e21bc0aaf488c4192aaa032c12fb9ad09df27de4d2e605e0bab4c58ffe8f859"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 15.184432489797473,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 231612442,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1674559488,
+        "sampled_tree_rss_bytes": 1696305152,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "ff81694657241c4aa4dbde5e40778a5e40cc0efa8d7bece71bfbe2261ee4a030",
+          "signal.index.zst": "0e21bc0aaf488c4192aaa032c12fb9ad09df27de4d2e605e0bab4c58ffe8f859"
+        }
+      }
+    ]
+  },
+  {
+    "case": "04-PXD019848",
+    "dataset": "PXD019848",
+    "instrument": "Q Exactive HF Orbitrap",
+    "source_filename": "500ng_HeLa_350_1150mz_nonFAIMS_Rs30000_200ms_Rep4.raw",
+    "source_sha256": "d83092d054293c6c3e962f8d0f223032e73265dfc3d3c9e7e4a89b55ae65cc49",
+    "source_bytes": 688981291,
+    "mode": "vendor",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        35.05810767970979,
+        36.10227681696415,
+        35.4325886759907
+      ],
+      "input_bytes_per_second": 19444847.716330055,
+      "source_points_per_second": 3716260.5646486343,
+      "median_seconds": 35.4325886759907,
+      "output_bytes": 231612200,
+      "median_peak_process_rss_bytes": 604876800,
+      "median_tree_rss_bytes": 861724672
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 35.05810767970979,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 231612200,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 370114560,
+        "sampled_tree_rss_bytes": 624750592,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "ff81694657241c4aa4dbde5e40778a5e40cc0efa8d7bece71bfbe2261ee4a030",
+          "signal.index.zst": "2548e29733b80a0702fccd10a285a716aa9783634f1bfb6fbabef2a0e0eb8428"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 36.10227681696415,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 231612200,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 604876800,
+        "sampled_tree_rss_bytes": 861724672,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "ff81694657241c4aa4dbde5e40778a5e40cc0efa8d7bece71bfbe2261ee4a030",
+          "signal.index.zst": "2548e29733b80a0702fccd10a285a716aa9783634f1bfb6fbabef2a0e0eb8428"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 35.4325886759907,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 231612200,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 611561472,
+        "sampled_tree_rss_bytes": 877936640,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "ff81694657241c4aa4dbde5e40778a5e40cc0efa8d7bece71bfbe2261ee4a030",
+          "signal.index.zst": "2548e29733b80a0702fccd10a285a716aa9783634f1bfb6fbabef2a0e0eb8428"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 36.03520313091576,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 231612200,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 530501632,
+        "sampled_tree_rss_bytes": 784826368,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "ff81694657241c4aa4dbde5e40778a5e40cc0efa8d7bece71bfbe2261ee4a030",
+          "signal.index.zst": "2548e29733b80a0702fccd10a285a716aa9783634f1bfb6fbabef2a0e0eb8428"
+        }
+      }
+    ]
+  },
+  {
+    "case": "04-PXD019848",
+    "dataset": "PXD019848",
+    "instrument": "Q Exactive HF Orbitrap",
+    "source_filename": "500ng_HeLa_350_1150mz_nonFAIMS_Rs30000_200ms_Rep4.raw",
+    "source_sha256": "d83092d054293c6c3e962f8d0f223032e73265dfc3d3c9e7e4a89b55ae65cc49",
+    "source_bytes": 688981291,
+    "mode": "official_default_z3",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        60.792556466534734,
+        61.08940056711435,
+        61.07213170081377
+      ],
+      "input_bytes_per_second": 11281435.113076616,
+      "source_points_per_second": 2156085.4080723934,
+      "median_seconds": 61.07213170081377,
+      "output_bytes": 1032023846,
+      "median_peak_process_rss_bytes": 1413386240,
+      "median_tree_rss_bytes": 1409556480
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 60.792556466534734,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 1032023846,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1413386240,
+        "sampled_tree_rss_bytes": 1409556480,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "ebef75524582e188263db25fdc866090063002f9c73227746c36115871334945",
+          "spectra_peaks.parquet": "b072d19b47126db3fd411aa83cc81bb2b4ff3e05235a1952fa34490ef8e79636"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 61.08940056711435,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 1032023846,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1399025664,
+        "sampled_tree_rss_bytes": 1388953600,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "ebef75524582e188263db25fdc866090063002f9c73227746c36115871334945",
+          "spectra_peaks.parquet": "b072d19b47126db3fd411aa83cc81bb2b4ff3e05235a1952fa34490ef8e79636"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 61.07213170081377,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 1032023846,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1416441856,
+        "sampled_tree_rss_bytes": 1411379200,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "ebef75524582e188263db25fdc866090063002f9c73227746c36115871334945",
+          "spectra_peaks.parquet": "b072d19b47126db3fd411aa83cc81bb2b4ff3e05235a1952fa34490ef8e79636"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 60.50335691310465,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 1032023846,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1440870400,
+        "sampled_tree_rss_bytes": 1441034240,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "ebef75524582e188263db25fdc866090063002f9c73227746c36115871334945",
+          "spectra_peaks.parquet": "b072d19b47126db3fd411aa83cc81bb2b4ff3e05235a1952fa34490ef8e79636"
+        }
+      }
+    ]
+  },
+  {
+    "case": "05-PXD046211",
+    "dataset": "PXD046211",
+    "instrument": "Orbitrap Fusion Lumos",
+    "source_filename": "CBIO680_1.raw",
+    "source_sha256": "01596a7acd7522dd39c2d72156a09860deb89cfd273cd954f4627830f69aca6e",
+    "source_bytes": 734143177,
+    "mode": "rawr",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        14.273278830572963,
+        14.51104343496263,
+        14.320919247344136
+      ],
+      "input_bytes_per_second": 51263690.85114068,
+      "source_points_per_second": 8092476.118213747,
+      "median_seconds": 14.320919247344136,
+      "output_bytes": 193426413,
+      "median_peak_process_rss_bytes": 1420029952,
+      "median_tree_rss_bytes": 1441673216
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 14.273278830572963,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 193426413,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1420029952,
+        "sampled_tree_rss_bytes": 1441673216,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "6ed85b0a01d3ff58187ebd99f0d45580bcd0bb7ae814c2b554b06292b84183a1",
+          "signal.index.zst": "176ff02546a219e325b9aac7e068848e24bff0be889763cb12dfd1c27553b004"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 14.51104343496263,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 193426413,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1420906496,
+        "sampled_tree_rss_bytes": 1442504704,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "6ed85b0a01d3ff58187ebd99f0d45580bcd0bb7ae814c2b554b06292b84183a1",
+          "signal.index.zst": "176ff02546a219e325b9aac7e068848e24bff0be889763cb12dfd1c27553b004"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 14.320919247344136,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 193426413,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1418416128,
+        "sampled_tree_rss_bytes": 1440038912,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "6ed85b0a01d3ff58187ebd99f0d45580bcd0bb7ae814c2b554b06292b84183a1",
+          "signal.index.zst": "176ff02546a219e325b9aac7e068848e24bff0be889763cb12dfd1c27553b004"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 14.150635374709964,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 193426413,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1421217792,
+        "sampled_tree_rss_bytes": 1442799616,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "6ed85b0a01d3ff58187ebd99f0d45580bcd0bb7ae814c2b554b06292b84183a1",
+          "signal.index.zst": "176ff02546a219e325b9aac7e068848e24bff0be889763cb12dfd1c27553b004"
+        }
+      }
+    ]
+  },
+  {
+    "case": "05-PXD046211",
+    "dataset": "PXD046211",
+    "instrument": "Orbitrap Fusion Lumos",
+    "source_filename": "CBIO680_1.raw",
+    "source_sha256": "01596a7acd7522dd39c2d72156a09860deb89cfd273cd954f4627830f69aca6e",
+    "source_bytes": 734143177,
+    "mode": "vendor",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        40.52038713172078,
+        40.736923553049564,
+        40.409584352746606
+      ],
+      "input_bytes_per_second": 18117871.742278762,
+      "source_points_per_second": 2860083.656734758,
+      "median_seconds": 40.52038713172078,
+      "output_bytes": 193426261,
+      "median_peak_process_rss_bytes": 295964672,
+      "median_tree_rss_bytes": 487018496
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 40.52038713172078,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 193426261,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 295964672,
+        "sampled_tree_rss_bytes": 481345536,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "6ed85b0a01d3ff58187ebd99f0d45580bcd0bb7ae814c2b554b06292b84183a1",
+          "signal.index.zst": "f30860d8665614d99d68ee36b124ff23e3752242bb19fbe31bbbf3760b13c87b"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 40.736923553049564,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 193426261,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 374173696,
+        "sampled_tree_rss_bytes": 588492800,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "6ed85b0a01d3ff58187ebd99f0d45580bcd0bb7ae814c2b554b06292b84183a1",
+          "signal.index.zst": "f30860d8665614d99d68ee36b124ff23e3752242bb19fbe31bbbf3760b13c87b"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 40.409584352746606,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 193426261,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 282337280,
+        "sampled_tree_rss_bytes": 487018496,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "6ed85b0a01d3ff58187ebd99f0d45580bcd0bb7ae814c2b554b06292b84183a1",
+          "signal.index.zst": "f30860d8665614d99d68ee36b124ff23e3752242bb19fbe31bbbf3760b13c87b"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 40.86835826188326,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 193426261,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 362475520,
+        "sampled_tree_rss_bytes": 604086272,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "6ed85b0a01d3ff58187ebd99f0d45580bcd0bb7ae814c2b554b06292b84183a1",
+          "signal.index.zst": "f30860d8665614d99d68ee36b124ff23e3752242bb19fbe31bbbf3760b13c87b"
+        }
+      }
+    ]
+  },
+  {
+    "case": "05-PXD046211",
+    "dataset": "PXD046211",
+    "instrument": "Orbitrap Fusion Lumos",
+    "source_filename": "CBIO680_1.raw",
+    "source_sha256": "01596a7acd7522dd39c2d72156a09860deb89cfd273cd954f4627830f69aca6e",
+    "source_bytes": 734143177,
+    "mode": "official_default_z3",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        64.34056885167956,
+        64.8058879263699,
+        66.23731849901378
+      ],
+      "input_bytes_per_second": 11328340.687718172,
+      "source_points_per_second": 1788289.6247278014,
+      "median_seconds": 64.8058879263699,
+      "output_bytes": 620715751,
+      "median_peak_process_rss_bytes": 816599040,
+      "median_tree_rss_bytes": 814551040
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 64.34056885167956,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 620715751,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 839233536,
+        "sampled_tree_rss_bytes": 835334144,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "b573422fad40f967f75df918e99c2b06df563ad8edafe184c26b0a66c9624069",
+          "spectra_peaks.parquet": "fb6993d846901e8820265944ae863415ac6db41b585723bd7d3b76ac364b94fa"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 64.8058879263699,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 620715751,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 789721088,
+        "sampled_tree_rss_bytes": 789147648,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "b573422fad40f967f75df918e99c2b06df563ad8edafe184c26b0a66c9624069",
+          "spectra_peaks.parquet": "fb6993d846901e8820265944ae863415ac6db41b585723bd7d3b76ac364b94fa"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 66.23731849901378,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 620715751,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 816599040,
+        "sampled_tree_rss_bytes": 814551040,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "b573422fad40f967f75df918e99c2b06df563ad8edafe184c26b0a66c9624069",
+          "spectra_peaks.parquet": "fb6993d846901e8820265944ae863415ac6db41b585723bd7d3b76ac364b94fa"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 64.91676172241569,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 620715751,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 780984320,
+        "sampled_tree_rss_bytes": 776658944,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "b573422fad40f967f75df918e99c2b06df563ad8edafe184c26b0a66c9624069",
+          "spectra_peaks.parquet": "fb6993d846901e8820265944ae863415ac6db41b585723bd7d3b76ac364b94fa"
+        }
+      }
+    ]
+  },
+  {
+    "case": "06-PXD005780",
+    "dataset": "PXD005780",
+    "instrument": "LTQ Orbitrap Velos",
+    "source_filename": "S34.raw",
+    "source_sha256": "579a0a047b931500a44f3817e79c6217642f47c5771c60b7f3cd897a0b7b3244",
+    "source_bytes": 935787869,
+    "mode": "rawr",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        14.005104057490826,
+        14.651796070858836,
+        15.034972045570612
+      ],
+      "input_bytes_per_second": 63868474.859625004,
+      "source_points_per_second": 14505433.461683596,
+      "median_seconds": 14.651796070858836,
+      "output_bytes": 351836629,
+      "median_peak_process_rss_bytes": 2634891264,
+      "median_tree_rss_bytes": 2656608256
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 14.005104057490826,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 351836629,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 2635837440,
+        "sampled_tree_rss_bytes": 2657492992,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "dff71ccb27fcb1efa02c881e59bc2d353b8aec80825fe086e27ac03fd9199cb6",
+          "signal.index.zst": "8e278e1c26004bad1a95217849b6385c7bf1cf5aacc12b7cca8ef66c4b4f41d9"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 14.651796070858836,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 351836629,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 2634891264,
+        "sampled_tree_rss_bytes": 2656575488,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "dff71ccb27fcb1efa02c881e59bc2d353b8aec80825fe086e27ac03fd9199cb6",
+          "signal.index.zst": "8e278e1c26004bad1a95217849b6385c7bf1cf5aacc12b7cca8ef66c4b4f41d9"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 15.034972045570612,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 351836629,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 2634768384,
+        "sampled_tree_rss_bytes": 2656608256,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "dff71ccb27fcb1efa02c881e59bc2d353b8aec80825fe086e27ac03fd9199cb6",
+          "signal.index.zst": "8e278e1c26004bad1a95217849b6385c7bf1cf5aacc12b7cca8ef66c4b4f41d9"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 15.860415050759912,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 351836629,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 2630541312,
+        "sampled_tree_rss_bytes": 2652090368,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "dff71ccb27fcb1efa02c881e59bc2d353b8aec80825fe086e27ac03fd9199cb6",
+          "signal.index.zst": "8e278e1c26004bad1a95217849b6385c7bf1cf5aacc12b7cca8ef66c4b4f41d9"
+        }
+      }
+    ]
+  },
+  {
+    "case": "06-PXD005780",
+    "dataset": "PXD005780",
+    "instrument": "LTQ Orbitrap Velos",
+    "source_filename": "S34.raw",
+    "source_sha256": "579a0a047b931500a44f3817e79c6217642f47c5771c60b7f3cd897a0b7b3244",
+    "source_bytes": 935787869,
+    "mode": "vendor",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        29.62227290123701,
+        29.896430714055896,
+        30.092040644958615
+      ],
+      "input_bytes_per_second": 31300989.671654567,
+      "source_points_per_second": 7108897.213608783,
+      "median_seconds": 29.896430714055896,
+      "output_bytes": 351831792,
+      "median_peak_process_rss_bytes": 409399296,
+      "median_tree_rss_bytes": 516300800
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 29.62227290123701,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 351831792,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 422211584,
+        "sampled_tree_rss_bytes": 533164032,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "dff71ccb27fcb1efa02c881e59bc2d353b8aec80825fe086e27ac03fd9199cb6",
+          "signal.index.zst": "24a842ac128c29ef25f05b4e1273ad218e49d245ec53632177820c852d09892d"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 29.896430714055896,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 351831792,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 386990080,
+        "sampled_tree_rss_bytes": 516300800,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "dff71ccb27fcb1efa02c881e59bc2d353b8aec80825fe086e27ac03fd9199cb6",
+          "signal.index.zst": "24a842ac128c29ef25f05b4e1273ad218e49d245ec53632177820c852d09892d"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 30.092040644958615,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 351831792,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 409399296,
+        "sampled_tree_rss_bytes": 513728512,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "dff71ccb27fcb1efa02c881e59bc2d353b8aec80825fe086e27ac03fd9199cb6",
+          "signal.index.zst": "24a842ac128c29ef25f05b4e1273ad218e49d245ec53632177820c852d09892d"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 30.345358084887266,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 351831792,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 427569152,
+        "sampled_tree_rss_bytes": 541364224,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "dff71ccb27fcb1efa02c881e59bc2d353b8aec80825fe086e27ac03fd9199cb6",
+          "signal.index.zst": "24a842ac128c29ef25f05b4e1273ad218e49d245ec53632177820c852d09892d"
+        }
+      }
+    ]
+  },
+  {
+    "case": "06-PXD005780",
+    "dataset": "PXD005780",
+    "instrument": "LTQ Orbitrap Velos",
+    "source_filename": "S34.raw",
+    "source_sha256": "579a0a047b931500a44f3817e79c6217642f47c5771c60b7f3cd897a0b7b3244",
+    "source_bytes": 935787869,
+    "mode": "official_default_z3",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        133.15839893743396,
+        68.08167267590761,
+        67.96284568868577
+      ],
+      "input_bytes_per_second": 13745077.525557796,
+      "source_points_per_second": 3121701.4013700816,
+      "median_seconds": 68.08167267590761,
+      "output_bytes": 1451395304,
+      "median_peak_process_rss_bytes": 1113190400,
+      "median_tree_rss_bytes": 1112776704
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 133.15839893743396,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 1451395304,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1122480128,
+        "sampled_tree_rss_bytes": 1119924224,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "50e65e72d20f49e8cbbca95d1d0b3ae9c9d1b4723e6890fe24329a25c4441680",
+          "spectra_peaks.parquet": "c0232d835c882d39aad4379821c774104c6c2224390cd5d6a8c36cb68d16822e"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 68.08167267590761,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 1451395304,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1111244800,
+        "sampled_tree_rss_bytes": 1111945216,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "50e65e72d20f49e8cbbca95d1d0b3ae9c9d1b4723e6890fe24329a25c4441680",
+          "spectra_peaks.parquet": "c0232d835c882d39aad4379821c774104c6c2224390cd5d6a8c36cb68d16822e"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 67.96284568868577,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 1451395304,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1113190400,
+        "sampled_tree_rss_bytes": 1112776704,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "50e65e72d20f49e8cbbca95d1d0b3ae9c9d1b4723e6890fe24329a25c4441680",
+          "spectra_peaks.parquet": "c0232d835c882d39aad4379821c774104c6c2224390cd5d6a8c36cb68d16822e"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 67.06776529364288,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 1451395304,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1098641408,
+        "sampled_tree_rss_bytes": 1097306112,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "50e65e72d20f49e8cbbca95d1d0b3ae9c9d1b4723e6890fe24329a25c4441680",
+          "spectra_peaks.parquet": "c0232d835c882d39aad4379821c774104c6c2224390cd5d6a8c36cb68d16822e"
+        }
+      }
+    ]
+  },
+  {
+    "case": "07-PXD053241",
+    "dataset": "PXD053241",
+    "instrument": "Q Exactive HF-X Orbitrap",
+    "source_filename": "210129_wwDDA_10ug_60min_IW20.raw",
+    "source_sha256": "dc093060dd6f5afac7205d2d31d44be558754ad989ab915115e2b1d4939eae2b",
+    "source_bytes": 1176408520,
+    "mode": "rawr",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        26.487020660191774,
+        26.43730577453971,
+        25.688059186562896
+      ],
+      "input_bytes_per_second": 44498048.70558835,
+      "source_points_per_second": 5709458.6069872705,
+      "median_seconds": 26.43730577453971,
+      "output_bytes": 347684696,
+      "median_peak_process_rss_bytes": 1493999616,
+      "median_tree_rss_bytes": 1515720704
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 26.487020660191774,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 347684696,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1524269056,
+        "sampled_tree_rss_bytes": 1545879552,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "8fb8352151348a5f002d53ef94b72fbc810c7ad3ea327f32aa7bfafeac712b13",
+          "signal.index.zst": "fbbfe23bca99e94efed9182e1af35a644f20346af11595699bdfaf588cc2a7e2"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 26.43730577453971,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 347684696,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1484419072,
+        "sampled_tree_rss_bytes": 1506013184,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "8fb8352151348a5f002d53ef94b72fbc810c7ad3ea327f32aa7bfafeac712b13",
+          "signal.index.zst": "fbbfe23bca99e94efed9182e1af35a644f20346af11595699bdfaf588cc2a7e2"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 25.688059186562896,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 347684696,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1493999616,
+        "sampled_tree_rss_bytes": 1515720704,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "8fb8352151348a5f002d53ef94b72fbc810c7ad3ea327f32aa7bfafeac712b13",
+          "signal.index.zst": "fbbfe23bca99e94efed9182e1af35a644f20346af11595699bdfaf588cc2a7e2"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 26.127165745943785,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 347684696,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1495957504,
+        "sampled_tree_rss_bytes": 1517547520,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "8fb8352151348a5f002d53ef94b72fbc810c7ad3ea327f32aa7bfafeac712b13",
+          "signal.index.zst": "fbbfe23bca99e94efed9182e1af35a644f20346af11595699bdfaf588cc2a7e2"
+        }
+      }
+    ]
+  },
+  {
+    "case": "07-PXD053241",
+    "dataset": "PXD053241",
+    "instrument": "Q Exactive HF-X Orbitrap",
+    "source_filename": "210129_wwDDA_10ug_60min_IW20.raw",
+    "source_sha256": "dc093060dd6f5afac7205d2d31d44be558754ad989ab915115e2b1d4939eae2b",
+    "source_bytes": 1176408520,
+    "mode": "vendor",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        72.2769773285836,
+        73.35829044133425,
+        72.42982447519898
+      ],
+      "input_bytes_per_second": 16242045.71147096,
+      "source_points_per_second": 2083985.4865544366,
+      "median_seconds": 72.42982447519898,
+      "output_bytes": 347684228,
+      "median_peak_process_rss_bytes": 399286272,
+      "median_tree_rss_bytes": 627290112
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 72.2769773285836,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 347684228,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 401362944,
+        "sampled_tree_rss_bytes": 606126080,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "8fb8352151348a5f002d53ef94b72fbc810c7ad3ea327f32aa7bfafeac712b13",
+          "signal.index.zst": "f9c97b69f3f6763dc9f8ea4b4e70ebfe994ac05cabdd1d64a04c660aef56c2a7"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 73.35829044133425,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 347684228,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 399286272,
+        "sampled_tree_rss_bytes": 627290112,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "8fb8352151348a5f002d53ef94b72fbc810c7ad3ea327f32aa7bfafeac712b13",
+          "signal.index.zst": "f9c97b69f3f6763dc9f8ea4b4e70ebfe994ac05cabdd1d64a04c660aef56c2a7"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 72.42982447519898,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 347684228,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 398954496,
+        "sampled_tree_rss_bytes": 662339584,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "8fb8352151348a5f002d53ef94b72fbc810c7ad3ea327f32aa7bfafeac712b13",
+          "signal.index.zst": "f9c97b69f3f6763dc9f8ea4b4e70ebfe994ac05cabdd1d64a04c660aef56c2a7"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 73.11629085242748,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 347684228,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 402305024,
+        "sampled_tree_rss_bytes": 626036736,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "8fb8352151348a5f002d53ef94b72fbc810c7ad3ea327f32aa7bfafeac712b13",
+          "signal.index.zst": "f9c97b69f3f6763dc9f8ea4b4e70ebfe994ac05cabdd1d64a04c660aef56c2a7"
+        }
+      }
+    ]
+  },
+  {
+    "case": "07-PXD053241",
+    "dataset": "PXD053241",
+    "instrument": "Q Exactive HF-X Orbitrap",
+    "source_filename": "210129_wwDDA_10ug_60min_IW20.raw",
+    "source_sha256": "dc093060dd6f5afac7205d2d31d44be558754ad989ab915115e2b1d4939eae2b",
+    "source_bytes": 1176408520,
+    "mode": "official_default_z3",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        109.28271698392928,
+        276.189579308033,
+        107.93693616054952
+      ],
+      "input_bytes_per_second": 10764817.644248344,
+      "source_points_per_second": 1381212.9416785738,
+      "median_seconds": 109.28271698392928,
+      "output_bytes": 1130395047,
+      "median_peak_process_rss_bytes": 602050560,
+      "median_tree_rss_bytes": 602587136
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 109.28271698392928,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 1130395047,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 599179264,
+        "sampled_tree_rss_bytes": 599830528,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "069f49e3b2307d8bdeb1b7ae9cdaefc43343ca7fbd8345bfb7f3286d8d563287",
+          "spectra_peaks.parquet": "961bcb7900624f96770fbf36d26d21e16e44f9ba76235835ddbb7c49fa509b18"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 276.189579308033,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 1130395047,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 602804224,
+        "sampled_tree_rss_bytes": 603561984,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "069f49e3b2307d8bdeb1b7ae9cdaefc43343ca7fbd8345bfb7f3286d8d563287",
+          "spectra_peaks.parquet": "961bcb7900624f96770fbf36d26d21e16e44f9ba76235835ddbb7c49fa509b18"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 107.93693616054952,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 1130395047,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 602050560,
+        "sampled_tree_rss_bytes": 602587136,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "069f49e3b2307d8bdeb1b7ae9cdaefc43343ca7fbd8345bfb7f3286d8d563287",
+          "spectra_peaks.parquet": "961bcb7900624f96770fbf36d26d21e16e44f9ba76235835ddbb7c49fa509b18"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 470.0221014022827,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 1130395047,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 599580672,
+        "sampled_tree_rss_bytes": 598953984,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "069f49e3b2307d8bdeb1b7ae9cdaefc43343ca7fbd8345bfb7f3286d8d563287",
+          "spectra_peaks.parquet": "961bcb7900624f96770fbf36d26d21e16e44f9ba76235835ddbb7c49fa509b18"
+        }
+      }
+    ]
+  },
+  {
+    "case": "08-PXD000612",
+    "dataset": "PXD000612",
+    "instrument": "Q Exactive Orbitrap",
+    "source_filename": "20111225_EXQ5_KiSh_SA_LabelFree_HeLa_Phospho_Control_rep5_Fr1.raw",
+    "source_sha256": "44222f8b3420976161eb6f2fe4a097a821ab4fb2fdf383a25169e85a93a92213",
+    "source_bytes": 1541507729,
+    "mode": "rawr",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        23.61062907241285,
+        23.311561720445752,
+        22.972422966733575
+      ],
+      "input_bytes_per_second": 66126317.38215967,
+      "source_points_per_second": 16076845.236468941,
+      "median_seconds": 23.311561720445752,
+      "output_bytes": 629727228,
+      "median_peak_process_rss_bytes": 4635176960,
+      "median_tree_rss_bytes": 4656795648
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 23.61062907241285,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 629727228,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 4634300416,
+        "sampled_tree_rss_bytes": 4656029696,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "45aa354f301720216cb0a24f11b6cb705d7cee617654b683c99a324c37c97ba2",
+          "signal.index.zst": "d9bef241a5194b81a5716a79f77d62d30b0cbdf62e3d1f7a47526d3ed29668ae"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 23.311561720445752,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 629727228,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 4635176960,
+        "sampled_tree_rss_bytes": 4656795648,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "45aa354f301720216cb0a24f11b6cb705d7cee617654b683c99a324c37c97ba2",
+          "signal.index.zst": "d9bef241a5194b81a5716a79f77d62d30b0cbdf62e3d1f7a47526d3ed29668ae"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 22.972422966733575,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 629727228,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 4635340800,
+        "sampled_tree_rss_bytes": 4656877568,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "45aa354f301720216cb0a24f11b6cb705d7cee617654b683c99a324c37c97ba2",
+          "signal.index.zst": "d9bef241a5194b81a5716a79f77d62d30b0cbdf62e3d1f7a47526d3ed29668ae"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 23.733823236078024,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 629727228,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 4626358272,
+        "sampled_tree_rss_bytes": 4648046592,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "45aa354f301720216cb0a24f11b6cb705d7cee617654b683c99a324c37c97ba2",
+          "signal.index.zst": "d9bef241a5194b81a5716a79f77d62d30b0cbdf62e3d1f7a47526d3ed29668ae"
+        }
+      }
+    ]
+  },
+  {
+    "case": "08-PXD000612",
+    "dataset": "PXD000612",
+    "instrument": "Q Exactive Orbitrap",
+    "source_filename": "20111225_EXQ5_KiSh_SA_LabelFree_HeLa_Phospho_Control_rep5_Fr1.raw",
+    "source_sha256": "44222f8b3420976161eb6f2fe4a097a821ab4fb2fdf383a25169e85a93a92213",
+    "source_bytes": 1541507729,
+    "mode": "vendor",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        44.20334927737713,
+        42.45924576930702,
+        43.40573903173208
+      ],
+      "input_bytes_per_second": 35513915.057938986,
+      "source_points_per_second": 8634258.472733686,
+      "median_seconds": 43.40573903173208,
+      "output_bytes": 629722972,
+      "median_peak_process_rss_bytes": 343461888,
+      "median_tree_rss_bytes": 617877504
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 44.20334927737713,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 629722972,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 343461888,
+        "sampled_tree_rss_bytes": 617877504,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "2d385d9ba958b31bcdd81004030a7ff76683b65a030f6a3c29d6c5ce6a69eb2c",
+          "signal.index.zst": "3a3a92d3b37571f4db9893c6e9b862f30a9dc2decc06afe19081f833590d7292"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 42.45924576930702,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 629722972,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 324653056,
+        "sampled_tree_rss_bytes": 583135232,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "2d385d9ba958b31bcdd81004030a7ff76683b65a030f6a3c29d6c5ce6a69eb2c",
+          "signal.index.zst": "3a3a92d3b37571f4db9893c6e9b862f30a9dc2decc06afe19081f833590d7292"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 43.40573903173208,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 629722972,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 478576640,
+        "sampled_tree_rss_bytes": 757198848,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "2d385d9ba958b31bcdd81004030a7ff76683b65a030f6a3c29d6c5ce6a69eb2c",
+          "signal.index.zst": "3a3a92d3b37571f4db9893c6e9b862f30a9dc2decc06afe19081f833590d7292"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 44.61685864813626,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 629722972,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 386560000,
+        "sampled_tree_rss_bytes": 648847360,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "2d385d9ba958b31bcdd81004030a7ff76683b65a030f6a3c29d6c5ce6a69eb2c",
+          "signal.index.zst": "3a3a92d3b37571f4db9893c6e9b862f30a9dc2decc06afe19081f833590d7292"
+        }
+      }
+    ]
+  },
+  {
+    "case": "08-PXD000612",
+    "dataset": "PXD000612",
+    "instrument": "Q Exactive Orbitrap",
+    "source_filename": "20111225_EXQ5_KiSh_SA_LabelFree_HeLa_Phospho_Control_rep5_Fr1.raw",
+    "source_sha256": "44222f8b3420976161eb6f2fe4a097a821ab4fb2fdf383a25169e85a93a92213",
+    "source_bytes": 1541507729,
+    "mode": "official_default_z3",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        104.03156020119786,
+        103.13611841760576,
+        104.804013883695
+      ],
+      "input_bytes_per_second": 14817693.073320365,
+      "source_points_per_second": 3602525.7073447667,
+      "median_seconds": 104.03156020119786,
+      "output_bytes": 2615961462,
+      "median_peak_process_rss_bytes": 1181655040,
+      "median_tree_rss_bytes": 1163362304
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 104.03156020119786,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 2615961462,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1165344768,
+        "sampled_tree_rss_bytes": 1163362304,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "d362c2240686078fa3c0cd15e35878e285c0b4b0d6522215a87bac5c44cd7eb3",
+          "spectra_peaks.parquet": "c0232d835c882d39aad4379821c774104c6c2224390cd5d6a8c36cb68d16822e"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 103.13611841760576,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 2615961462,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1181655040,
+        "sampled_tree_rss_bytes": 1150255104,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "d362c2240686078fa3c0cd15e35878e285c0b4b0d6522215a87bac5c44cd7eb3",
+          "spectra_peaks.parquet": "c0232d835c882d39aad4379821c774104c6c2224390cd5d6a8c36cb68d16822e"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 104.804013883695,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 2615961462,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1208242176,
+        "sampled_tree_rss_bytes": 1201614848,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "d362c2240686078fa3c0cd15e35878e285c0b4b0d6522215a87bac5c44cd7eb3",
+          "spectra_peaks.parquet": "c0232d835c882d39aad4379821c774104c6c2224390cd5d6a8c36cb68d16822e"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 104.33684356510639,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 2615961462,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 1426407424,
+        "sampled_tree_rss_bytes": 1427066880,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "d362c2240686078fa3c0cd15e35878e285c0b4b0d6522215a87bac5c44cd7eb3",
+          "spectra_peaks.parquet": "c0232d835c882d39aad4379821c774104c6c2224390cd5d6a8c36cb68d16822e"
+        }
+      }
+    ]
+  },
+  {
+    "case": "09-PXD002370",
+    "dataset": "PXD002370",
+    "instrument": "Q Exactive Plus Orbitrap",
+    "source_filename": "D-10fmol-R3_QEx2_000110.raw",
+    "source_sha256": "aa2f4206b7926b3221658a7adb1d6c6ffc9ced91fced013141ec69906d6aaf67",
+    "source_bytes": 1930380748,
+    "mode": "rawr",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        34.683499075472355,
+        34.25101140141487,
+        34.333580639213324
+      ],
+      "input_bytes_per_second": 56224276.992399074,
+      "source_points_per_second": 13403346.03709845,
+      "median_seconds": 34.333580639213324,
+      "output_bytes": 801618490,
+      "median_peak_process_rss_bytes": 5618122752,
+      "median_tree_rss_bytes": 5639843840
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 34.683499075472355,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 801618490,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 5616291840,
+        "sampled_tree_rss_bytes": 5637885952,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "aca2daa8622755489aa1ea71cd81019b347175f4153f7ad5c718592a9b4e0bab",
+          "signal.index.zst": "2c3646c349ce34f624e962f8e45e5a62cc49777a2a30074e9c4d483ea166f35c"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 34.25101140141487,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 801618490,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 5622444032,
+        "sampled_tree_rss_bytes": 5644099584,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "aca2daa8622755489aa1ea71cd81019b347175f4153f7ad5c718592a9b4e0bab",
+          "signal.index.zst": "2c3646c349ce34f624e962f8e45e5a62cc49777a2a30074e9c4d483ea166f35c"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 34.333580639213324,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 801618490,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 5618122752,
+        "sampled_tree_rss_bytes": 5639843840,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "aca2daa8622755489aa1ea71cd81019b347175f4153f7ad5c718592a9b4e0bab",
+          "signal.index.zst": "2c3646c349ce34f624e962f8e45e5a62cc49777a2a30074e9c4d483ea166f35c"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 33.17447577230632,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 801618490,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 5623336960,
+        "sampled_tree_rss_bytes": 5642952704,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "aca2daa8622755489aa1ea71cd81019b347175f4153f7ad5c718592a9b4e0bab",
+          "signal.index.zst": "2c3646c349ce34f624e962f8e45e5a62cc49777a2a30074e9c4d483ea166f35c"
+        }
+      }
+    ]
+  },
+  {
+    "case": "09-PXD002370",
+    "dataset": "PXD002370",
+    "instrument": "Q Exactive Plus Orbitrap",
+    "source_filename": "D-10fmol-R3_QEx2_000110.raw",
+    "source_sha256": "aa2f4206b7926b3221658a7adb1d6c6ffc9ced91fced013141ec69906d6aaf67",
+    "source_bytes": 1930380748,
+    "mode": "vendor",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        70.40088845230639,
+        74.41130427271128,
+        69.96990554966033
+      ],
+      "input_bytes_per_second": 27419835.039549977,
+      "source_points_per_second": 6536634.297048051,
+      "median_seconds": 70.40088845230639,
+      "output_bytes": 801618641,
+      "median_peak_process_rss_bytes": 382992384,
+      "median_tree_rss_bytes": 639217664
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 70.40088845230639,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 801618641,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 377602048,
+        "sampled_tree_rss_bytes": 638218240,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "a3b2ebb2e2bfd33f398f213cd45d2aefb40c234e2dc9b189828577e7ce8de706",
+          "signal.index.zst": "4e893615e254ae0d2cb043ff27bb88c8c007fd48dc7f275299df674ea21b90af"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 74.41130427271128,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 801618641,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 382992384,
+        "sampled_tree_rss_bytes": 639217664,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "a3b2ebb2e2bfd33f398f213cd45d2aefb40c234e2dc9b189828577e7ce8de706",
+          "signal.index.zst": "4e893615e254ae0d2cb043ff27bb88c8c007fd48dc7f275299df674ea21b90af"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 69.96990554966033,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 801618641,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 400527360,
+        "sampled_tree_rss_bytes": 702390272,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "a3b2ebb2e2bfd33f398f213cd45d2aefb40c234e2dc9b189828577e7ce8de706",
+          "signal.index.zst": "4e893615e254ae0d2cb043ff27bb88c8c007fd48dc7f275299df674ea21b90af"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 71.17539354041219,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 801618641,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 351481856,
+        "sampled_tree_rss_bytes": 659554304,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "a3b2ebb2e2bfd33f398f213cd45d2aefb40c234e2dc9b189828577e7ce8de706",
+          "signal.index.zst": "4e893615e254ae0d2cb043ff27bb88c8c007fd48dc7f275299df674ea21b90af"
+        }
+      }
+    ]
+  },
+  {
+    "case": "09-PXD002370",
+    "dataset": "PXD002370",
+    "instrument": "Q Exactive Plus Orbitrap",
+    "source_filename": "D-10fmol-R3_QEx2_000110.raw",
+    "source_sha256": "aa2f4206b7926b3221658a7adb1d6c6ffc9ced91fced013141ec69906d6aaf67",
+    "source_bytes": 1930380748,
+    "mode": "official_default_z3",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        148.03990213945508,
+        147.53769216872752,
+        148.775175511837
+      ],
+      "input_bytes_per_second": 13039597.568644445,
+      "source_points_per_second": 3108519.0907955426,
+      "median_seconds": 148.03990213945508,
+      "output_bytes": 3246579540,
+      "median_peak_process_rss_bytes": 958197760,
+      "median_tree_rss_bytes": 952418304
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 148.03990213945508,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 3246579540,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 933920768,
+        "sampled_tree_rss_bytes": 929984512,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "13c8d267fa3b374fa9f1a03da324ef34769593d20dafb4be6dfbae1a84e8ee2f",
+          "spectra_peaks.parquet": "c0232d835c882d39aad4379821c774104c6c2224390cd5d6a8c36cb68d16822e"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 147.53769216872752,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 3246579540,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 958197760,
+        "sampled_tree_rss_bytes": 958947328,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "13c8d267fa3b374fa9f1a03da324ef34769593d20dafb4be6dfbae1a84e8ee2f",
+          "spectra_peaks.parquet": "c0232d835c882d39aad4379821c774104c6c2224390cd5d6a8c36cb68d16822e"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 148.775175511837,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 3246579540,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 960266240,
+        "sampled_tree_rss_bytes": 952418304,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "13c8d267fa3b374fa9f1a03da324ef34769593d20dafb4be6dfbae1a84e8ee2f",
+          "spectra_peaks.parquet": "c0232d835c882d39aad4379821c774104c6c2224390cd5d6a8c36cb68d16822e"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 151.20925552397966,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 3246579540,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 956416000,
+        "sampled_tree_rss_bytes": 952786944,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "13c8d267fa3b374fa9f1a03da324ef34769593d20dafb4be6dfbae1a84e8ee2f",
+          "spectra_peaks.parquet": "c0232d835c882d39aad4379821c774104c6c2224390cd5d6a8c36cb68d16822e"
+        }
+      }
+    ]
+  },
+  {
+    "case": "10-PXD063416",
+    "dataset": "PXD063416",
+    "instrument": "Orbitrap Exploris 480",
+    "source_filename": "HeLa_10mz_A_mixA.raw",
+    "source_sha256": "cecd927d23458ec9a03df26d6a132ab1d05f03978cc29dc0c171d8662d257e4a",
+    "source_bytes": 1998251500,
+    "mode": "rawr",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        22.256688315421343,
+        22.25914772413671,
+        22.249492306262255
+      ],
+      "input_bytes_per_second": 89782067.8297157,
+      "source_points_per_second": 4903076.434978333,
+      "median_seconds": 22.256688315421343,
+      "output_bytes": 376761436,
+      "median_peak_process_rss_bytes": 421965824,
+      "median_tree_rss_bytes": 443584512
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 22.256688315421343,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 376761436,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 422969344,
+        "sampled_tree_rss_bytes": 443797504,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "0b16217828854caf434b7c67b09d834d7d910df81ad7c619041be59d6b819808",
+          "signal.index.zst": "3fa8988e81632b5a523c348ca17d80b96e9c1c7bc9fb2fb77fe6634ffe51b4c0"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 22.25914772413671,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 376761436,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 421965824,
+        "sampled_tree_rss_bytes": 443584512,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "0b16217828854caf434b7c67b09d834d7d910df81ad7c619041be59d6b819808",
+          "signal.index.zst": "3fa8988e81632b5a523c348ca17d80b96e9c1c7bc9fb2fb77fe6634ffe51b4c0"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 22.249492306262255,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 376761436,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 420978688,
+        "sampled_tree_rss_bytes": 442085376,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "0b16217828854caf434b7c67b09d834d7d910df81ad7c619041be59d6b819808",
+          "signal.index.zst": "3fa8988e81632b5a523c348ca17d80b96e9c1c7bc9fb2fb77fe6634ffe51b4c0"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 22.130607603117824,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 376761436,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 422359040,
+        "sampled_tree_rss_bytes": 443645952,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "0b16217828854caf434b7c67b09d834d7d910df81ad7c619041be59d6b819808",
+          "signal.index.zst": "3fa8988e81632b5a523c348ca17d80b96e9c1c7bc9fb2fb77fe6634ffe51b4c0"
+        }
+      }
+    ]
+  },
+  {
+    "case": "10-PXD063416",
+    "dataset": "PXD063416",
+    "instrument": "Orbitrap Exploris 480",
+    "source_filename": "HeLa_10mz_A_mixA.raw",
+    "source_sha256": "cecd927d23458ec9a03df26d6a132ab1d05f03978cc29dc0c171d8662d257e4a",
+    "source_bytes": 1998251500,
+    "mode": "vendor",
+    "required_repeats": 3,
+    "eligible": false,
+    "status": "Timeout (600 s)",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 2,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        65.3285799920559,
+        65.63691180758178,
+        600.0412876103073
+      ],
+      "input_bytes_per_second": 30515694.97493428,
+      "source_points_per_second": 1666488.515416729,
+      "median_seconds": 65.48274589981884,
+      "output_bytes": 376760813.0,
+      "median_peak_process_rss_bytes": 324118528.0,
+      "median_tree_rss_bytes": 564285440.0
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 65.3285799920559,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 376760813,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 321933312,
+        "sampled_tree_rss_bytes": 561762304,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "0b16217828854caf434b7c67b09d834d7d910df81ad7c619041be59d6b819808",
+          "signal.index.zst": "d1b6bbdc12bff1db3a34413945d117729040ebf0b66e682cae11b34bc565cedd"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 65.63691180758178,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 376760813,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 326303744,
+        "sampled_tree_rss_bytes": 566808576,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "0b16217828854caf434b7c67b09d834d7d910df81ad7c619041be59d6b819808",
+          "signal.index.zst": "d1b6bbdc12bff1db3a34413945d117729040ebf0b66e682cae11b34bc565cedd"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 600.0412876103073,
+        "returncode": -9,
+        "timed_out": true,
+        "sampled_tree_rss_bytes": 458403840,
+        "rss_sample_method": "all_threads"
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 65.25807069800794,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 376760813,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 309866496,
+        "sampled_tree_rss_bytes": 487141376,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "0b16217828854caf434b7c67b09d834d7d910df81ad7c619041be59d6b819808",
+          "signal.index.zst": "d1b6bbdc12bff1db3a34413945d117729040ebf0b66e682cae11b34bc565cedd"
+        }
+      }
+    ]
+  },
+  {
+    "case": "10-PXD063416",
+    "dataset": "PXD063416",
+    "instrument": "Orbitrap Exploris 480",
+    "source_filename": "HeLa_10mz_A_mixA.raw",
+    "source_sha256": "cecd927d23458ec9a03df26d6a132ab1d05f03978cc29dc0c171d8662d257e4a",
+    "source_bytes": 1998251500,
+    "mode": "official_default_z3",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        114.4133384693414,
+        115.78291694261134,
+        115.423066271469
+      ],
+      "input_bytes_per_second": 17312410.46135629,
+      "source_points_per_second": 945445.7200378025,
+      "median_seconds": 115.423066271469,
+      "output_bytes": 815432968,
+      "median_peak_process_rss_bytes": 481492992,
+      "median_tree_rss_bytes": 481824768
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 114.4133384693414,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 815432968,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 481492992,
+        "sampled_tree_rss_bytes": 481824768,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "aca7b2de2cad2a3ad1512479504c046f057452f7ca74590280bdb39b7d298eac",
+          "spectra_peaks.parquet": "1fd297302f343b8daba22ac8a78116bf741eb65f78425497531f7fcae95f136d"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 115.78291694261134,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 815432968,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 468152320,
+        "sampled_tree_rss_bytes": 466518016,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "aca7b2de2cad2a3ad1512479504c046f057452f7ca74590280bdb39b7d298eac",
+          "spectra_peaks.parquet": "1fd297302f343b8daba22ac8a78116bf741eb65f78425497531f7fcae95f136d"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 115.423066271469,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 815432968,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 494768128,
+        "sampled_tree_rss_bytes": 495521792,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "aca7b2de2cad2a3ad1512479504c046f057452f7ca74590280bdb39b7d298eac",
+          "spectra_peaks.parquet": "1fd297302f343b8daba22ac8a78116bf741eb65f78425497531f7fcae95f136d"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 115.79512447305024,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 815432968,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 490590208,
+        "sampled_tree_rss_bytes": 491327488,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "spectra_data.parquet": "aca7b2de2cad2a3ad1512479504c046f057452f7ca74590280bdb39b7d298eac",
+          "spectra_peaks.parquet": "1fd297302f343b8daba22ac8a78116bf741eb65f78425497531f7fcae95f136d"
+        }
+      }
+    ]
+  },
+  {
+    "case": "11-PXD046453",
+    "dataset": "PXD046453",
+    "instrument": "Unknown instrument of Thermo Fisher Scientific",
+    "source_filename": "20230320_OLEP08_1000ngHeK_uPAC_180k-30min_MontBlanc_2p5ms_0p5_2Th_01.raw",
+    "source_sha256": "b0818abe768b7446b401b8b214ec85e4f339e5d9439bf0d1b8af32761671a2be",
+    "source_bytes": 16947502466,
+    "mode": "rawr",
+    "required_repeats": 3,
+    "eligible": false,
+    "status": "Unsupported instrument metadata",
+    "metrics": {
+      "numerically_validated": false,
+      "successful_runs": 0,
+      "attempted_runs": 0,
+      "required_runs": 3,
+      "all_wall_seconds": []
+    },
+    "measured_runs": [],
+    "validation_passed": false,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 157.79148061014712,
+        "returncode": 1,
+        "timed_out": false,
+        "max_single_process_rss_bytes": 1836691456,
+        "sampled_tree_rss_bytes": 1858195456,
+        "rss_sample_method": "all_threads"
+      }
+    ]
+  },
+  {
+    "case": "11-PXD046453",
+    "dataset": "PXD046453",
+    "instrument": "Unknown instrument of Thermo Fisher Scientific",
+    "source_filename": "20230320_OLEP08_1000ngHeK_uPAC_180k-30min_MontBlanc_2p5ms_0p5_2Th_01.raw",
+    "source_sha256": "b0818abe768b7446b401b8b214ec85e4f339e5d9439bf0d1b8af32761671a2be",
+    "source_bytes": 16947502466,
+    "mode": "vendor",
+    "required_repeats": 3,
+    "eligible": false,
+    "status": "Unsupported instrument metadata",
+    "metrics": {
+      "numerically_validated": false,
+      "successful_runs": 0,
+      "attempted_runs": 0,
+      "required_runs": 3,
+      "all_wall_seconds": []
+    },
+    "measured_runs": [],
+    "validation_passed": false,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 152.9067952632904,
+        "returncode": 1,
+        "timed_out": false,
+        "max_single_process_rss_bytes": 802140160,
+        "sampled_tree_rss_bytes": 802848768,
+        "rss_sample_method": "all_threads"
+      }
+    ]
+  },
+  {
+    "case": "11-PXD046453",
+    "dataset": "PXD046453",
+    "instrument": "Unknown instrument of Thermo Fisher Scientific",
+    "source_filename": "20230320_OLEP08_1000ngHeK_uPAC_180k-30min_MontBlanc_2p5ms_0p5_2Th_01.raw",
+    "source_sha256": "b0818abe768b7446b401b8b214ec85e4f339e5d9439bf0d1b8af32761671a2be",
+    "source_bytes": 16947502466,
+    "mode": "official_default_z3",
+    "required_repeats": 3,
+    "eligible": false,
+    "status": "Unsupported instrument metadata",
+    "metrics": {
+      "numerically_validated": false,
+      "successful_runs": 0,
+      "attempted_runs": 0,
+      "required_runs": 3,
+      "all_wall_seconds": []
+    },
+    "measured_runs": [],
+    "validation_passed": false,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 39.23952011577785,
+        "returncode": 101,
+        "timed_out": false,
+        "max_single_process_rss_bytes": 226742272,
+        "sampled_tree_rss_bytes": 221605888,
+        "rss_sample_method": "all_threads"
+      }
+    ]
+  },
+  {
+    "case": "12-PXD049028",
+    "dataset": "PXD049028",
+    "instrument": "Orbitrap Astral",
+    "source_filename": "20231206_HAP1_1ug_60min_DIA_2Th_5e4_3p5ms_rep01.raw",
+    "source_sha256": "e18a895300ed8b10605cd9cb4013f0336609392410fedc96ca16db0c61382832",
+    "source_bytes": 21777133294,
+    "mode": "rawr",
+    "required_repeats": 3,
+    "eligible": true,
+    "status": "Validated",
+    "metrics": {
+      "numerically_validated": true,
+      "successful_runs": 3,
+      "attempted_runs": 3,
+      "required_runs": 3,
+      "all_wall_seconds": [
+        268.1023145839572,
+        256.7050936091691,
+        270.94763788580894
+      ],
+      "input_bytes_per_second": 81226949.97166991,
+      "source_points_per_second": 5638933.618853823,
+      "median_seconds": 268.1023145839572,
+      "output_bytes": 5467441821,
+      "median_peak_process_rss_bytes": 3891286016,
+      "median_tree_rss_bytes": 3912957952
+    },
+    "measured_runs": [
+      {
+        "phase": "measure",
+        "block": 0,
+        "wall_seconds": 268.1023145839572,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 5467441821,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 3891286016,
+        "sampled_tree_rss_bytes": 3912957952,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "aa9c9833140ed4193237b6e516ff0361025492cd6b7bbb275de0b31a38e5cbab",
+          "signal.index.zst": "67118507d608ef6804c4f6f22996e4a0f862140f84456bb8d6b70761ece752a7"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 1,
+        "wall_seconds": 256.7050936091691,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 5467441821,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 3891490816,
+        "sampled_tree_rss_bytes": 3913019392,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "aa9c9833140ed4193237b6e516ff0361025492cd6b7bbb275de0b31a38e5cbab",
+          "signal.index.zst": "67118507d608ef6804c4f6f22996e4a0f862140f84456bb8d6b70761ece752a7"
+        }
+      },
+      {
+        "phase": "measure",
+        "block": 2,
+        "wall_seconds": 270.94763788580894,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 5467441821,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 3890450432,
+        "sampled_tree_rss_bytes": 3912040448,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "aa9c9833140ed4193237b6e516ff0361025492cd6b7bbb275de0b31a38e5cbab",
+          "signal.index.zst": "67118507d608ef6804c4f6f22996e4a0f862140f84456bb8d6b70761ece752a7"
+        }
+      }
+    ],
+    "validation_passed": true,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 265.9746522177011,
+        "returncode": 0,
+        "timed_out": false,
+        "output_bytes": 5467441821,
+        "valid_archive": true,
+        "max_single_process_rss_bytes": 3890728960,
+        "sampled_tree_rss_bytes": 3912511488,
+        "rss_sample_method": "all_threads",
+        "signal_hashes": {
+          "signal.bin": "aa9c9833140ed4193237b6e516ff0361025492cd6b7bbb275de0b31a38e5cbab",
+          "signal.index.zst": "67118507d608ef6804c4f6f22996e4a0f862140f84456bb8d6b70761ece752a7"
+        }
+      }
+    ]
+  },
+  {
+    "case": "12-PXD049028",
+    "dataset": "PXD049028",
+    "instrument": "Orbitrap Astral",
+    "source_filename": "20231206_HAP1_1ug_60min_DIA_2Th_5e4_3p5ms_rep01.raw",
+    "source_sha256": "e18a895300ed8b10605cd9cb4013f0336609392410fedc96ca16db0c61382832",
+    "source_bytes": 21777133294,
+    "mode": "vendor",
+    "required_repeats": 3,
+    "eligible": false,
+    "status": "Timeout (600 s)",
+    "metrics": {
+      "numerically_validated": false,
+      "successful_runs": 0,
+      "attempted_runs": 0,
+      "required_runs": 3,
+      "all_wall_seconds": []
+    },
+    "measured_runs": [],
+    "validation_passed": false,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 600.0194391869009,
+        "returncode": -9,
+        "timed_out": true,
+        "sampled_tree_rss_bytes": 2373775360,
+        "rss_sample_method": "all_threads"
+      }
+    ]
+  },
+  {
+    "case": "12-PXD049028",
+    "dataset": "PXD049028",
+    "instrument": "Orbitrap Astral",
+    "source_filename": "20231206_HAP1_1ug_60min_DIA_2Th_5e4_3p5ms_rep01.raw",
+    "source_sha256": "e18a895300ed8b10605cd9cb4013f0336609392410fedc96ca16db0c61382832",
+    "source_bytes": 21777133294,
+    "mode": "official_default_z3",
+    "required_repeats": 3,
+    "eligible": false,
+    "status": "Timeout (600 s)",
+    "metrics": {
+      "numerically_validated": false,
+      "successful_runs": 0,
+      "attempted_runs": 0,
+      "required_runs": 3,
+      "all_wall_seconds": []
+    },
+    "measured_runs": [],
+    "validation_passed": false,
+    "excluded_runs": [
+      {
+        "phase": "warmup",
+        "block": -1,
+        "wall_seconds": 600.0116578433663,
+        "returncode": -9,
+        "timed_out": true,
+        "sampled_tree_rss_bytes": 1085210624,
+        "rss_sample_method": "all_threads"
+      }
+    ]
+  }
+]

@@ -1,0 +1,25 @@
+{
+  "reason": "User requested fewer repeats",
+  "previous_results": "results",
+  "timestamp": 1792540617.4306474,
+  "new_measured_repeats": 3,
+  "excluded_warmups": 1,
+  "selection": "First three randomized measured blocks for unfinished cases; completed cases retain all seven.",
+  "validation": "Unchanged independent all-point validation and numerical bounds",
+  "conversion_binaries_unchanged": true,
+  "binary_sha256": {
+    "runtime/code/fast_raw/target/release/fast_raw": "f27b83310f1bd3a8754e8ef658a39954655490e143bdbfa811d11f3bd62806ff",
+    "runtime/code/native_metadata/target/release/native_metadata": "d64a0fb4d6f2cd7561189e66a28a6dd9e5010e823530fe3062f52193d227dfe4",
+    "runtime/reference/target/release/examples/convert": "2201b00313bc3efc280de6f5eb411223d2e006b5c3533fc52a473190211aa644",
+    "runtime/code/oracle/metadata_only": "ea8c1489823f09466bb539b5c6f7f1f51c92445ee5e5e895deae7185019e9985",
+    "runtime/code/fast_raw/target-vendor/release/fast_raw": "2b9bbb4e5c21e225f74c8940fbaba49f2f4bff2e39553ced281fb164c6d65f4f",
+    "runtime/code/bin/metadata_only": "ea8c1489823f09466bb539b5c6f7f1f51c92445ee5e5e895deae7185019e9985",
+    "runtime/code/warrior/reader/DirectRawFast.dll": "bfecaadde41652dc6ee774b44bbe78f885602b93c79b6d24e89051801e4032df"
+  },
+  "harness_sha256": {
+    "benchmark_native.py": "9dcd99e30ed96c86377d80f2c9777f8f42316ef5524f2a0f92122e56192b3f30",
+    "benchmark_readers.py": "da238b51e0ba8317b45ecdc899a63b98f4d7111a6df0d2bbba34d8cd9405a9a1",
+    "continue_three.py": "951d8d4865f3e4e4fa711dba9627ad64e4494434aa442b07db640f063ae9ed7b",
+    "test_reader_campaign.py": "2e3c08aeb54222647f4ce2fd311b195c1d29261a5ae1a26b1e50e54887616f53"
+  }
+}

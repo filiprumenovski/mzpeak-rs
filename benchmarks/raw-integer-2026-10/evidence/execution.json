@@ -1,0 +1,49 @@
+{
+  "job": "40651081",
+  "host": "mem1",
+  "affinity": [
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33
+  ],
+  "plan_sha256": "72a23edc47066576db4fe9240e72961a4ea3dc88e62f77032ea5f977e0f11941",
+  "started_unix": 1792540792.4473038,
+  "rss_sampling_seconds": 0.05,
+  "environment": {
+    "MZLAB_VENDOR_READER_DLL": "runtime/code/warrior/reader/DirectRawFast.dll",
+    "MZLAB_VALIDATION_READER_DLL": "runtime/code/warrior/validation-reader/DirectRaw.dll",
+    "DOTNET_ROLL_FORWARD": "Major",
+    "RAYON_NUM_THREADS": "8",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MZLAB_CPU_WORKDIR": "mzlab-readers-40651081",
+    "MZLAB_RESULTS_DIR": "three-results",
+    "DOTNET_SYSTEM_GLOBALIZATION_INVARIANT": "1",
+    "MKL_NUM_THREADS": "1",
+    "DOTNET_ROOT": "runtime/dotnet",
+    "MZLAB_RUNTIME_STAGED": "1",
+    "DOTNET_TieredPGO": "0",
+    "DOTNET_SYSTEM_GLOBALIZATION_PREDEFINED_CULTURES_ONLY": "0",
+    "MZLAB_VALIDATOR_PYTHON": "runtime/.validation-venv/bin/python",
+    "MZLAB_STAGE_ONLY": "1",
+    "DOTNET_GCConserveMemory": "0",
+    "OMP_NUM_THREADS": "8",
+    "MZLAB_MZ_PPM": "0.01",
+    "MZLAB_INTENSITY_ERROR": "0.001",
+    "MZLAB_ZSTD_LEVEL": "3",
+    "MZLAB_SPARSE_TRANSPOSE": "0"
+  },
+  "binary_sha256": {
+    "runtime/code/fast_raw/target/release/fast_raw": "f27b83310f1bd3a8754e8ef658a39954655490e143bdbfa811d11f3bd62806ff",
+    "runtime/code/native_metadata/target/release/native_metadata": "d64a0fb4d6f2cd7561189e66a28a6dd9e5010e823530fe3062f52193d227dfe4",
+    "runtime/reference/target/release/examples/convert": "2201b00313bc3efc280de6f5eb411223d2e006b5c3533fc52a473190211aa644",
+    "runtime/code/oracle/metadata_only": "ea8c1489823f09466bb539b5c6f7f1f51c92445ee5e5e895deae7185019e9985",
+    "runtime/code/fast_raw/target-vendor/release/fast_raw": "2b9bbb4e5c21e225f74c8940fbaba49f2f4bff2e39553ced281fb164c6d65f4f",
+    "runtime/code/bin/metadata_only": "ea8c1489823f09466bb539b5c6f7f1f51c92445ee5e5e895deae7185019e9985",
+    "runtime/code/warrior/reader/DirectRawFast.dll": "bfecaadde41652dc6ee774b44bbe78f885602b93c79b6d24e89051801e4032df"
+  }
+}

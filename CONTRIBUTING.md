@@ -11,8 +11,8 @@ Please be respectful and constructive in all interactions. We welcome contributo
 1. **Fork the repository** on GitHub
 2. **Clone your fork** locally:
    ```bash
-   git clone https://github.com/filiprumenovski/mzpeak.git
-   cd mzpeak
+   git clone https://github.com/filiprumenovski/mzpeak-rs.git
+   cd mzpeak-rs
    ```
 3. **Create a branch** for your changes:
    ```bash

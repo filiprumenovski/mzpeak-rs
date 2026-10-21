@@ -1,0 +1,2592 @@
+[
+  {
+    "case": "00-HeLa_control",
+    "validation": {
+      "official_default_z3": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792538381.1569004,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 66.70215301215649,
+        "sampled_tree_rss_bytes": 1242730496,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 71.62,
+        "system_cpu_seconds": 6.35,
+        "max_single_process_rss_bytes": 811442176,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 56,
+        "valid": true,
+        "details": {
+          "valid": true,
+          "spectra": 38419,
+          "source_points": 137350797,
+          "retained_points": 95238095,
+          "profile_zeros_removed": 42112702,
+          "source_array_sha256": "9b657939094f00219b2d8e409957dc34d9ab074a17b9b5e596689b73a2050cda",
+          "official_archives": [
+            "official_default_z3-0.mzpeak"
+          ],
+          "retained_values_exact": true,
+          "empty_signal_tables": [
+            []
+          ],
+          "decoder": "Pinned official array iterator; public iterator agreement checked on first 32 spectra"
+        }
+      },
+      "rawr": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792538448.1116521,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 51.40151797235012,
+        "sampled_tree_rss_bytes": 1506734080,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 56.27,
+        "system_cpu_seconds": 4.31,
+        "max_single_process_rss_bytes": 811601920,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 280,
+        "valid": true,
+        "details": {
+          "raw": "hela.raw",
+          "reference": "official_default_z3-0.mzpeak",
+          "reference_scope": "complete official export",
+          "acquisition_metadata_exact_except_converter_provenance": true,
+          "tables": {
+            "spectra_metadata.parquet": {
+              "rows": 38419,
+              "columns_exact": 14,
+              "physical_calibration_summary_comparison": {
+                "lowest_observed_mz": {
+                  "different_values": 338,
+                  "max_error_ppm": 4.717240912087176e-05,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                },
+                "highest_observed_mz": {
+                  "different_values": 338,
+                  "max_error_ppm": 4.717251635786527e-05,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                },
+                "base_peak_mz": {
+                  "different_values": 338,
+                  "max_error_ppm": 4.7172364245947174e-05,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                }
+              }
+            },
+            "spectra_metadata_scans.parquet": {
+              "rows": 38419,
+              "columns_exact": 12
+            },
+            "spectra_metadata_precursors.parquet": {
+              "rows": 32888,
+              "columns_exact": 5
+            },
+            "spectra_metadata_selected_ions.parquet": {
+              "rows": 32888,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata.parquet": {
+              "rows": 2,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata_precursors.parquet": {
+              "rows": 0,
+              "columns_exact": 5
+            },
+            "chromatograms_metadata_selected_ions.parquet": {
+              "rows": 0,
+              "columns_exact": 9
+            },
+            "chromatograms_data.parquet": {
+              "rows": 76838,
+              "columns_exact": 1
+            }
+          },
+          "all_source_point_counts_preserved": true,
+          "all_spectra_all_points_validated": true,
+          "all_source_summaries_validated": true,
+          "max_source_summary_mz_difference_ppm": 4.717251635786527e-05,
+          "spectra": 38419,
+          "points": 137350797,
+          "max_mz_error_ppm": 0.009021988039868423,
+          "max_intensity_relative_error": 0.0009999989301607063,
+          "max_tic_relative_error": 0.000680386399654509,
+          "zeros_preserved": 58900013,
+          "source_array_sha256": "9b657939094f00219b2d8e409957dc34d9ab074a17b9b5e596689b73a2050cda",
+          "declared_bounds": {
+            "mz_ppm": 0.01,
+            "intensity_relative": 0.001
+          }
+        }
+      },
+      "vendor": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792538499.5580697,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 50.91660185344517,
+        "sampled_tree_rss_bytes": 1509457920,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 57.72,
+        "system_cpu_seconds": 4.32,
+        "max_single_process_rss_bytes": 811352064,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 24,
+        "valid": true,
+        "details": {
+          "raw": "hela.raw",
+          "reference": "official_default_z3-0.mzpeak",
+          "reference_scope": "complete official export",
+          "acquisition_metadata_exact_except_converter_provenance": true,
+          "tables": {
+            "spectra_metadata.parquet": {
+              "rows": 38419,
+              "columns_exact": 17
+            },
+            "spectra_metadata_scans.parquet": {
+              "rows": 38419,
+              "columns_exact": 12
+            },
+            "spectra_metadata_precursors.parquet": {
+              "rows": 32888,
+              "columns_exact": 5
+            },
+            "spectra_metadata_selected_ions.parquet": {
+              "rows": 32888,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata.parquet": {
+              "rows": 2,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata_precursors.parquet": {
+              "rows": 0,
+              "columns_exact": 5
+            },
+            "chromatograms_metadata_selected_ions.parquet": {
+              "rows": 0,
+              "columns_exact": 9
+            },
+            "chromatograms_data.parquet": {
+              "rows": 76838,
+              "columns_exact": 1
+            }
+          },
+          "all_source_point_counts_preserved": true,
+          "all_spectra_all_points_validated": true,
+          "all_source_summaries_validated": true,
+          "max_source_summary_mz_difference_ppm": 0.0,
+          "spectra": 38419,
+          "points": 137350797,
+          "max_mz_error_ppm": 0.008999099651941593,
+          "max_intensity_relative_error": 0.0009999989301607063,
+          "max_tic_relative_error": 0.000680386399654509,
+          "zeros_preserved": 58900013,
+          "source_array_sha256": "9b657939094f00219b2d8e409957dc34d9ab074a17b9b5e596689b73a2050cda",
+          "declared_bounds": {
+            "mz_ppm": 0.01,
+            "intensity_relative": 0.001
+          }
+        }
+      }
+    },
+    "randomized_orders": [
+      [
+        "rawr",
+        "vendor",
+        "official_default_z3"
+      ],
+      [
+        "vendor",
+        "rawr",
+        "official_default_z3"
+      ],
+      [
+        "official_default_z3",
+        "vendor",
+        "rawr"
+      ],
+      [
+        "rawr",
+        "vendor",
+        "official_default_z3"
+      ],
+      [
+        "official_default_z3",
+        "rawr",
+        "vendor"
+      ],
+      [
+        "official_default_z3",
+        "rawr",
+        "vendor"
+      ],
+      [
+        "official_default_z3",
+        "vendor",
+        "rawr"
+      ],
+      [
+        "rawr",
+        "official_default_z3",
+        "vendor"
+      ]
+    ]
+  },
+  {
+    "case": "01-PXD017803",
+    "validation": {
+      "official_default_z3": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792538843.1801457,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 11.162410821765661,
+        "sampled_tree_rss_bytes": 451649536,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 11.42,
+        "system_cpu_seconds": 0.68,
+        "max_single_process_rss_bytes": 233062400,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 24,
+        "valid": true,
+        "details": {
+          "valid": true,
+          "spectra": 17440,
+          "source_points": 5494413,
+          "retained_points": 5494413,
+          "profile_zeros_removed": 0,
+          "source_array_sha256": "64d988bfd641003a3a0745aa0370785360016b13577dcbccfef6e4f42896b32d",
+          "official_archives": [
+            "official_default_z3-0.mzpeak"
+          ],
+          "retained_values_exact": true,
+          "empty_signal_tables": [
+            [
+              "spectrum_data"
+            ]
+          ],
+          "decoder": "Pinned official array iterator; public iterator agreement checked on first 32 spectra"
+        }
+      },
+      "rawr": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792538854.4290266,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 7.851112376898527,
+        "sampled_tree_rss_bytes": 549097472,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 7.95,
+        "system_cpu_seconds": 0.65,
+        "max_single_process_rss_bytes": 315105280,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 24,
+        "valid": true,
+        "details": {
+          "raw": "Fig2_m23142_hrMS2.raw",
+          "reference": "official_default_z3-0.mzpeak",
+          "reference_scope": "complete official export",
+          "acquisition_metadata_exact_except_converter_provenance": true,
+          "tables": {
+            "spectra_metadata.parquet": {
+              "rows": 17440,
+              "columns_exact": 17
+            },
+            "spectra_metadata_scans.parquet": {
+              "rows": 17440,
+              "columns_exact": 12
+            },
+            "spectra_metadata_precursors.parquet": {
+              "rows": 14377,
+              "columns_exact": 5
+            },
+            "spectra_metadata_selected_ions.parquet": {
+              "rows": 14377,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata.parquet": {
+              "rows": 2,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata_precursors.parquet": {
+              "rows": 0,
+              "columns_exact": 5
+            },
+            "chromatograms_metadata_selected_ions.parquet": {
+              "rows": 0,
+              "columns_exact": 9
+            },
+            "chromatograms_data.parquet": {
+              "rows": 34880,
+              "columns_exact": 1
+            }
+          },
+          "all_source_point_counts_preserved": true,
+          "all_spectra_all_points_validated": true,
+          "all_source_summaries_validated": true,
+          "max_source_summary_mz_difference_ppm": 0.0,
+          "spectra": 17440,
+          "points": 5494413,
+          "max_mz_error_ppm": 0.008997062227802865,
+          "max_intensity_relative_error": 0.0009999988387994715,
+          "max_tic_relative_error": 0.0006417374470788495,
+          "zeros_preserved": 0,
+          "source_array_sha256": "64d988bfd641003a3a0745aa0370785360016b13577dcbccfef6e4f42896b32d",
+          "declared_bounds": {
+            "mz_ppm": 0.01,
+            "intensity_relative": 0.001
+          }
+        }
+      },
+      "vendor": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792538862.347364,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 7.806900864467025,
+        "sampled_tree_rss_bytes": 538984448,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 7.87,
+        "system_cpu_seconds": 0.67,
+        "max_single_process_rss_bytes": 306032640,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 24,
+        "valid": true,
+        "details": {
+          "raw": "Fig2_m23142_hrMS2.raw",
+          "reference": "official_default_z3-0.mzpeak",
+          "reference_scope": "complete official export",
+          "acquisition_metadata_exact_except_converter_provenance": true,
+          "tables": {
+            "spectra_metadata.parquet": {
+              "rows": 17440,
+              "columns_exact": 17
+            },
+            "spectra_metadata_scans.parquet": {
+              "rows": 17440,
+              "columns_exact": 12
+            },
+            "spectra_metadata_precursors.parquet": {
+              "rows": 14377,
+              "columns_exact": 5
+            },
+            "spectra_metadata_selected_ions.parquet": {
+              "rows": 14377,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata.parquet": {
+              "rows": 2,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata_precursors.parquet": {
+              "rows": 0,
+              "columns_exact": 5
+            },
+            "chromatograms_metadata_selected_ions.parquet": {
+              "rows": 0,
+              "columns_exact": 9
+            },
+            "chromatograms_data.parquet": {
+              "rows": 34880,
+              "columns_exact": 1
+            }
+          },
+          "all_source_point_counts_preserved": true,
+          "all_spectra_all_points_validated": true,
+          "all_source_summaries_validated": true,
+          "max_source_summary_mz_difference_ppm": 0.0,
+          "spectra": 17440,
+          "points": 5494413,
+          "max_mz_error_ppm": 0.008997062227802865,
+          "max_intensity_relative_error": 0.0009999988387994715,
+          "max_tic_relative_error": 0.0006417374470788495,
+          "zeros_preserved": 0,
+          "source_array_sha256": "64d988bfd641003a3a0745aa0370785360016b13577dcbccfef6e4f42896b32d",
+          "declared_bounds": {
+            "mz_ppm": 0.01,
+            "intensity_relative": 0.001
+          }
+        }
+      }
+    },
+    "randomized_orders": [
+      [
+        "rawr",
+        "official_default_z3",
+        "vendor"
+      ],
+      [
+        "official_default_z3",
+        "vendor",
+        "rawr"
+      ],
+      [
+        "official_default_z3",
+        "vendor",
+        "rawr"
+      ],
+      [
+        "vendor",
+        "official_default_z3",
+        "rawr"
+      ],
+      [
+        "official_default_z3",
+        "vendor",
+        "rawr"
+      ],
+      [
+        "vendor",
+        "rawr",
+        "official_default_z3"
+      ],
+      [
+        "vendor",
+        "official_default_z3",
+        "rawr"
+      ],
+      [
+        "official_default_z3",
+        "rawr",
+        "vendor"
+      ]
+    ]
+  },
+  {
+    "case": "02-PXD023203",
+    "validation": {
+      "official_default_z3": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792539746.671081,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 25.244628567248583,
+        "sampled_tree_rss_bytes": 620646400,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 26.2,
+        "system_cpu_seconds": 1.07,
+        "max_single_process_rss_bytes": 353075200,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 56,
+        "valid": true,
+        "details": {
+          "valid": true,
+          "spectra": 43770,
+          "source_points": 12914050,
+          "retained_points": 12914050,
+          "profile_zeros_removed": 0,
+          "source_array_sha256": "f5dca3081013df98fdcc6156070243827308bd7bc8d7d1dd70e4425c1f7eba4b",
+          "official_archives": [
+            "official_default_z3-0.mzpeak"
+          ],
+          "retained_values_exact": true,
+          "empty_signal_tables": [
+            [
+              "spectrum_data"
+            ]
+          ],
+          "decoder": "Pinned official array iterator; public iterator agreement checked on first 32 spectra"
+        }
+      },
+      "rawr": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792539772.061228,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 17.719600962474942,
+        "sampled_tree_rss_bytes": 935030784,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 18.08,
+        "system_cpu_seconds": 1.23,
+        "max_single_process_rss_bytes": 574107648,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 24,
+        "valid": true,
+        "details": {
+          "raw": "FAIMS_SPS_ea02045.raw",
+          "reference": "official_default_z3-0.mzpeak",
+          "reference_scope": "complete official export",
+          "acquisition_metadata_exact_except_converter_provenance": true,
+          "tables": {
+            "spectra_metadata.parquet": {
+              "rows": 43770,
+              "columns_exact": 15,
+              "physical_calibration_summary_comparison": {
+                "lowest_observed_mz": {
+                  "different_values": 0,
+                  "max_error_ppm": 0.0,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 28
+                },
+                "highest_observed_mz": {
+                  "different_values": 0,
+                  "max_error_ppm": 0.0,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 28
+                }
+              }
+            },
+            "spectra_metadata_scans.parquet": {
+              "rows": 43770,
+              "columns_exact": 12
+            },
+            "spectra_metadata_precursors.parquet": {
+              "rows": 38916,
+              "columns_exact": 5
+            },
+            "spectra_metadata_selected_ions.parquet": {
+              "rows": 38916,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata.parquet": {
+              "rows": 2,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata_precursors.parquet": {
+              "rows": 0,
+              "columns_exact": 5
+            },
+            "chromatograms_metadata_selected_ions.parquet": {
+              "rows": 0,
+              "columns_exact": 9
+            },
+            "chromatograms_data.parquet": {
+              "rows": 87540,
+              "columns_exact": 1
+            }
+          },
+          "all_source_point_counts_preserved": true,
+          "all_spectra_all_points_validated": true,
+          "all_source_summaries_validated": true,
+          "max_source_summary_mz_difference_ppm": 0.0,
+          "spectra": 43770,
+          "points": 12914050,
+          "max_mz_error_ppm": 0.00899422013004348,
+          "max_intensity_relative_error": 0.0009999988390028591,
+          "max_tic_relative_error": 0.0007911078068439936,
+          "zeros_preserved": 0,
+          "source_array_sha256": "f5dca3081013df98fdcc6156070243827308bd7bc8d7d1dd70e4425c1f7eba4b",
+          "declared_bounds": {
+            "mz_ppm": 0.01,
+            "intensity_relative": 0.001
+          }
+        }
+      },
+      "vendor": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792539789.917457,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 17.540905678644776,
+        "sampled_tree_rss_bytes": 930381824,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 17.89,
+        "system_cpu_seconds": 1.23,
+        "max_single_process_rss_bytes": 570363904,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 24,
+        "valid": true,
+        "details": {
+          "raw": "FAIMS_SPS_ea02045.raw",
+          "reference": "official_default_z3-0.mzpeak",
+          "reference_scope": "complete official export",
+          "acquisition_metadata_exact_except_converter_provenance": true,
+          "tables": {
+            "spectra_metadata.parquet": {
+              "rows": 43770,
+              "columns_exact": 15,
+              "empty_scan_range_sentinel_differences": {
+                "lowest_observed_mz": 28,
+                "highest_observed_mz": 28
+              }
+            },
+            "spectra_metadata_scans.parquet": {
+              "rows": 43770,
+              "columns_exact": 12
+            },
+            "spectra_metadata_precursors.parquet": {
+              "rows": 38916,
+              "columns_exact": 5
+            },
+            "spectra_metadata_selected_ions.parquet": {
+              "rows": 38916,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata.parquet": {
+              "rows": 2,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata_precursors.parquet": {
+              "rows": 0,
+              "columns_exact": 5
+            },
+            "chromatograms_metadata_selected_ions.parquet": {
+              "rows": 0,
+              "columns_exact": 9
+            },
+            "chromatograms_data.parquet": {
+              "rows": 87540,
+              "columns_exact": 1
+            }
+          },
+          "all_source_point_counts_preserved": true,
+          "all_spectra_all_points_validated": true,
+          "all_source_summaries_validated": true,
+          "max_source_summary_mz_difference_ppm": 0.0,
+          "spectra": 43770,
+          "points": 12914050,
+          "max_mz_error_ppm": 0.00899422013004348,
+          "max_intensity_relative_error": 0.0009999988390028591,
+          "max_tic_relative_error": 0.0007911078068439936,
+          "zeros_preserved": 0,
+          "source_array_sha256": "f5dca3081013df98fdcc6156070243827308bd7bc8d7d1dd70e4425c1f7eba4b",
+          "declared_bounds": {
+            "mz_ppm": 0.01,
+            "intensity_relative": 0.001
+          }
+        }
+      }
+    },
+    "randomized_orders": [
+      [
+        "rawr",
+        "vendor",
+        "official_default_z3"
+      ],
+      [
+        "vendor",
+        "rawr",
+        "official_default_z3"
+      ],
+      [
+        "rawr",
+        "official_default_z3",
+        "vendor"
+      ],
+      [
+        "official_default_z3",
+        "rawr",
+        "vendor"
+      ],
+      [
+        "rawr",
+        "official_default_z3",
+        "vendor"
+      ],
+      [
+        "official_default_z3",
+        "rawr",
+        "vendor"
+      ],
+      [
+        "vendor",
+        "official_default_z3",
+        "rawr"
+      ],
+      [
+        "vendor",
+        "official_default_z3",
+        "rawr"
+      ]
+    ]
+  },
+  {
+    "case": "03-PXD043660",
+    "validation": {
+      "official_default_z3": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792540625.8565762,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 70.93928833678365,
+        "sampled_tree_rss_bytes": 1202020352,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 75.22,
+        "system_cpu_seconds": 6.03,
+        "max_single_process_rss_bytes": 785649664,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 48,
+        "valid": true,
+        "details": {
+          "valid": true,
+          "spectra": 38640,
+          "source_points": 132647307,
+          "retained_points": 84034478,
+          "profile_zeros_removed": 48612829,
+          "source_array_sha256": "19d5a92c7d320bcf82fd2fe1276daa957f45f2d0292d547569161d5b51388a83",
+          "official_archives": [
+            "official_default_z3-0.mzpeak"
+          ],
+          "retained_values_exact": true,
+          "empty_signal_tables": [
+            []
+          ],
+          "decoder": "Pinned official array iterator; public iterator agreement checked on first 32 spectra"
+        }
+      },
+      "rawr": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792540696.8394816,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 46.59440510161221,
+        "sampled_tree_rss_bytes": 1430376448,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 51.86,
+        "system_cpu_seconds": 3.89,
+        "max_single_process_rss_bytes": 784912384,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 24,
+        "valid": true,
+        "details": {
+          "raw": "20220726_Ascend_2ProteomeMix_Keese_qysrsColumn_HYpro_TMT16_G65min_HrMS2_HCD36_IT54_30K_phiSDM_028.raw",
+          "reference": "official_default_z3-0.mzpeak",
+          "reference_scope": "complete official export",
+          "acquisition_metadata_exact_except_converter_provenance": true,
+          "tables": {
+            "spectra_metadata.parquet": {
+              "rows": 38640,
+              "columns_exact": 14,
+              "physical_calibration_summary_comparison": {
+                "lowest_observed_mz": {
+                  "different_values": 1156,
+                  "max_error_ppm": 5.8186835658169034e-05,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                },
+                "highest_observed_mz": {
+                  "different_values": 1156,
+                  "max_error_ppm": 5.818669237238497e-05,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                },
+                "base_peak_mz": {
+                  "different_values": 1156,
+                  "max_error_ppm": 5.8186931332716766e-05,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                }
+              }
+            },
+            "spectra_metadata_scans.parquet": {
+              "rows": 38640,
+              "columns_exact": 12
+            },
+            "spectra_metadata_precursors.parquet": {
+              "rows": 30246,
+              "columns_exact": 5
+            },
+            "spectra_metadata_selected_ions.parquet": {
+              "rows": 30246,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata.parquet": {
+              "rows": 2,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata_precursors.parquet": {
+              "rows": 0,
+              "columns_exact": 5
+            },
+            "chromatograms_metadata_selected_ions.parquet": {
+              "rows": 0,
+              "columns_exact": 9
+            },
+            "chromatograms_data.parquet": {
+              "rows": 77280,
+              "columns_exact": 1
+            }
+          },
+          "all_source_point_counts_preserved": true,
+          "all_spectra_all_points_validated": true,
+          "all_source_summaries_validated": true,
+          "max_source_summary_mz_difference_ppm": 5.8186931332716766e-05,
+          "spectra": 38640,
+          "points": 132647307,
+          "max_mz_error_ppm": 0.009054957701046916,
+          "max_intensity_relative_error": 0.000999998949013778,
+          "max_tic_relative_error": 0.0006135571647261084,
+          "zeros_preserved": 65775018,
+          "source_array_sha256": "19d5a92c7d320bcf82fd2fe1276daa957f45f2d0292d547569161d5b51388a83",
+          "declared_bounds": {
+            "mz_ppm": 0.01,
+            "intensity_relative": 0.001
+          }
+        }
+      },
+      "vendor": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792540743.7039943,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 47.770378371700644,
+        "sampled_tree_rss_bytes": 1430716416,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 53.32,
+        "system_cpu_seconds": 4.01,
+        "max_single_process_rss_bytes": 785559552,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 24,
+        "valid": true,
+        "details": {
+          "raw": "20220726_Ascend_2ProteomeMix_Keese_qysrsColumn_HYpro_TMT16_G65min_HrMS2_HCD36_IT54_30K_phiSDM_028.raw",
+          "reference": "official_default_z3-0.mzpeak",
+          "reference_scope": "complete official export",
+          "acquisition_metadata_exact_except_converter_provenance": true,
+          "tables": {
+            "spectra_metadata.parquet": {
+              "rows": 38640,
+              "columns_exact": 17
+            },
+            "spectra_metadata_scans.parquet": {
+              "rows": 38640,
+              "columns_exact": 12
+            },
+            "spectra_metadata_precursors.parquet": {
+              "rows": 30246,
+              "columns_exact": 5
+            },
+            "spectra_metadata_selected_ions.parquet": {
+              "rows": 30246,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata.parquet": {
+              "rows": 2,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata_precursors.parquet": {
+              "rows": 0,
+              "columns_exact": 5
+            },
+            "chromatograms_metadata_selected_ions.parquet": {
+              "rows": 0,
+              "columns_exact": 9
+            },
+            "chromatograms_data.parquet": {
+              "rows": 77280,
+              "columns_exact": 1
+            }
+          },
+          "all_source_point_counts_preserved": true,
+          "all_spectra_all_points_validated": true,
+          "all_source_summaries_validated": true,
+          "max_source_summary_mz_difference_ppm": 0.0,
+          "spectra": 38640,
+          "points": 132647307,
+          "max_mz_error_ppm": 0.008999575504885813,
+          "max_intensity_relative_error": 0.000999998949013778,
+          "max_tic_relative_error": 0.0006135571647261084,
+          "zeros_preserved": 65775018,
+          "source_array_sha256": "19d5a92c7d320bcf82fd2fe1276daa957f45f2d0292d547569161d5b51388a83",
+          "declared_bounds": {
+            "mz_ppm": 0.01,
+            "intensity_relative": 0.001
+          }
+        }
+      }
+    },
+    "randomized_orders": [
+      [
+        "rawr",
+        "vendor",
+        "official_default_z3"
+      ],
+      [
+        "rawr",
+        "vendor",
+        "official_default_z3"
+      ],
+      [
+        "vendor",
+        "official_default_z3",
+        "rawr"
+      ],
+      [
+        "vendor",
+        "official_default_z3",
+        "rawr"
+      ],
+      [
+        "vendor",
+        "official_default_z3",
+        "rawr"
+      ],
+      [
+        "vendor",
+        "rawr",
+        "official_default_z3"
+      ],
+      [
+        "vendor",
+        "official_default_z3",
+        "rawr"
+      ],
+      [
+        "official_default_z3",
+        "vendor",
+        "rawr"
+      ]
+    ]
+  },
+  {
+    "case": "04-PXD019848",
+    "validation": {
+      "official_default_z3": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792541350.5412984,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 65.45153701677918,
+        "sampled_tree_rss_bytes": 1221304320,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 70.37,
+        "system_cpu_seconds": 6.05,
+        "max_single_process_rss_bytes": 784265216,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 48,
+        "valid": true,
+        "details": {
+          "valid": true,
+          "spectra": 39625,
+          "source_points": 131676732,
+          "retained_points": 91074286,
+          "profile_zeros_removed": 40602446,
+          "source_array_sha256": "12f7c4c81065deecd8dc1aec236a22ffb64acaf31896146b2ab77929e4c09f2e",
+          "official_archives": [
+            "official_default_z3-0.mzpeak"
+          ],
+          "retained_values_exact": true,
+          "empty_signal_tables": [
+            []
+          ],
+          "decoder": "Pinned official array iterator; public iterator agreement checked on first 32 spectra"
+        }
+      },
+      "rawr": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792541425.2603374,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 51.56629825755954,
+        "sampled_tree_rss_bytes": 1469243392,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 57.67,
+        "system_cpu_seconds": 4.17,
+        "max_single_process_rss_bytes": 784400384,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 24,
+        "valid": true,
+        "details": {
+          "raw": "500ng_HeLa_350_1150mz_nonFAIMS_Rs30000_200ms_Rep4.raw",
+          "reference": "official_default_z3-0.mzpeak",
+          "reference_scope": "complete official export",
+          "acquisition_metadata_exact_except_converter_provenance": true,
+          "tables": {
+            "spectra_metadata.parquet": {
+              "rows": 39625,
+              "columns_exact": 14,
+              "physical_calibration_summary_comparison": {
+                "lowest_observed_mz": {
+                  "different_values": 327,
+                  "max_error_ppm": 4.711908188799969e-05,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                },
+                "highest_observed_mz": {
+                  "different_values": 327,
+                  "max_error_ppm": 4.711926205590385e-05,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                },
+                "base_peak_mz": {
+                  "different_values": 327,
+                  "max_error_ppm": 4.711923221179878e-05,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                }
+              }
+            },
+            "spectra_metadata_scans.parquet": {
+              "rows": 39625,
+              "columns_exact": 12
+            },
+            "spectra_metadata_precursors.parquet": {
+              "rows": 34301,
+              "columns_exact": 5
+            },
+            "spectra_metadata_selected_ions.parquet": {
+              "rows": 34301,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata.parquet": {
+              "rows": 2,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata_precursors.parquet": {
+              "rows": 0,
+              "columns_exact": 5
+            },
+            "chromatograms_metadata_selected_ions.parquet": {
+              "rows": 0,
+              "columns_exact": 9
+            },
+            "chromatograms_data.parquet": {
+              "rows": 79250,
+              "columns_exact": 1
+            }
+          },
+          "all_source_point_counts_preserved": true,
+          "all_spectra_all_points_validated": true,
+          "all_source_summaries_validated": true,
+          "max_source_summary_mz_difference_ppm": 4.711926205590385e-05,
+          "spectra": 39625,
+          "points": 131676732,
+          "max_mz_error_ppm": 0.009033894055090887,
+          "max_intensity_relative_error": 0.0009999989685881426,
+          "max_tic_relative_error": 0.0005887207940837857,
+          "zeros_preserved": 56689849,
+          "source_array_sha256": "12f7c4c81065deecd8dc1aec236a22ffb64acaf31896146b2ab77929e4c09f2e",
+          "declared_bounds": {
+            "mz_ppm": 0.01,
+            "intensity_relative": 0.001
+          }
+        }
+      },
+      "vendor": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792541480.2586865,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 51.72666819579899,
+        "sampled_tree_rss_bytes": 1469743104,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 57.25,
+        "system_cpu_seconds": 4.2,
+        "max_single_process_rss_bytes": 784343040,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 24,
+        "valid": true,
+        "details": {
+          "raw": "500ng_HeLa_350_1150mz_nonFAIMS_Rs30000_200ms_Rep4.raw",
+          "reference": "official_default_z3-0.mzpeak",
+          "reference_scope": "complete official export",
+          "acquisition_metadata_exact_except_converter_provenance": true,
+          "tables": {
+            "spectra_metadata.parquet": {
+              "rows": 39625,
+              "columns_exact": 17
+            },
+            "spectra_metadata_scans.parquet": {
+              "rows": 39625,
+              "columns_exact": 12
+            },
+            "spectra_metadata_precursors.parquet": {
+              "rows": 34301,
+              "columns_exact": 5
+            },
+            "spectra_metadata_selected_ions.parquet": {
+              "rows": 34301,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata.parquet": {
+              "rows": 2,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata_precursors.parquet": {
+              "rows": 0,
+              "columns_exact": 5
+            },
+            "chromatograms_metadata_selected_ions.parquet": {
+              "rows": 0,
+              "columns_exact": 9
+            },
+            "chromatograms_data.parquet": {
+              "rows": 79250,
+              "columns_exact": 1
+            }
+          },
+          "all_source_point_counts_preserved": true,
+          "all_spectra_all_points_validated": true,
+          "all_source_summaries_validated": true,
+          "max_source_summary_mz_difference_ppm": 0.0,
+          "spectra": 39625,
+          "points": 131676732,
+          "max_mz_error_ppm": 0.008999866523156003,
+          "max_intensity_relative_error": 0.0009999989685881426,
+          "max_tic_relative_error": 0.0005887207940837857,
+          "zeros_preserved": 56689849,
+          "source_array_sha256": "12f7c4c81065deecd8dc1aec236a22ffb64acaf31896146b2ab77929e4c09f2e",
+          "declared_bounds": {
+            "mz_ppm": 0.01,
+            "intensity_relative": 0.001
+          }
+        }
+      }
+    },
+    "randomized_orders": [
+      [
+        "rawr",
+        "official_default_z3",
+        "vendor"
+      ],
+      [
+        "official_default_z3",
+        "vendor",
+        "rawr"
+      ],
+      [
+        "official_default_z3",
+        "vendor",
+        "rawr"
+      ],
+      [
+        "official_default_z3",
+        "vendor",
+        "rawr"
+      ]
+    ]
+  },
+  {
+    "case": "05-PXD046211",
+    "validation": {
+      "official_default_z3": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792542092.3621612,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 61.23218668624759,
+        "sampled_tree_rss_bytes": 1102622720,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 65.81,
+        "system_cpu_seconds": 4.93,
+        "max_single_process_rss_bytes": 694521856,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 56,
+        "valid": true,
+        "details": {
+          "valid": true,
+          "spectra": 47830,
+          "source_points": 115891697,
+          "retained_points": 73544865,
+          "profile_zeros_removed": 42346832,
+          "source_array_sha256": "76e85a39ccc6f0bc40d863e1be4264ac3c409097f2bc7e8bc79009b44b2be445",
+          "official_archives": [
+            "official_default_z3-0.mzpeak"
+          ],
+          "retained_values_exact": true,
+          "empty_signal_tables": [
+            []
+          ],
+          "decoder": "Pinned official array iterator; public iterator agreement checked on first 32 spectra"
+        }
+      },
+      "rawr": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792542153.643447,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 47.19511277228594,
+        "sampled_tree_rss_bytes": 1385680896,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 51.59,
+        "system_cpu_seconds": 3.93,
+        "max_single_process_rss_bytes": 694456320,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 24,
+        "valid": true,
+        "details": {
+          "raw": "CBIO680_1.raw",
+          "reference": "official_default_z3-0.mzpeak",
+          "reference_scope": "complete official export",
+          "acquisition_metadata_exact_except_converter_provenance": true,
+          "tables": {
+            "spectra_metadata.parquet": {
+              "rows": 47830,
+              "columns_exact": 14,
+              "physical_calibration_summary_comparison": {
+                "lowest_observed_mz": {
+                  "different_values": 178,
+                  "max_error_ppm": 4.492047769967813e-05,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                },
+                "highest_observed_mz": {
+                  "different_values": 178,
+                  "max_error_ppm": 4.492060490545211e-05,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                },
+                "base_peak_mz": {
+                  "different_values": 178,
+                  "max_error_ppm": 4.492061169207475e-05,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                }
+              }
+            },
+            "spectra_metadata_scans.parquet": {
+              "rows": 47830,
+              "columns_exact": 12
+            },
+            "spectra_metadata_precursors.parquet": {
+              "rows": 38722,
+              "columns_exact": 5
+            },
+            "spectra_metadata_selected_ions.parquet": {
+              "rows": 38722,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata.parquet": {
+              "rows": 2,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata_precursors.parquet": {
+              "rows": 0,
+              "columns_exact": 5
+            },
+            "chromatograms_metadata_selected_ions.parquet": {
+              "rows": 0,
+              "columns_exact": 9
+            },
+            "chromatograms_data.parquet": {
+              "rows": 95660,
+              "columns_exact": 1
+            }
+          },
+          "all_source_point_counts_preserved": true,
+          "all_spectra_all_points_validated": true,
+          "all_source_summaries_validated": true,
+          "max_source_summary_mz_difference_ppm": 4.492061169207475e-05,
+          "spectra": 47830,
+          "points": 115891697,
+          "max_mz_error_ppm": 0.009015749134968033,
+          "max_intensity_relative_error": 0.0009999989915564639,
+          "max_tic_relative_error": 0.0008716213491841707,
+          "zeros_preserved": 57263567,
+          "source_array_sha256": "76e85a39ccc6f0bc40d863e1be4264ac3c409097f2bc7e8bc79009b44b2be445",
+          "declared_bounds": {
+            "mz_ppm": 0.01,
+            "intensity_relative": 0.001
+          }
+        }
+      },
+      "vendor": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792542200.8947074,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 49.13892859220505,
+        "sampled_tree_rss_bytes": 1394401280,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 54.88,
+        "system_cpu_seconds": 3.85,
+        "max_single_process_rss_bytes": 700112896,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 24,
+        "valid": true,
+        "details": {
+          "raw": "CBIO680_1.raw",
+          "reference": "official_default_z3-0.mzpeak",
+          "reference_scope": "complete official export",
+          "acquisition_metadata_exact_except_converter_provenance": true,
+          "tables": {
+            "spectra_metadata.parquet": {
+              "rows": 47830,
+              "columns_exact": 17
+            },
+            "spectra_metadata_scans.parquet": {
+              "rows": 47830,
+              "columns_exact": 12
+            },
+            "spectra_metadata_precursors.parquet": {
+              "rows": 38722,
+              "columns_exact": 5
+            },
+            "spectra_metadata_selected_ions.parquet": {
+              "rows": 38722,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata.parquet": {
+              "rows": 2,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata_precursors.parquet": {
+              "rows": 0,
+              "columns_exact": 5
+            },
+            "chromatograms_metadata_selected_ions.parquet": {
+              "rows": 0,
+              "columns_exact": 9
+            },
+            "chromatograms_data.parquet": {
+              "rows": 95660,
+              "columns_exact": 1
+            }
+          },
+          "all_source_point_counts_preserved": true,
+          "all_spectra_all_points_validated": true,
+          "all_source_summaries_validated": true,
+          "max_source_summary_mz_difference_ppm": 0.0,
+          "spectra": 47830,
+          "points": 115891697,
+          "max_mz_error_ppm": 0.008999575419775412,
+          "max_intensity_relative_error": 0.0009999989915564639,
+          "max_tic_relative_error": 0.0008716213491841707,
+          "zeros_preserved": 57263567,
+          "source_array_sha256": "76e85a39ccc6f0bc40d863e1be4264ac3c409097f2bc7e8bc79009b44b2be445",
+          "declared_bounds": {
+            "mz_ppm": 0.01,
+            "intensity_relative": 0.001
+          }
+        }
+      }
+    },
+    "randomized_orders": [
+      [
+        "vendor",
+        "rawr",
+        "official_default_z3"
+      ],
+      [
+        "vendor",
+        "rawr",
+        "official_default_z3"
+      ],
+      [
+        "official_default_z3",
+        "rawr",
+        "vendor"
+      ],
+      [
+        "vendor",
+        "official_default_z3",
+        "rawr"
+      ]
+    ]
+  },
+  {
+    "case": "06-PXD005780",
+    "validation": {
+      "official_default_z3": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792542880.1961057,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 96.4265754725784,
+        "sampled_tree_rss_bytes": 1348816896,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 107.3,
+        "system_cpu_seconds": 10.06,
+        "max_single_process_rss_bytes": 1039716352,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 40,
+        "valid": true,
+        "details": {
+          "valid": true,
+          "spectra": 29004,
+          "source_points": 212530653,
+          "retained_points": 133379020,
+          "profile_zeros_removed": 79151633,
+          "source_array_sha256": "dcace231413b74685b3262a3f7eb455d807250d652217e8be39cc75509044205",
+          "official_archives": [
+            "official_default_z3-0.mzpeak"
+          ],
+          "retained_values_exact": true,
+          "empty_signal_tables": [
+            [
+              "spectrum_peak_data"
+            ]
+          ],
+          "decoder": "Pinned official array iterator; public iterator agreement checked on first 32 spectra"
+        }
+      },
+      "rawr": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792542976.6639464,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 74.71117062494159,
+        "sampled_tree_rss_bytes": 1756205056,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 86.24,
+        "system_cpu_seconds": 7.0,
+        "max_single_process_rss_bytes": 1039675392,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 24,
+        "valid": true,
+        "details": {
+          "raw": "S34.raw",
+          "reference": "official_default_z3-0.mzpeak",
+          "reference_scope": "complete official export",
+          "acquisition_metadata_exact_except_converter_provenance": true,
+          "tables": {
+            "spectra_metadata.parquet": {
+              "rows": 29004,
+              "columns_exact": 14,
+              "physical_calibration_summary_comparison": {
+                "lowest_observed_mz": {
+                  "different_values": 1320,
+                  "max_error_ppm": 0.00021050674328609566,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                },
+                "highest_observed_mz": {
+                  "different_values": 1320,
+                  "max_error_ppm": 0.00021050586344756528,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                },
+                "base_peak_mz": {
+                  "different_values": 1320,
+                  "max_error_ppm": 0.00021050695379477507,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                }
+              }
+            },
+            "spectra_metadata_scans.parquet": {
+              "rows": 29004,
+              "columns_exact": 12
+            },
+            "spectra_metadata_precursors.parquet": {
+              "rows": 22159,
+              "columns_exact": 5
+            },
+            "spectra_metadata_selected_ions.parquet": {
+              "rows": 22159,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata.parquet": {
+              "rows": 2,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata_precursors.parquet": {
+              "rows": 0,
+              "columns_exact": 5
+            },
+            "chromatograms_metadata_selected_ions.parquet": {
+              "rows": 0,
+              "columns_exact": 9
+            },
+            "chromatograms_data.parquet": {
+              "rows": 58008,
+              "columns_exact": 1
+            }
+          },
+          "all_source_point_counts_preserved": true,
+          "all_spectra_all_points_validated": true,
+          "all_source_summaries_validated": true,
+          "max_source_summary_mz_difference_ppm": 0.00021050695379477507,
+          "spectra": 29004,
+          "points": 212530653,
+          "max_mz_error_ppm": 0.00919253782436242,
+          "max_intensity_relative_error": 0.000999998979845972,
+          "max_tic_relative_error": 0.0006685867867504136,
+          "zeros_preserved": 106975319,
+          "source_array_sha256": "dcace231413b74685b3262a3f7eb455d807250d652217e8be39cc75509044205",
+          "declared_bounds": {
+            "mz_ppm": 0.01,
+            "intensity_relative": 0.001
+          }
+        }
+      },
+      "vendor": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792543051.4233837,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 74.77721257694066,
+        "sampled_tree_rss_bytes": 1753493504,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 87.03,
+        "system_cpu_seconds": 6.92,
+        "max_single_process_rss_bytes": 1039818752,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 24,
+        "valid": true,
+        "details": {
+          "raw": "S34.raw",
+          "reference": "official_default_z3-0.mzpeak",
+          "reference_scope": "complete official export",
+          "acquisition_metadata_exact_except_converter_provenance": true,
+          "tables": {
+            "spectra_metadata.parquet": {
+              "rows": 29004,
+              "columns_exact": 17
+            },
+            "spectra_metadata_scans.parquet": {
+              "rows": 29004,
+              "columns_exact": 12
+            },
+            "spectra_metadata_precursors.parquet": {
+              "rows": 22159,
+              "columns_exact": 5
+            },
+            "spectra_metadata_selected_ions.parquet": {
+              "rows": 22159,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata.parquet": {
+              "rows": 2,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata_precursors.parquet": {
+              "rows": 0,
+              "columns_exact": 5
+            },
+            "chromatograms_metadata_selected_ions.parquet": {
+              "rows": 0,
+              "columns_exact": 9
+            },
+            "chromatograms_data.parquet": {
+              "rows": 58008,
+              "columns_exact": 1
+            }
+          },
+          "all_source_point_counts_preserved": true,
+          "all_spectra_all_points_validated": true,
+          "all_source_summaries_validated": true,
+          "max_source_summary_mz_difference_ppm": 0.0,
+          "spectra": 29004,
+          "points": 212530653,
+          "max_mz_error_ppm": 0.00899928723625848,
+          "max_intensity_relative_error": 0.000999998979845972,
+          "max_tic_relative_error": 0.0006685867867504136,
+          "zeros_preserved": 106975319,
+          "source_array_sha256": "dcace231413b74685b3262a3f7eb455d807250d652217e8be39cc75509044205",
+          "declared_bounds": {
+            "mz_ppm": 0.01,
+            "intensity_relative": 0.001
+          }
+        }
+      }
+    },
+    "randomized_orders": [
+      [
+        "rawr",
+        "official_default_z3",
+        "vendor"
+      ],
+      [
+        "vendor",
+        "official_default_z3",
+        "rawr"
+      ],
+      [
+        "rawr",
+        "vendor",
+        "official_default_z3"
+      ],
+      [
+        "official_default_z3",
+        "vendor",
+        "rawr"
+      ]
+    ]
+  },
+  {
+    "case": "07-PXD053241",
+    "validation": {
+      "official_default_z3": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792544579.1910846,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 84.92355480417609,
+        "sampled_tree_rss_bytes": 1766789120,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 90.64,
+        "system_cpu_seconds": 6.21,
+        "max_single_process_rss_bytes": 1268035584,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 80,
+        "valid": true,
+        "details": {
+          "valid": true,
+          "spectra": 85474,
+          "source_points": 150942703,
+          "retained_points": 109442015,
+          "profile_zeros_removed": 41500688,
+          "source_array_sha256": "8911e46330fc9267e2597ac566363fc7bb377d517d2f8a2b23c8e2064205a138",
+          "official_archives": [
+            "official_default_z3-0.mzpeak"
+          ],
+          "retained_values_exact": true,
+          "empty_signal_tables": [
+            []
+          ],
+          "decoder": "Pinned official array iterator; public iterator agreement checked on first 32 spectra"
+        }
+      },
+      "rawr": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792544668.603074,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 67.38874332793057,
+        "sampled_tree_rss_bytes": 2443120640,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 72.62,
+        "system_cpu_seconds": 5.62,
+        "max_single_process_rss_bytes": 1267757056,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 24,
+        "valid": true,
+        "details": {
+          "raw": "210129_wwDDA_10ug_60min_IW20.raw",
+          "reference": "official_default_z3-0.mzpeak",
+          "reference_scope": "complete official export",
+          "acquisition_metadata_exact_except_converter_provenance": true,
+          "tables": {
+            "spectra_metadata.parquet": {
+              "rows": 85474,
+              "columns_exact": 14,
+              "physical_calibration_summary_comparison": {
+                "lowest_observed_mz": {
+                  "different_values": 291,
+                  "max_error_ppm": 4.6678118654312385e-05,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                },
+                "highest_observed_mz": {
+                  "different_values": 291,
+                  "max_error_ppm": 4.6678020989225626e-05,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                },
+                "base_peak_mz": {
+                  "different_values": 291,
+                  "max_error_ppm": 4.667804541769716e-05,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                }
+              }
+            },
+            "spectra_metadata_scans.parquet": {
+              "rows": 85474,
+              "columns_exact": 12
+            },
+            "spectra_metadata_precursors.parquet": {
+              "rows": 80731,
+              "columns_exact": 5
+            },
+            "spectra_metadata_selected_ions.parquet": {
+              "rows": 80731,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata.parquet": {
+              "rows": 2,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata_precursors.parquet": {
+              "rows": 0,
+              "columns_exact": 5
+            },
+            "chromatograms_metadata_selected_ions.parquet": {
+              "rows": 0,
+              "columns_exact": 9
+            },
+            "chromatograms_data.parquet": {
+              "rows": 170948,
+              "columns_exact": 1
+            }
+          },
+          "all_source_point_counts_preserved": true,
+          "all_spectra_all_points_validated": true,
+          "all_source_summaries_validated": true,
+          "max_source_summary_mz_difference_ppm": 4.6678118654312385e-05,
+          "spectra": 85474,
+          "points": 150942703,
+          "max_mz_error_ppm": 0.009030338369372752,
+          "max_intensity_relative_error": 0.0009999989815668456,
+          "max_tic_relative_error": 0.0006050257660472624,
+          "zeros_preserved": 56480325,
+          "source_array_sha256": "8911e46330fc9267e2597ac566363fc7bb377d517d2f8a2b23c8e2064205a138",
+          "declared_bounds": {
+            "mz_ppm": 0.01,
+            "intensity_relative": 0.001
+          }
+        }
+      },
+      "vendor": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792544738.5368931,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 67.13898022472858,
+        "sampled_tree_rss_bytes": 2408456192,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 72.63,
+        "system_cpu_seconds": 5.59,
+        "max_single_process_rss_bytes": 1267875840,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 24,
+        "valid": true,
+        "details": {
+          "raw": "210129_wwDDA_10ug_60min_IW20.raw",
+          "reference": "official_default_z3-0.mzpeak",
+          "reference_scope": "complete official export",
+          "acquisition_metadata_exact_except_converter_provenance": true,
+          "tables": {
+            "spectra_metadata.parquet": {
+              "rows": 85474,
+              "columns_exact": 17
+            },
+            "spectra_metadata_scans.parquet": {
+              "rows": 85474,
+              "columns_exact": 12
+            },
+            "spectra_metadata_precursors.parquet": {
+              "rows": 80731,
+              "columns_exact": 5
+            },
+            "spectra_metadata_selected_ions.parquet": {
+              "rows": 80731,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata.parquet": {
+              "rows": 2,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata_precursors.parquet": {
+              "rows": 0,
+              "columns_exact": 5
+            },
+            "chromatograms_metadata_selected_ions.parquet": {
+              "rows": 0,
+              "columns_exact": 9
+            },
+            "chromatograms_data.parquet": {
+              "rows": 170948,
+              "columns_exact": 1
+            }
+          },
+          "all_source_point_counts_preserved": true,
+          "all_spectra_all_points_validated": true,
+          "all_source_summaries_validated": true,
+          "max_source_summary_mz_difference_ppm": 0.0,
+          "spectra": 85474,
+          "points": 150942703,
+          "max_mz_error_ppm": 0.008999546780236529,
+          "max_intensity_relative_error": 0.0009999989815668456,
+          "max_tic_relative_error": 0.0006050257660472624,
+          "zeros_preserved": 56480325,
+          "source_array_sha256": "8911e46330fc9267e2597ac566363fc7bb377d517d2f8a2b23c8e2064205a138",
+          "declared_bounds": {
+            "mz_ppm": 0.01,
+            "intensity_relative": 0.001
+          }
+        }
+      }
+    },
+    "randomized_orders": [
+      [
+        "vendor",
+        "official_default_z3",
+        "rawr"
+      ],
+      [
+        "vendor",
+        "rawr",
+        "official_default_z3"
+      ],
+      [
+        "rawr",
+        "official_default_z3",
+        "vendor"
+      ],
+      [
+        "vendor",
+        "rawr",
+        "official_default_z3"
+      ]
+    ]
+  },
+  {
+    "case": "08-PXD000612",
+    "validation": {
+      "official_default_z3": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792545637.7023282,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 147.33915099315345,
+        "sampled_tree_rss_bytes": 1985171456,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 160.99,
+        "system_cpu_seconds": 12.74,
+        "max_single_process_rss_bytes": 1637158912,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 56,
+        "valid": true,
+        "details": {
+          "valid": true,
+          "spectra": 43123,
+          "source_points": 374776370,
+          "retained_points": 230914056,
+          "profile_zeros_removed": 143862314,
+          "source_array_sha256": "79cd3f5414c8b1d1a7e67825981b4d3bb3736faea0be6843418f0132e2472d49",
+          "official_archives": [
+            "official_default_z3-0.mzpeak"
+          ],
+          "retained_values_exact": true,
+          "empty_signal_tables": [
+            [
+              "spectrum_peak_data"
+            ]
+          ],
+          "decoder": "Pinned official array iterator; public iterator agreement checked on first 32 spectra"
+        }
+      },
+      "rawr": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792545785.0930574,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 119.3948609996587,
+        "sampled_tree_rss_bytes": 2754449408,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 135.32,
+        "system_cpu_seconds": 9.52,
+        "max_single_process_rss_bytes": 1637195776,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 24,
+        "valid": true,
+        "details": {
+          "raw": "20111225_EXQ5_KiSh_SA_LabelFree_HeLa_Phospho_Control_rep5_Fr1.raw",
+          "reference": "official_default_z3-0.mzpeak",
+          "reference_scope": "complete official export",
+          "acquisition_metadata_exact_except_converter_provenance": true,
+          "tables": {
+            "spectra_metadata.parquet": {
+              "rows": 43123,
+              "columns_exact": 14,
+              "physical_calibration_summary_comparison": {
+                "lowest_observed_mz": {
+                  "different_values": 3814,
+                  "max_error_ppm": 0.0001474273927485753,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                },
+                "highest_observed_mz": {
+                  "different_values": 3814,
+                  "max_error_ppm": 0.0001474282843021472,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                },
+                "base_peak_mz": {
+                  "different_values": 3814,
+                  "max_error_ppm": 0.00014742762520554028,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                }
+              }
+            },
+            "spectra_metadata_scans.parquet": {
+              "rows": 43123,
+              "columns_exact": 12
+            },
+            "spectra_metadata_precursors.parquet": {
+              "rows": 32465,
+              "columns_exact": 5
+            },
+            "spectra_metadata_selected_ions.parquet": {
+              "rows": 32465,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata.parquet": {
+              "rows": 2,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata_precursors.parquet": {
+              "rows": 0,
+              "columns_exact": 5
+            },
+            "chromatograms_metadata_selected_ions.parquet": {
+              "rows": 0,
+              "columns_exact": 9
+            },
+            "chromatograms_data.parquet": {
+              "rows": 86246,
+              "columns_exact": 1
+            }
+          },
+          "all_source_point_counts_preserved": true,
+          "all_spectra_all_points_validated": true,
+          "all_source_summaries_validated": true,
+          "max_source_summary_mz_difference_ppm": 0.0001474282843021472,
+          "spectra": 43123,
+          "points": 374776370,
+          "max_mz_error_ppm": 0.00913789668253812,
+          "max_intensity_relative_error": 0.0009999989649625558,
+          "max_tic_relative_error": 0.0005285209942009761,
+          "zeros_preserved": 194189586,
+          "source_array_sha256": "79cd3f5414c8b1d1a7e67825981b4d3bb3736faea0be6843418f0132e2472d49",
+          "declared_bounds": {
+            "mz_ppm": 0.01,
+            "intensity_relative": 0.001
+          }
+        }
+      },
+      "vendor": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792545917.7134485,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 118.2504236549139,
+        "sampled_tree_rss_bytes": 2758692864,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 134.08,
+        "system_cpu_seconds": 9.2,
+        "max_single_process_rss_bytes": 1637097472,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 24,
+        "valid": true,
+        "details": {
+          "raw": "20111225_EXQ5_KiSh_SA_LabelFree_HeLa_Phospho_Control_rep5_Fr1.raw",
+          "reference": "official_default_z3-0.mzpeak",
+          "reference_scope": "complete official export",
+          "acquisition_metadata_exact_except_converter_provenance": true,
+          "tables": {
+            "spectra_metadata.parquet": {
+              "rows": 43123,
+              "columns_exact": 17
+            },
+            "spectra_metadata_scans.parquet": {
+              "rows": 43123,
+              "columns_exact": 12
+            },
+            "spectra_metadata_precursors.parquet": {
+              "rows": 32465,
+              "columns_exact": 5
+            },
+            "spectra_metadata_selected_ions.parquet": {
+              "rows": 32465,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata.parquet": {
+              "rows": 2,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata_precursors.parquet": {
+              "rows": 0,
+              "columns_exact": 5
+            },
+            "chromatograms_metadata_selected_ions.parquet": {
+              "rows": 0,
+              "columns_exact": 9
+            },
+            "chromatograms_data.parquet": {
+              "rows": 86246,
+              "columns_exact": 1
+            }
+          },
+          "all_source_point_counts_preserved": true,
+          "all_spectra_all_points_validated": true,
+          "all_source_summaries_validated": true,
+          "max_source_summary_mz_difference_ppm": 0.0,
+          "spectra": 43123,
+          "points": 374776370,
+          "max_mz_error_ppm": 0.008999770603364852,
+          "max_intensity_relative_error": 0.0009999989649625558,
+          "max_tic_relative_error": 0.0005285209942009761,
+          "zeros_preserved": 194189586,
+          "source_array_sha256": "79cd3f5414c8b1d1a7e67825981b4d3bb3736faea0be6843418f0132e2472d49",
+          "declared_bounds": {
+            "mz_ppm": 0.01,
+            "intensity_relative": 0.001
+          }
+        }
+      }
+    },
+    "randomized_orders": [
+      [
+        "vendor",
+        "official_default_z3",
+        "rawr"
+      ],
+      [
+        "vendor",
+        "official_default_z3",
+        "rawr"
+      ],
+      [
+        "vendor",
+        "rawr",
+        "official_default_z3"
+      ],
+      [
+        "official_default_z3",
+        "rawr",
+        "vendor"
+      ]
+    ]
+  },
+  {
+    "case": "09-PXD002370",
+    "validation": {
+      "official_default_z3": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792547177.5150247,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 191.1222846992314,
+        "sampled_tree_rss_bytes": 2424401920,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 206.67,
+        "system_cpu_seconds": 15.27,
+        "max_single_process_rss_bytes": 2039656448,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 80,
+        "valid": true,
+        "details": {
+          "valid": true,
+          "spectra": 72510,
+          "source_points": 460184862,
+          "retained_points": 285540471,
+          "profile_zeros_removed": 174644391,
+          "source_array_sha256": "c189588ef70dca26ed5d8257e75948bd0ca74e4831cb225702c26d985a8e58b5",
+          "official_archives": [
+            "official_default_z3-0.mzpeak"
+          ],
+          "retained_values_exact": true,
+          "empty_signal_tables": [
+            [
+              "spectrum_peak_data"
+            ]
+          ],
+          "decoder": "Pinned official array iterator; public iterator agreement checked on first 32 spectra"
+        }
+      },
+      "rawr": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792547368.6752727,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 147.74875726364553,
+        "sampled_tree_rss_bytes": 3557163008,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 163.83,
+        "system_cpu_seconds": 12.14,
+        "max_single_process_rss_bytes": 2040377344,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 24,
+        "valid": true,
+        "details": {
+          "raw": "D-10fmol-R3_QEx2_000110.raw",
+          "reference": "official_default_z3-0.mzpeak",
+          "reference_scope": "complete official export",
+          "acquisition_metadata_exact_except_converter_provenance": true,
+          "tables": {
+            "spectra_metadata.parquet": {
+              "rows": 72510,
+              "columns_exact": 14,
+              "physical_calibration_summary_comparison": {
+                "lowest_observed_mz": {
+                  "different_values": 5447,
+                  "max_error_ppm": 0.00013342016509639782,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                },
+                "highest_observed_mz": {
+                  "different_values": 5447,
+                  "max_error_ppm": 0.00013342105275397295,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                },
+                "base_peak_mz": {
+                  "different_values": 5447,
+                  "max_error_ppm": 0.00013342029615071954,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                }
+              }
+            },
+            "spectra_metadata_scans.parquet": {
+              "rows": 72510,
+              "columns_exact": 12
+            },
+            "spectra_metadata_precursors.parquet": {
+              "rows": 59079,
+              "columns_exact": 5
+            },
+            "spectra_metadata_selected_ions.parquet": {
+              "rows": 59079,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata.parquet": {
+              "rows": 2,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata_precursors.parquet": {
+              "rows": 0,
+              "columns_exact": 5
+            },
+            "chromatograms_metadata_selected_ions.parquet": {
+              "rows": 0,
+              "columns_exact": 9
+            },
+            "chromatograms_data.parquet": {
+              "rows": 145020,
+              "columns_exact": 1
+            }
+          },
+          "all_source_point_counts_preserved": true,
+          "all_spectra_all_points_validated": true,
+          "all_source_summaries_validated": true,
+          "max_source_summary_mz_difference_ppm": 0.00013342105275397295,
+          "spectra": 72510,
+          "points": 460184862,
+          "max_mz_error_ppm": 0.009104017201097965,
+          "max_intensity_relative_error": 0.000999998985535575,
+          "max_tic_relative_error": 0.00042565895523460906,
+          "zeros_preserved": 235754297,
+          "source_array_sha256": "c189588ef70dca26ed5d8257e75948bd0ca74e4831cb225702c26d985a8e58b5",
+          "declared_bounds": {
+            "mz_ppm": 0.01,
+            "intensity_relative": 0.001
+          }
+        }
+      },
+      "vendor": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792547516.4670312,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 148.24173346720636,
+        "sampled_tree_rss_bytes": 3554603008,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 163.92,
+        "system_cpu_seconds": 12.66,
+        "max_single_process_rss_bytes": 2040414208,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 24,
+        "valid": true,
+        "details": {
+          "raw": "D-10fmol-R3_QEx2_000110.raw",
+          "reference": "official_default_z3-0.mzpeak",
+          "reference_scope": "complete official export",
+          "acquisition_metadata_exact_except_converter_provenance": true,
+          "tables": {
+            "spectra_metadata.parquet": {
+              "rows": 72510,
+              "columns_exact": 17
+            },
+            "spectra_metadata_scans.parquet": {
+              "rows": 72510,
+              "columns_exact": 12
+            },
+            "spectra_metadata_precursors.parquet": {
+              "rows": 59079,
+              "columns_exact": 5
+            },
+            "spectra_metadata_selected_ions.parquet": {
+              "rows": 59079,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata.parquet": {
+              "rows": 2,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata_precursors.parquet": {
+              "rows": 0,
+              "columns_exact": 5
+            },
+            "chromatograms_metadata_selected_ions.parquet": {
+              "rows": 0,
+              "columns_exact": 9
+            },
+            "chromatograms_data.parquet": {
+              "rows": 145020,
+              "columns_exact": 1
+            }
+          },
+          "all_source_point_counts_preserved": true,
+          "all_spectra_all_points_validated": true,
+          "all_source_summaries_validated": true,
+          "max_source_summary_mz_difference_ppm": 0.0,
+          "spectra": 72510,
+          "points": 460184862,
+          "max_mz_error_ppm": 0.008999469227446832,
+          "max_intensity_relative_error": 0.000999998985535575,
+          "max_tic_relative_error": 0.00042565895523460906,
+          "zeros_preserved": 235754297,
+          "source_array_sha256": "c189588ef70dca26ed5d8257e75948bd0ca74e4831cb225702c26d985a8e58b5",
+          "declared_bounds": {
+            "mz_ppm": 0.01,
+            "intensity_relative": 0.001
+          }
+        }
+      }
+    },
+    "randomized_orders": [
+      [
+        "vendor",
+        "rawr",
+        "official_default_z3"
+      ],
+      [
+        "vendor",
+        "rawr",
+        "official_default_z3"
+      ],
+      [
+        "official_default_z3",
+        "vendor",
+        "rawr"
+      ],
+      [
+        "vendor",
+        "rawr",
+        "official_default_z3"
+      ]
+    ]
+  },
+  {
+    "case": "10-PXD063416",
+    "validation": {
+      "official_default_z3": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792549087.7775147,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 68.62290563620627,
+        "sampled_tree_rss_bytes": 2480963584,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 70.5,
+        "system_cpu_seconds": 4.84,
+        "max_single_process_rss_bytes": 2031763456,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 32,
+        "valid": true,
+        "details": {
+          "valid": true,
+          "spectra": 72420,
+          "source_points": 109126244,
+          "retained_points": 98377251,
+          "profile_zeros_removed": 10748993,
+          "source_array_sha256": "c1a6b247ba6d4fd4284f785b2f85ff53a58071773ea40f518353ff84df28a266",
+          "official_archives": [
+            "official_default_z3-0.mzpeak"
+          ],
+          "retained_values_exact": true,
+          "empty_signal_tables": [
+            []
+          ],
+          "decoder": "Pinned official array iterator; public iterator agreement checked on first 32 spectra"
+        }
+      },
+      "rawr": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792549156.436967,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 54.95522958599031,
+        "sampled_tree_rss_bytes": 3106680832,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 55.98,
+        "system_cpu_seconds": 4.97,
+        "max_single_process_rss_bytes": 2031669248,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 24,
+        "valid": true,
+        "details": {
+          "raw": "HeLa_10mz_A_mixA.raw",
+          "reference": "official_default_z3-0.mzpeak",
+          "reference_scope": "complete official export",
+          "acquisition_metadata_exact_except_converter_provenance": true,
+          "tables": {
+            "spectra_metadata.parquet": {
+              "rows": 72420,
+              "columns_exact": 14,
+              "physical_calibration_summary_comparison": {
+                "lowest_observed_mz": {
+                  "different_values": 82,
+                  "max_error_ppm": 5.85439280757078e-05,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                },
+                "highest_observed_mz": {
+                  "different_values": 82,
+                  "max_error_ppm": 5.8544026711843106e-05,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                },
+                "base_peak_mz": {
+                  "different_values": 82,
+                  "max_error_ppm": 5.8544048606069663e-05,
+                  "limit_ppm": 0.001,
+                  "empty_scan_sentinel_differences": 0
+                }
+              }
+            },
+            "spectra_metadata_scans.parquet": {
+              "rows": 72420,
+              "columns_exact": 12
+            },
+            "spectra_metadata_precursors.parquet": {
+              "rows": 71000,
+              "columns_exact": 5
+            },
+            "spectra_metadata_selected_ions.parquet": {
+              "rows": 71000,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata.parquet": {
+              "rows": 2,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata_precursors.parquet": {
+              "rows": 0,
+              "columns_exact": 5
+            },
+            "chromatograms_metadata_selected_ions.parquet": {
+              "rows": 0,
+              "columns_exact": 9
+            },
+            "chromatograms_data.parquet": {
+              "rows": 144840,
+              "columns_exact": 1
+            }
+          },
+          "all_source_point_counts_preserved": true,
+          "all_spectra_all_points_validated": true,
+          "all_source_summaries_validated": true,
+          "max_source_summary_mz_difference_ppm": 5.8544048606069663e-05,
+          "spectra": 72420,
+          "points": 109126244,
+          "max_mz_error_ppm": 0.009026125303417227,
+          "max_intensity_relative_error": 0.0009999989765971662,
+          "max_tic_relative_error": 0.0007964326082419149,
+          "zeros_preserved": 14672283,
+          "source_array_sha256": "c1a6b247ba6d4fd4284f785b2f85ff53a58071773ea40f518353ff84df28a266",
+          "declared_bounds": {
+            "mz_ppm": 0.01,
+            "intensity_relative": 0.001
+          }
+        }
+      },
+      "vendor": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792549211.4315152,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 55.11152011528611,
+        "sampled_tree_rss_bytes": 3115208704,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 55.99,
+        "system_cpu_seconds": 5.13,
+        "max_single_process_rss_bytes": 2031505408,
+        "filesystem_inputs": 0,
+        "filesystem_outputs": 24,
+        "valid": true,
+        "details": {
+          "raw": "HeLa_10mz_A_mixA.raw",
+          "reference": "official_default_z3-0.mzpeak",
+          "reference_scope": "complete official export",
+          "acquisition_metadata_exact_except_converter_provenance": true,
+          "tables": {
+            "spectra_metadata.parquet": {
+              "rows": 72420,
+              "columns_exact": 17
+            },
+            "spectra_metadata_scans.parquet": {
+              "rows": 72420,
+              "columns_exact": 12
+            },
+            "spectra_metadata_precursors.parquet": {
+              "rows": 71000,
+              "columns_exact": 5
+            },
+            "spectra_metadata_selected_ions.parquet": {
+              "rows": 71000,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata.parquet": {
+              "rows": 2,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata_precursors.parquet": {
+              "rows": 0,
+              "columns_exact": 5
+            },
+            "chromatograms_metadata_selected_ions.parquet": {
+              "rows": 0,
+              "columns_exact": 9
+            },
+            "chromatograms_data.parquet": {
+              "rows": 144840,
+              "columns_exact": 1
+            }
+          },
+          "all_source_point_counts_preserved": true,
+          "all_spectra_all_points_validated": true,
+          "all_source_summaries_validated": true,
+          "max_source_summary_mz_difference_ppm": 0.0,
+          "spectra": 72420,
+          "points": 109126244,
+          "max_mz_error_ppm": 0.00899974905278564,
+          "max_intensity_relative_error": 0.0009999989765971662,
+          "max_tic_relative_error": 0.0007964326082419149,
+          "zeros_preserved": 14672283,
+          "source_array_sha256": "c1a6b247ba6d4fd4284f785b2f85ff53a58071773ea40f518353ff84df28a266",
+          "declared_bounds": {
+            "mz_ppm": 0.01,
+            "intensity_relative": 0.001
+          }
+        }
+      }
+    },
+    "randomized_orders": [
+      [
+        "rawr",
+        "vendor",
+        "official_default_z3"
+      ],
+      [
+        "official_default_z3",
+        "vendor",
+        "rawr"
+      ],
+      [
+        "rawr",
+        "official_default_z3",
+        "vendor"
+      ],
+      [
+        "official_default_z3",
+        "vendor",
+        "rawr"
+      ]
+    ]
+  },
+  {
+    "case": "11-PXD046453",
+    "validation": {},
+    "randomized_orders": [
+      [
+        "vendor",
+        "rawr",
+        "official_default_z3"
+      ],
+      [
+        "rawr",
+        "vendor",
+        "official_default_z3"
+      ],
+      [
+        "official_default_z3",
+        "rawr",
+        "vendor"
+      ],
+      [
+        "rawr",
+        "vendor",
+        "official_default_z3"
+      ]
+    ]
+  },
+  {
+    "case": "12-PXD049028",
+    "validation": {
+      "rawr": {
+        "timeout_seconds": 1800,
+        "started_unix": 1792552997.083288,
+        "timed_out": false,
+        "returncode": 0,
+        "wall_seconds": 681.6544313915074,
+        "sampled_tree_rss_bytes": 30905798656,
+        "rss_sample_method": "all_threads",
+        "user_cpu_seconds": 727.31,
+        "system_cpu_seconds": 61.2,
+        "max_single_process_rss_bytes": 20930146304,
+        "filesystem_inputs": 12592,
+        "filesystem_outputs": 24,
+        "valid": true,
+        "details": {
+          "raw": "20231206_HAP1_1ug_60min_DIA_2Th_5e4_3p5ms_rep01.raw",
+          "reference": "oracle.metadata.mzpeak",
+          "reference_scope": "vendor metadata-only export plus independent RAW summaries",
+          "acquisition_metadata_exact_except_converter_provenance": true,
+          "tables": {
+            "spectra_metadata.parquet": {
+              "rows": 744726,
+              "columns_exact": 11,
+              "absent_auxiliary_arrays_null_vs_empty": true
+            },
+            "spectra_metadata_scans.parquet": {
+              "rows": 744726,
+              "columns_exact": 12
+            },
+            "spectra_metadata_precursors.parquet": {
+              "rows": 737461,
+              "columns_exact": 5
+            },
+            "spectra_metadata_selected_ions.parquet": {
+              "rows": 737461,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata.parquet": {
+              "rows": 2,
+              "columns_exact": 9
+            },
+            "chromatograms_metadata_precursors.parquet": {
+              "rows": 0,
+              "columns_exact": 5
+            },
+            "chromatograms_metadata_selected_ions.parquet": {
+              "rows": 0,
+              "columns_exact": 9
+            },
+            "chromatograms_data.parquet": {
+              "rows": 1489452,
+              "columns_exact": 1
+            }
+          },
+          "all_source_point_counts_preserved": true,
+          "all_spectra_all_points_validated": true,
+          "all_source_summaries_validated": true,
+          "max_source_summary_mz_difference_ppm": 5.901571502725341e-05,
+          "spectra": 744726,
+          "points": 1511811155,
+          "max_mz_error_ppm": 0.009055047341369618,
+          "max_intensity_relative_error": 0.0009999989966876668,
+          "max_tic_relative_error": 0.0008622318608184631,
+          "zeros_preserved": 162582445,
+          "source_array_sha256": "0d9317fe57467eeb266bf60aab4d211ca24f5e501f539031356f015b48a9dc66",
+          "declared_bounds": {
+            "mz_ppm": 0.01,
+            "intensity_relative": 0.001
+          }
+        }
+      }
+    },
+    "randomized_orders": [
+      [
+        "official_default_z3",
+        "rawr",
+        "vendor"
+      ],
+      [
+        "rawr",
+        "vendor",
+        "official_default_z3"
+      ],
+      [
+        "vendor",
+        "official_default_z3",
+        "rawr"
+      ],
+      [
+        "vendor",
+        "official_default_z3",
+        "rawr"
+      ]
+    ]
+  }
+]

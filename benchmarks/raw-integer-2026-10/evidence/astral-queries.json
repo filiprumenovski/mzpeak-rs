@@ -1,0 +1,446 @@
+{
+  "method": "7 randomized blocks. Fresh interpreter per backend/query/block; imports outside timer. Measure open, first query, then one warm query after releasing first result. Preselected same RT 20-25 min IDs; XIC 524.3 +/-5 ppm, full MS2 arrays. One native thread and one Arrow worker. OS filesystem cache warm; no persistent index or decoded-spectrum cache. Peak process RSS includes open and both queries. Opening includes eager index parsing and complete scan directory.",
+  "environment": {
+    "platform": "Linux-5.15.80-200.el7.x86_64-x86_64-with-glibc2.17",
+    "python": "3.12.14 (main, Sep  1 2026, 14:16:52) [Clang 22.1.3 ]",
+    "native": "native.zip",
+    "official": "official.mzpeak",
+    "library": "libmzlab_decoder.so"
+  },
+  "queries": {
+    "xic": {
+      "spectra": 494,
+      "variants": {
+        "native": {
+          "open_seconds": 4.110388061031699,
+          "first_query_seconds": 1.085480971261859,
+          "warm_query_seconds": 1.0677010179497302,
+          "open_plus_first_query_seconds": 5.195365191902965,
+          "peak_rss_bytes": 1809825792,
+          "open_peak_rss_bytes": 1610309632
+        },
+        "official": {
+          "open_seconds": 1.8288427498191595,
+          "first_query_seconds": 1.4106214069761336,
+          "warm_query_seconds": 1.2339791841804981,
+          "open_plus_first_query_seconds": 3.242737899068743,
+          "peak_rss_bytes": 1797566464,
+          "open_peak_rss_bytes": 1610309632
+        }
+      }
+    },
+    "ms2_batch": {
+      "spectra": 50208,
+      "variants": {
+        "native": {
+          "open_seconds": 4.1193593647331,
+          "first_query_seconds": 4.5784982573240995,
+          "warm_query_seconds": 4.556155971717089,
+          "open_plus_first_query_seconds": 8.693450830411166,
+          "peak_rss_bytes": 4158865408,
+          "open_peak_rss_bytes": 1610948608
+        },
+        "official": {
+          "open_seconds": 1.8405756391584873,
+          "first_query_seconds": 7.160005412064493,
+          "warm_query_seconds": 7.053057400044054,
+          "open_plus_first_query_seconds": 8.999273149296641,
+          "peak_rss_bytes": 5096726528,
+          "open_peak_rss_bytes": 1610309632
+        }
+      }
+    }
+  },
+  "samples": [
+    {
+      "open_seconds": 4.100862859748304,
+      "first_query_seconds": 1.0838335938751698,
+      "warm_query_seconds": 1.0652310461737216,
+      "open_plus_first_query_seconds": 5.184696453623474,
+      "peak_rss_bytes": 1809825792,
+      "open_peak_rss_bytes": 1610309632,
+      "checksum": 344913849.14183754,
+      "returned_points": 494,
+      "variant": "native",
+      "query": "xic",
+      "block": 0
+    },
+    {
+      "open_seconds": 1.7980732172727585,
+      "first_query_seconds": 1.4096588660031557,
+      "warm_query_seconds": 1.238151771016419,
+      "open_plus_first_query_seconds": 3.207732083275914,
+      "peak_rss_bytes": 1797623808,
+      "open_peak_rss_bytes": 1610309632,
+      "checksum": 344930736.8310547,
+      "returned_points": 494,
+      "variant": "official",
+      "query": "xic",
+      "block": 0
+    },
+    {
+      "open_seconds": 4.145167646929622,
+      "first_query_seconds": 1.088599321898073,
+      "warm_query_seconds": 1.0695991138927639,
+      "open_plus_first_query_seconds": 5.233766968827695,
+      "peak_rss_bytes": 1809502208,
+      "open_peak_rss_bytes": 1610309632,
+      "checksum": 344913849.14183754,
+      "returned_points": 494,
+      "variant": "native",
+      "query": "xic",
+      "block": 1
+    },
+    {
+      "open_seconds": 1.8487729881890118,
+      "first_query_seconds": 1.4101751479320228,
+      "warm_query_seconds": 1.229919555131346,
+      "open_plus_first_query_seconds": 3.2589481361210346,
+      "peak_rss_bytes": 1797455872,
+      "open_peak_rss_bytes": 1610309632,
+      "checksum": 344930736.8310547,
+      "returned_points": 494,
+      "variant": "official",
+      "query": "xic",
+      "block": 1
+    },
+    {
+      "open_seconds": 1.8286357372999191,
+      "first_query_seconds": 1.4460434601642191,
+      "warm_query_seconds": 1.2360631050541997,
+      "open_plus_first_query_seconds": 3.2746791974641383,
+      "peak_rss_bytes": 1797767168,
+      "open_peak_rss_bytes": 1610309632,
+      "checksum": 344930736.8310547,
+      "returned_points": 494,
+      "variant": "official",
+      "query": "xic",
+      "block": 2
+    },
+    {
+      "open_seconds": 4.0976926470175385,
+      "first_query_seconds": 1.0856678080745041,
+      "warm_query_seconds": 1.0679980562999845,
+      "open_plus_first_query_seconds": 5.183360455092043,
+      "peak_rss_bytes": 1809436672,
+      "open_peak_rss_bytes": 1610309632,
+      "checksum": 344913849.14183754,
+      "returned_points": 494,
+      "variant": "native",
+      "query": "xic",
+      "block": 2
+    },
+    {
+      "open_seconds": 4.114544914569706,
+      "first_query_seconds": 1.0873999167233706,
+      "warm_query_seconds": 1.0677010179497302,
+      "open_plus_first_query_seconds": 5.201944831293076,
+      "peak_rss_bytes": 1809059840,
+      "open_peak_rss_bytes": 1610309632,
+      "checksum": 344913849.14183754,
+      "returned_points": 494,
+      "variant": "native",
+      "query": "xic",
+      "block": 3
+    },
+    {
+      "open_seconds": 1.8031771332025528,
+      "first_query_seconds": 1.4122564876452088,
+      "warm_query_seconds": 1.2306247572414577,
+      "open_plus_first_query_seconds": 3.2154336208477616,
+      "peak_rss_bytes": 1797480448,
+      "open_peak_rss_bytes": 1610309632,
+      "checksum": 344930736.8310547,
+      "returned_points": 494,
+      "variant": "official",
+      "query": "xic",
+      "block": 3
+    },
+    {
+      "open_seconds": 1.8288427498191595,
+      "first_query_seconds": 1.4082889440469444,
+      "warm_query_seconds": 1.2318835002370179,
+      "open_plus_first_query_seconds": 3.237131693866104,
+      "peak_rss_bytes": 1797599232,
+      "open_peak_rss_bytes": 1610309632,
+      "checksum": 344930736.8310547,
+      "returned_points": 494,
+      "variant": "official",
+      "query": "xic",
+      "block": 4
+    },
+    {
+      "open_seconds": 4.142150312196463,
+      "first_query_seconds": 1.085480971261859,
+      "warm_query_seconds": 1.066419271286577,
+      "open_plus_first_query_seconds": 5.227631283458322,
+      "peak_rss_bytes": 1810313216,
+      "open_peak_rss_bytes": 1610309632,
+      "checksum": 344913849.14183754,
+      "returned_points": 494,
+      "variant": "native",
+      "query": "xic",
+      "block": 4
+    },
+    {
+      "open_seconds": 4.110388061031699,
+      "first_query_seconds": 1.0849771308712661,
+      "warm_query_seconds": 1.068122724071145,
+      "open_plus_first_query_seconds": 5.195365191902965,
+      "peak_rss_bytes": 1809870848,
+      "open_peak_rss_bytes": 1610309632,
+      "checksum": 344913849.14183754,
+      "returned_points": 494,
+      "variant": "native",
+      "query": "xic",
+      "block": 5
+    },
+    {
+      "open_seconds": 1.8321164920926094,
+      "first_query_seconds": 1.4106214069761336,
+      "warm_query_seconds": 1.2339791841804981,
+      "open_plus_first_query_seconds": 3.242737899068743,
+      "peak_rss_bytes": 1797328896,
+      "open_peak_rss_bytes": 1610309632,
+      "checksum": 344930736.8310547,
+      "returned_points": 494,
+      "variant": "official",
+      "query": "xic",
+      "block": 5
+    },
+    {
+      "open_seconds": 1.830935258883983,
+      "first_query_seconds": 1.452535695862025,
+      "warm_query_seconds": 1.2380016068927944,
+      "open_plus_first_query_seconds": 3.283470954746008,
+      "peak_rss_bytes": 1797566464,
+      "open_peak_rss_bytes": 1610309632,
+      "checksum": 344930736.8310547,
+      "returned_points": 494,
+      "variant": "official",
+      "query": "xic",
+      "block": 6
+    },
+    {
+      "open_seconds": 4.10073866089806,
+      "first_query_seconds": 1.0850005066022277,
+      "warm_query_seconds": 1.0673555950634181,
+      "open_plus_first_query_seconds": 5.185739167500287,
+      "peak_rss_bytes": 1811079168,
+      "open_peak_rss_bytes": 1610309632,
+      "checksum": 344913849.14183754,
+      "returned_points": 494,
+      "variant": "native",
+      "query": "xic",
+      "block": 6
+    },
+    {
+      "open_seconds": 1.8405756391584873,
+      "first_query_seconds": 7.165041814092547,
+      "warm_query_seconds": 7.082550864201039,
+      "open_plus_first_query_seconds": 9.005617453251034,
+      "peak_rss_bytes": 5096022016,
+      "open_peak_rss_bytes": 1610309632,
+      "checksum": 260903425136.51526,
+      "returned_points": 83098323,
+      "variant": "official",
+      "query": "ms2_batch",
+      "block": 0
+    },
+    {
+      "open_seconds": 4.153901967220008,
+      "first_query_seconds": 4.578884611837566,
+      "warm_query_seconds": 4.556316406931728,
+      "open_plus_first_query_seconds": 8.732786579057574,
+      "peak_rss_bytes": 4158484480,
+      "open_peak_rss_bytes": 1610309632,
+      "checksum": 260903916694.14432,
+      "returned_points": 83098323,
+      "variant": "native",
+      "query": "ms2_batch",
+      "block": 0
+    },
+    {
+      "open_seconds": 1.8391013583168387,
+      "first_query_seconds": 7.172384930308908,
+      "warm_query_seconds": 7.054270717315376,
+      "open_plus_first_query_seconds": 9.011486288625747,
+      "peak_rss_bytes": 5096726528,
+      "open_peak_rss_bytes": 1610309632,
+      "checksum": 260903425136.51526,
+      "returned_points": 83098323,
+      "variant": "official",
+      "query": "ms2_batch",
+      "block": 1
+    },
+    {
+      "open_seconds": 4.152400917839259,
+      "first_query_seconds": 4.585170484147966,
+      "warm_query_seconds": 4.564632264897227,
+      "open_plus_first_query_seconds": 8.737571401987225,
+      "peak_rss_bytes": 4158869504,
+      "open_peak_rss_bytes": 1610948608,
+      "checksum": 260903916694.14432,
+      "returned_points": 83098323,
+      "variant": "native",
+      "query": "ms2_batch",
+      "block": 1
+    },
+    {
+      "open_seconds": 4.1193593647331,
+      "first_query_seconds": 4.574091465678066,
+      "warm_query_seconds": 4.554414425976574,
+      "open_plus_first_query_seconds": 8.693450830411166,
+      "peak_rss_bytes": 4159725568,
+      "open_peak_rss_bytes": 1611190272,
+      "checksum": 260903916694.14432,
+      "returned_points": 83098323,
+      "variant": "native",
+      "query": "ms2_batch",
+      "block": 2
+    },
+    {
+      "open_seconds": 1.8514780569821596,
+      "first_query_seconds": 7.140609506051987,
+      "warm_query_seconds": 7.036379347089678,
+      "open_plus_first_query_seconds": 8.992087563034147,
+      "peak_rss_bytes": 5096706048,
+      "open_peak_rss_bytes": 1610309632,
+      "checksum": 260903425136.51526,
+      "returned_points": 83098323,
+      "variant": "official",
+      "query": "ms2_batch",
+      "block": 2
+    },
+    {
+      "open_seconds": 1.8642371040768921,
+      "first_query_seconds": 7.156489389948547,
+      "warm_query_seconds": 7.046662942972034,
+      "open_plus_first_query_seconds": 9.020726494025439,
+      "peak_rss_bytes": 5096841216,
+      "open_peak_rss_bytes": 1610309632,
+      "checksum": 260903425136.51526,
+      "returned_points": 83098323,
+      "variant": "official",
+      "query": "ms2_batch",
+      "block": 3
+    },
+    {
+      "open_seconds": 4.171259538270533,
+      "first_query_seconds": 4.575399409979582,
+      "warm_query_seconds": 4.553483503870666,
+      "open_plus_first_query_seconds": 8.746658948250115,
+      "peak_rss_bytes": 4158824448,
+      "open_peak_rss_bytes": 1611091968,
+      "checksum": 260903916694.14432,
+      "returned_points": 83098323,
+      "variant": "native",
+      "query": "ms2_batch",
+      "block": 3
+    },
+    {
+      "open_seconds": 1.834952141623944,
+      "first_query_seconds": 7.160005412064493,
+      "warm_query_seconds": 7.054722696077079,
+      "open_plus_first_query_seconds": 8.994957553688437,
+      "peak_rss_bytes": 5096763392,
+      "open_peak_rss_bytes": 1610309632,
+      "checksum": 260903425136.51526,
+      "returned_points": 83098323,
+      "variant": "official",
+      "query": "ms2_batch",
+      "block": 4
+    },
+    {
+      "open_seconds": 4.104091558139771,
+      "first_query_seconds": 4.57694932166487,
+      "warm_query_seconds": 4.555822907947004,
+      "open_plus_first_query_seconds": 8.681040879804641,
+      "peak_rss_bytes": 4158570496,
+      "open_peak_rss_bytes": 1610948608,
+      "checksum": 260903916694.14432,
+      "returned_points": 83098323,
+      "variant": "native",
+      "query": "ms2_batch",
+      "block": 4
+    },
+    {
+      "open_seconds": 1.8413248718716204,
+      "first_query_seconds": 7.135052042081952,
+      "warm_query_seconds": 7.0377451977692544,
+      "open_plus_first_query_seconds": 8.976376913953573,
+      "peak_rss_bytes": 5097443328,
+      "open_peak_rss_bytes": 1610309632,
+      "checksum": 260903425136.51526,
+      "returned_points": 83098323,
+      "variant": "official",
+      "query": "ms2_batch",
+      "block": 5
+    },
+    {
+      "open_seconds": 4.110581011977047,
+      "first_query_seconds": 4.579686691053212,
+      "warm_query_seconds": 4.562150122132152,
+      "open_plus_first_query_seconds": 8.690267703030258,
+      "peak_rss_bytes": 4159901696,
+      "open_peak_rss_bytes": 1611202560,
+      "checksum": 260903916694.14432,
+      "returned_points": 83098323,
+      "variant": "native",
+      "query": "ms2_batch",
+      "block": 5
+    },
+    {
+      "open_seconds": 4.102585731074214,
+      "first_query_seconds": 4.5784982573240995,
+      "warm_query_seconds": 4.556155971717089,
+      "open_plus_first_query_seconds": 8.681083988398314,
+      "peak_rss_bytes": 4158865408,
+      "open_peak_rss_bytes": 1610575872,
+      "checksum": 260903916694.14432,
+      "returned_points": 83098323,
+      "variant": "native",
+      "query": "ms2_batch",
+      "block": 6
+    },
+    {
+      "open_seconds": 1.8319330583326519,
+      "first_query_seconds": 7.1673400909639895,
+      "warm_query_seconds": 7.053057400044054,
+      "open_plus_first_query_seconds": 8.999273149296641,
+      "peak_rss_bytes": 5096308736,
+      "open_peak_rss_bytes": 1610309632,
+      "checksum": 260903425136.51526,
+      "returned_points": 83098323,
+      "variant": "official",
+      "query": "ms2_batch",
+      "block": 6
+    }
+  ],
+  "validation": {
+    "xic": {
+      "all_selected_nonzero_points_checked": 11869373,
+      "native_zeros_retained": 12008331,
+      "max_mz_error_ppm": 0.009030483744978522,
+      "max_intensity_relative_error": 0.0009999989964911324,
+      "max_trace_relative_error": 0.000981616118426506,
+      "native_sum": 344913849.14183754,
+      "official_sum": 344930736.8310547
+    },
+    "ms2_batch": {
+      "all_selected_nonzero_points_checked": 83098323,
+      "native_zeros_retained": 0,
+      "max_mz_error_ppm": 0.008997921154296226,
+      "max_intensity_relative_error": 0.0009999989899470664
+    }
+  },
+  "sha256": {
+    "runtime/code/benchmark_query_open.py": "28e839e2e08dbd34d750ebc57fc96884a70997ba8c40679c13071fbfcb7b082a",
+    "runtime/code/benchmark_native_queries.py": "448fe28aae94243041a94dedf478035a41fc41df0ba49a97116dbc35de48bf19",
+    "runtime/code/native_batch.py": "a5466ecde8fd2c1b28dfe1ed87a04991462ff3d914d9e092899676b7a11e7b24",
+    "runtime/code/orbitrap_convert.py": "b9ec46d4664e3affdd5c79c4048dafff7ca48e38b0a66a3a90da0491eac54499",
+    "libmzlab_decoder.so": "7929e4908dd7e56f63fb24d3d9556ef6d013b2be848ff5064082650d63ea5a3c",
+    "native.zip": "fa08ba81bab5ec9aa3e4b69da8c87916cfcf3d1a937c753596a543c4aadc343e",
+    "official.mzpeak": "4f8aa8784e7e865a01d2fa4bec12351c441e681300e65a3695266c9df01c0c65"
+  }
+}

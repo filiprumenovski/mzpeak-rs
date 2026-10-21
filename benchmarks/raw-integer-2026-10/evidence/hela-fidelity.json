@@ -1,0 +1,59 @@
+{
+  "raw": "hela.raw",
+  "archive": "complete.experimental.zip",
+  "archive_sha256": "53284161f7cce7fdc984baaa790c965de6dd8e6f9b9f066894ec52330aa8f5c2",
+  "source_array_sha256": "9b657939094f00219b2d8e409957dc34d9ab074a17b9b5e596689b73a2050cda",
+  "analysis_source_sha256": "3c36088cc4e405f6d2758479bb6e5793b8da655981bf29274fa336ca81459833",
+  "scans": 38419,
+  "points": 137350797,
+  "zeros_preserved": 58900013,
+  "mz_error_ppm": {
+    "count": 137350797,
+    "max_absolute": 0.008999099651941593,
+    "mean_absolute": 0.0034979202342011358,
+    "rms": 0.004112593898003131,
+    "mean_signed": -7.141057562052532e-07,
+    "absolute_quantile_intervals": {
+      "0.5": [
+        0.003363,
+        0.0033640000000000002
+      ],
+      "0.95": [
+        0.007223,
+        0.0072239999999999995
+      ],
+      "0.99": [
+        0.008166,
+        0.008167
+      ]
+    },
+    "histogram_bin_width": 1e-06
+  },
+  "nonzero_intensity_error_percent": {
+    "count": 78450784,
+    "max_absolute": 0.09999989301607062,
+    "mean_absolute": 0.04995045126579919,
+    "rms": 0.05769290419726843,
+    "mean_signed": 1.7043565374907734e-05,
+    "absolute_quantile_intervals": {
+      "0.5": [
+        0.049940000000000005,
+        0.04995
+      ],
+      "0.95": [
+        0.09494000000000001,
+        0.09495
+      ],
+      "0.99": [
+        0.09894000000000001,
+        0.09895
+      ]
+    },
+    "histogram_bin_width": 1e-05
+  },
+  "max_scan_tic_error_percent": 0.0680386399654509,
+  "source_total_intensity": 4161286487511.55,
+  "restored_total_intensity": 4161287402645.2617,
+  "run_total_intensity_signed_error_percent": 2.199160560323321e-05,
+  "method": "Every source point; relative intensity statistics exclude exact zeros. Quantiles are bounded histogram intervals, not sampled estimates. Mean/RMS errors are streaming floating-point reductions. TIC uses float64 sums of decoded intensities, not preserved source-summary metadata. No peptide identification or downstream quantification benchmark."
+}

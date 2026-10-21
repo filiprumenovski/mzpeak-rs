@@ -1,0 +1,4 @@
+
+thread 'main' (24909) panicked at <home>/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mzdata-0.67.4/src/io/thermo/reader.rs:1038:29:
+Failed to map instrument configuration for FTMS from among {}. To allow this with a warning, set env var MZDATA_IGNORE_UNKNOWN_INSTRUMENT=ignore
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
