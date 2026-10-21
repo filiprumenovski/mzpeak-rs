@@ -21,113 +21,67 @@ This repository contains the Rust crate and the benchmark study. **The study mea
 
 ## Measured results
 
-**13 RAW files · 49.48 GB · complete conversion · independently validated output**
-
-The summary below uses the later reader comparison. The original Warrior campaign appears in the full table that follows.
-
-Against official mzPeak default encoding at Zstd level 3:
-
-| Experimental input path | Eligible files | Conversion speedup¹ | Less output storage² | Relative tree RSS³ |
-|:--|--:|--:|--:|--:|
-| **Native rawr-ms** | **11/13** | **4.74×** | **73.14%** | 1.72× official |
-| **Thermo RawFileReader** | **10/13** | **1.74×** | **74.43%** | 0.71× official |
-
-¹ Each file has equal weight in the geometric mean. Each speedup uses paired measurements from the same benchmark block.
-
-² Storage reduction uses the sum of output bytes for eligible files. The two rows use different sets of eligible files.
-
-³ RSS means resident set size. This measurement adds the RSS of each process in the process tree. The ratio uses per-file median RSS values. A lower ratio means less memory use. Native conversion is faster, but it often uses more memory.
-
 <!-- BEGIN INSTRUMENT COMPARISON -->
-### Original Warrior campaign: instrument and acquisition coverage
+**13 RAW files · 49.48 GB · 11 instrument models represented · two official baselines**
 
-**13 RAW files · 49.48 GB · 268 conversion attempts · two official baselines.**
+The table uses the latest available validated comparison for each baseline. Every speedup pairs native and official runs from the same campaign.
 
-This is the original October 19–20 campaign on Warrior, job 40625404. It used eight CPUs and a 32 GiB allocation. The inventory contained 334 RAW files (548.43 GB). We selected 13 files; we did not convert the full inventory.
+| Official baseline | Eligible files | Conversion speedup | Less output storage |
+|:--|--:|--:|--:|
+| **Default, Zstd 3** | **11/13** | **4.74×** | **73.14%** |
+| **Delta, Zstd 3** | **11/13** | **6.19×** | **61.42%** |
 
-The experimental pipeline used rawr-ms for signal reading and vendor code for metadata and calibration. These measurements precede the full-native converter.
+Speedups are paired geometric means with equal weight per file. Storage reduction uses combined bytes on eligible files. Failed baselines receive no ratio.
 
-Each result cell shows **median seconds / archive MB**. MB and GB are decimal units. Both official modes used Zstd level 3. Delta used `delta:50`.
+### Full instrument range: native versus official default and delta
 
-| Instrument / dataset | Acquisition / sample | RAW GB | Experimental<br>s / MB | Official default<br>s / MB | Official delta<br>s / MB | Recovery result |
-|:--|:--|--:|--:|--:|--:|:--|
-| Q Exactive HF<br>HeLa control | DDA; HeLa control | 0.714 | 39.4 / 238.9 | 65.9 / 1,080.1 | 68.4 / 713.6 | Validated; 7 repeats |
-| Orbitrap Fusion<br>[PXD017803](https://www.ebi.ac.uk/pride/archive/projects/PXD017803) | DDA / FAIMS; TMT, hrMS2 | 0.116 | 17.3 / 26.2 | 18.5 / 45.4 | 19.1 / 42.1 | Validated; 7 repeats |
-| Orbitrap Eclipse<br>[PXD023203](https://www.ebi.ac.uk/pride/archive/projects/PXD023203) | FAIMS / SPS; TMTpro | 0.229 | 41.3 / 63.1 | 44.7 / 107.1 | 45.2 / 99.8 | Validated signal; 4 experimental repeats* |
-| Orbitrap Ascend<br>[PXD043660](https://www.ebi.ac.uk/pride/archive/projects/PXD043660) | TMT16; hrMS2 | 0.689 | 37.9 / 221.4 | 65.2 / 829.9 | 61.6 / 540.2 | Validated; 7 repeats |
-| Q Exactive HF<br>[PXD019848](https://www.ebi.ac.uk/pride/archive/projects/PXD019848) | HeLa; non-FAIMS | 0.689 | 40.4 / 230.0 | 66.6 / 1,032.0 | 68.6 / 683.8 | Validated; 7 repeats |
-| Fusion Lumos<br>[PXD046211](https://www.ebi.ac.uk/pride/archive/projects/PXD046211) | TMTpro; single-cell study | 0.734 | 46.5 / 192.2 | 70.2 / 620.7 | 68.2 / 454.0 | Validated; 7 repeats |
-| LTQ Orbitrap Velos<br>[PXD005780](https://www.ebi.ac.uk/pride/archive/projects/PXD005780) | DDA; gut metaproteome | 0.936 | 31.6 / 349.7 | 74.0 / 1,451.4 | 75.0 / 976.1 | Validated; 7 repeats |
-| Q Exactive HF-X<br>[PXD053241](https://www.ebi.ac.uk/pride/archive/projects/PXD053241) | Wide-window DDA | 1.176 | 86.7 / 345.7 | 118.1 / 1,130.4 | 122.4 / 819.6 | Validated; 7 repeats |
-| Q Exactive<br>[PXD000612](https://www.ebi.ac.uk/pride/archive/projects/PXD000612) | DDA; phosphoproteome | 1.542 | 47.6 / 626.5 | 116.0 / 2,616.0 | 122.3 / 1,793.9 | Validated; 7 repeats |
-| Q Exactive Plus<br>[PXD002370](https://www.ebi.ac.uk/pride/archive/projects/PXD002370) | Label-free; UPS1 / yeast | 1.930 | 79.4 / 797.2 | 169.4 / 3,246.6 | 175.5 / 2,237.7 | Validated; 7 repeats |
-| Orbitrap Exploris 480<br>[PXD063416](https://www.ebi.ac.uk/pride/archive/projects/PXD063416) | DIA; HeLa / yeast, 10 m/z | 1.998 | 78.4 / 376.0 | 101.8 / 815.4 | 107.0 / 673.6 | Validated; 7 repeats |
-| Orbitrap Astral*<br>[PXD046453](https://www.ebi.ac.uk/pride/archive/projects/PXD046453) | DIA; 2 Th, 30 min | 16.948 | Metadata failure | Metadata failure | Metadata failure | Excluded |
-| Orbitrap Astral<br>[PXD049028](https://www.ebi.ac.uk/pride/archive/projects/PXD049028) | DIA; 2 Th, 60 min | 21.777 | Timeout | Timeout | Timeout | Excluded |
+Each cell has two lines: **Default**, then **Delta:50**. Time, RAM, and archive cells show **ours / official**. All times and RAM values are medians. The two comparisons use different nodes and native builds; each line keeps its matched native measurement.
 
-**11/13 files passed recovery validation: 1,843,535,828 source points.** Their experimental archives total **3.47 GB**, compared with **12.98 GB** for official default and **9.03 GB** for official delta. Combined storage is **73.28%** and **61.63%** smaller, respectively.
+| Instrument / dataset / acquisition | RAW GB | Baseline | Time, s<br>ours / official | Speedup | Peak process RAM, GiB<br>ours / official | Archive, MB<br>ours / official | Less storage | Status<br>ours / official |
+|:--|--:|:--|--:|--:|--:|--:|--:|:--|
+| Q Exactive HF<br>HeLa control<br>DDA; HeLa control | 0.714 | Default<br>Delta | 14.86 / 61.82<br>9.58 / 50.51 | **4.12×**<br>**5.26×** | 1.62 / 1.26<br>1.63 / 1.66 | 240.5 / 1,080.1<br>240.5 / 713.6 | 77.7%<br>66.3% | Pass / Pass<br>Pass / Pass |
+| Orbitrap Fusion<br>[PXD017803](https://www.ebi.ac.uk/pride/archive/projects/PXD017803)<br>DDA / FAIMS; TMT, hrMS2 | 0.116 | Default<br>Delta | 3.26 / 16.97<br>2.08 / 20.47 | **5.15×**<br>**8.79×** | 0.16 / 0.30<br>0.16 / 0.32 | 26.4 / 45.4<br>26.4 / 42.1 | 41.9%<br>37.4% | Pass / Pass<br>Pass / Pass |
+| Orbitrap Eclipse<br>[PXD023203](https://www.ebi.ac.uk/pride/archive/projects/PXD023203)<br>FAIMS / SPS; TMTpro | 0.229 | Default<br>Delta | 7.44 / 40.06<br>4.40 / 25.30 | **5.38×**<br>**7.16×** | 0.22 / 0.26<br>0.23 / 0.34 | 63.5 / 107.1<br>63.5 / 99.8 | 40.8%<br>36.4% | Pass / Pass<br>Pass / Pass |
+| Orbitrap Ascend<br>[PXD043660](https://www.ebi.ac.uk/pride/archive/projects/PXD043660)<br>TMT16; hrMS2 | 0.689 | Default<br>Delta | 15.33 / 59.79<br>8.88 / 47.02 | **3.94×**<br>**5.07×** | 1.52 / 0.64<br>1.52 / 1.05 | 222.7 / 829.9<br>222.7 / 540.2 | 73.2%<br>58.8% | Pass / Pass<br>Pass / Pass |
+| Q Exactive HF<br>[PXD019848](https://www.ebi.ac.uk/pride/archive/projects/PXD019848)<br>HeLa; non-FAIMS | 0.689 | Default<br>Delta | 14.99 / 61.07<br>9.51 / 61.33 | **4.04×**<br>**5.90×** | 1.56 / 1.32<br>1.56 / 1.67 | 231.6 / 1,032.0<br>231.6 / 683.8 | 77.6%<br>66.1% | Pass / Pass<br>Pass / Pass |
+| Fusion Lumos<br>[PXD046211](https://www.ebi.ac.uk/pride/archive/projects/PXD046211)<br>TMTpro; single-cell study | 0.734 | Default<br>Delta | 14.32 / 64.81<br>8.88 / 65.02 | **4.53×**<br>**6.83×** | 1.32 / 0.76<br>1.32 / 1.03 | 193.4 / 620.7<br>193.4 / 454.0 | 68.8%<br>57.4% | Pass / Pass<br>Pass / Pass |
+| LTQ Orbitrap Velos<br>[PXD005780](https://www.ebi.ac.uk/pride/archive/projects/PXD005780)<br>DDA; gut metaproteome | 0.936 | Default<br>Delta | 14.65 / 68.08<br>11.09 / 51.96 | **5.85×**<br>**4.28×** | 2.45 / 1.04<br>2.45 / 1.64 | 351.8 / 1,451.4<br>351.8 / 976.1 | 75.8%<br>64.0% | Pass / Pass<br>Pass / Pass |
+| Q Exactive HF-X<br>[PXD053241](https://www.ebi.ac.uk/pride/archive/projects/PXD053241)<br>Wide-window DDA | 1.176 | Default<br>Delta | 26.44 / 109.28<br>15.17 / 110.46 | **5.66×**<br>**8.97×** | 1.39 / 0.56<br>1.39 / 1.29 | 347.7 / 1,130.4<br>347.7 / 819.6 | 69.2%<br>57.6% | Pass / Pass<br>Pass / Pass |
+| Q Exactive<br>[PXD000612](https://www.ebi.ac.uk/pride/archive/projects/PXD000612)<br>DDA; phosphoproteome | 1.542 | Default<br>Delta | 23.31 / 104.03<br>16.95 / 86.55 | **4.46×**<br>**5.11×** | 4.32 / 1.10<br>4.31 / 2.08 | 629.7 / 2,616.0<br>629.7 / 1,793.9 | 75.9%<br>64.9% | Pass / Pass<br>Pass / Pass |
+| Q Exactive Plus<br>[PXD002370](https://www.ebi.ac.uk/pride/archive/projects/PXD002370)<br>Label-free; UPS1 / yeast | 1.930 | Default<br>Delta | 34.33 / 148.04<br>22.26 / 125.29 | **4.30×**<br>**4.98×** | 5.23 / 0.89<br>5.23 / 1.64 | 801.6 / 3,246.6<br>801.6 / 2,237.7 | 75.3%<br>64.2% | Pass / Pass<br>Pass / Pass |
+| Orbitrap Exploris 480<br>[PXD063416](https://www.ebi.ac.uk/pride/archive/projects/PXD063416)<br>DIA; HeLa / yeast, 10 m/z | 1.998 | Default<br>Delta | 22.26 / 115.42<br>12.98 / 96.91 | **5.18×**<br>**7.70×** | 0.39 / 0.45<br>0.39 / 1.00 | 376.8 / 815.4<br>376.8 / 673.6 | 53.8%<br>44.1% | Pass / Pass<br>Pass / Pass |
+| Orbitrap Astral*<br>[PXD046453](https://www.ebi.ac.uk/pride/archive/projects/PXD046453)<br>DIA; 2 Th, 30 min | 16.948 | Default<br>Delta | — / —<br>— / — | —<br>— | — / —<br>— / — | — / —<br>— / — | —<br>— | Metadata / Metadata<br>Metadata / Metadata |
+| Orbitrap Astral<br>[PXD049028](https://www.ebi.ac.uk/pride/archive/projects/PXD049028)<br>DIA; 2 Th, 60 min | 21.777 | Default<br>Delta | 268.10 / —<br>157.64 / — | —<br>— | 3.62 / —<br>3.62 / — | 5,467.4 / —<br>5,467.4 / — | —<br>— | Pass / Timeout<br>Pass / Timeout |
 
-The experimental error limits are 0.01 ppm for m/z and 0.1% for intensity. Official output retains exact values after profile-zero filtering. These are different precision requirements.
+**Pass** requires all declared repeats and independent all-point validation. **Timeout** means a required run exceeded 600 seconds. **Metadata** means complete metadata export failed.
 
-*Eclipse completed four measured experimental runs, then timed out. The table shows the median of those four runs. Only 10/13 files qualify for a seven-repeat performance comparison. Warmups and recovery conversions are excluded from timing.
+**Precision:** ours keeps all source points within 0.01 ppm m/z and 0.1% intensity error. Official default and delta retain exact values after profile-zero filtering. Storage savings include this difference.
 
-**Recovery limits:** the first validator failed. Regenerated signal payloads matched every successful original run. Seven files also matched original metadata bytes. Four files passed semantic checks on regenerated metadata; their deleted original metadata bytes cannot be checked again.
+**RAM:** both lines report GNU time maximum process RSS, not concurrent process-tree memory. GiB means 2³⁰ bytes; MB and GB are decimal units. Native RAM is higher on several instruments.
 
-**RAM correction:** the original process-tree sampler missed child processes. Its RAM column is invalid and is omitted. The later reader comparison below uses the corrected sampler.
+**Matched campaigns:** Default uses the later native/vendor campaign on mem1 (8 CPUs, 64 GiB). Delta uses the latest campaign that measured delta on tta1 (8 CPUs, 32 GiB). The native signal binaries differ: `f27b8331` and `53a4ac2e`. Each ratio uses its own matched native run; no timing is transferred between campaigns. Delta has not been measured with the later binary.
 
-Instrument and acquisition labels use the [coverage evidence](benchmarks/raw-integer-2026-10/evidence/coverage.json). The Astral30 model comes from its project record; the reader reported an unknown model.
+Default retains seven repeats for the first three files and three for the rest. Delta retains seven for the first eight files and three for the rest. Each mode has one excluded warmup. The user-requested amendment preserved completed runs and frozen binaries.
 
-[Original measurements, recovery checks, and source hashes →](benchmarks/raw-integer-2026-10/evidence/original-warrior.json)
+The Astral30 instrument name comes from the project record. Its reader reported an unknown model. These data cover Thermo RAW, not other vendor formats.
+
+[Instrument and acquisition evidence](benchmarks/raw-integer-2026-10/evidence/coverage.json) · [Default campaign runs](benchmarks/raw-integer-2026-10/evidence/conversion-results.json) · [Delta campaign runs and validation](benchmarks/raw-integer-2026-10/evidence/native-delta-results.json)
 
 <details>
-<summary>Later native / Thermo-reader / official comparison, including corrected RAM</summary>
+<summary>Thermo-reader option and earlier campaign history</summary>
 
-### Later reader comparison
+Our Thermo RawFileReader path is **1.74× faster** and uses **74.43% less combined storage** than official default on 10/13 eligible files. Its corrected process-tree RSS ratio is 0.71× official. These measurements belong to the mem1 campaign. [Full reader-mode results](benchmarks/raw-integer-2026-10/RESULTS.md).
 
-All 13 selected files appear below. Each cell uses the order **N / V / O**: native rawr-ms, our Thermo-reader path, and official default.
-
-Our limits are 0.01 ppm for m/z and 0.1% for intensity. Official default preserves retained values exactly.
-
-Times and memory values are medians. Memory is sampled process-tree RSS in GiB. Archive sizes use decimal MB. RAW sizes use decimal GB.
-
-| Instrument / dataset | Acquisition / sample | RAW GB | Time, s<br>N / V / O | RSS, GiB<br>N / V / O | Archive, MB<br>N / V / O | Speedup vs O<br>N / V | Less storage vs O<br>N / V | Status<br>N / V / O |
-|:--|:--|--:|--:|--:|--:|--:|--:|:--|
-| Q Exactive HF<br>HeLa control | DDA; HeLa control | 0.714 | 14.86<br>34.69<br>61.82 | 1.64<br>0.74<br>1.24 | 240.5<br>240.5<br>1,080.1 | 4.12×<br>1.77× | 77.7%<br>77.7% | Pass<br>Pass<br>Pass |
-| Orbitrap Fusion<br>[PXD017803](https://www.ebi.ac.uk/pride/archive/projects/PXD017803) | DDA / FAIMS; TMT, hrMS2 | 0.116 | 3.26<br>14.82<br>16.97 | 0.16<br>0.31<br>0.30 | 26.4<br>26.4<br>45.4 | 5.15×<br>1.14× | 41.9%<br>41.9% | Pass<br>Pass<br>Pass |
-| Orbitrap Eclipse<br>[PXD023203](https://www.ebi.ac.uk/pride/archive/projects/PXD023203) | FAIMS / SPS; TMTpro | 0.229 | 7.44<br>34.68<br>40.06 | 0.22<br>0.34<br>0.27 | 63.5<br>63.5<br>107.1 | 5.38×<br>0.88× | 40.8%<br>40.8% | Pass<br>Pass<br>Pass |
-| Orbitrap Ascend<br>[PXD043660](https://www.ebi.ac.uk/pride/archive/projects/PXD043660) | TMT16; hrMS2 | 0.689 | 15.33<br>33.62<br>59.79 | 1.54<br>0.44<br>0.64 | 222.7<br>222.7<br>829.9 | 3.94×<br>1.79× | 73.2%<br>73.2% | Pass<br>Pass<br>Pass |
-| Q Exactive HF<br>[PXD019848](https://www.ebi.ac.uk/pride/archive/projects/PXD019848) | HeLa; non-FAIMS | 0.689 | 14.99<br>35.43<br>61.07 | 1.58<br>0.80<br>1.31 | 231.6<br>231.6<br>1,032.0 | 4.04×<br>1.72× | 77.6%<br>77.6% | Pass<br>Pass<br>Pass |
-| Fusion Lumos<br>[PXD046211](https://www.ebi.ac.uk/pride/archive/projects/PXD046211) | TMTpro; single-cell study | 0.734 | 14.32<br>40.52<br>64.81 | 1.34<br>0.45<br>0.76 | 193.4<br>193.4<br>620.7 | 4.53×<br>1.61× | 68.8%<br>68.8% | Pass<br>Pass<br>Pass |
-| LTQ Orbitrap Velos<br>[PXD005780](https://www.ebi.ac.uk/pride/archive/projects/PXD005780) | DDA; gut metaproteome | 0.936 | 14.65<br>29.90<br>68.08 | 2.47<br>0.48<br>1.04 | 351.8<br>351.8<br>1,451.4 | 5.85×<br>2.85× | 75.8%<br>75.8% | Pass<br>Pass<br>Pass |
-| Q Exactive HF-X<br>[PXD053241](https://www.ebi.ac.uk/pride/archive/projects/PXD053241) | Wide-window DDA | 1.176 | 26.44<br>72.43<br>109.28 | 1.41<br>0.58<br>0.56 | 347.7<br>347.7<br>1,130.4 | 5.66×<br>2.04× | 69.2%<br>69.2% | Pass<br>Pass<br>Pass |
-| Q Exactive<br>[PXD000612](https://www.ebi.ac.uk/pride/archive/projects/PXD000612) | DDA; phosphoproteome | 1.542 | 23.31<br>43.41<br>104.03 | 4.34<br>0.58<br>1.08 | 629.7<br>629.7<br>2,616.0 | 4.46×<br>2.40× | 75.9%<br>75.9% | Pass<br>Pass<br>Pass |
-| Q Exactive Plus<br>[PXD002370](https://www.ebi.ac.uk/pride/archive/projects/PXD002370) | Label-free; UPS1 / yeast | 1.930 | 34.33<br>70.40<br>148.04 | 5.25<br>0.60<br>0.89 | 801.6<br>801.6<br>3,246.6 | 4.30×<br>2.07× | 75.3%<br>75.3% | Pass<br>Pass<br>Pass |
-| Orbitrap Exploris 480<br>[PXD063416](https://www.ebi.ac.uk/pride/archive/projects/PXD063416) | DIA; HeLa / yeast, 10 m/z | 1.998 | 22.26<br>—<br>115.42 | 0.41<br>—<br>0.45 | 376.8<br>—<br>815.4 | 5.18×<br>— | 53.8%<br>— | Pass<br>Timeout<br>Pass |
-| Orbitrap Astral*<br>[PXD046453](https://www.ebi.ac.uk/pride/archive/projects/PXD046453) | DIA; 2 Th, 30 min | 16.948 | —<br>—<br>— | —<br>—<br>— | —<br>—<br>— | —<br>— | —<br>— | Metadata<br>Metadata<br>Metadata |
-| Orbitrap Astral<br>[PXD049028](https://www.ebi.ac.uk/pride/archive/projects/PXD049028) | DIA; 2 Th, 60 min | 21.777 | 268.10<br>—<br>— | 3.64<br>—<br>— | 5,467.4<br>—<br>— | —<br>— | —<br>— | Pass<br>Timeout<br>Timeout |
-
-**Pass** requires all declared repeats and independent validation. **Timeout** means that a required run exceeded 600 seconds. **Metadata** means that complete metadata export failed.
-
-A dash means no eligible measurement or ratio. Exploris vendor output passed numerical validation, but one repeat timed out. Its comparison remains excluded.
-
-Speedups use paired geometric means. They can differ from ratios of displayed median times. The slow Eclipse vendor repeat remains in the calculation.
-
-Acquisition and sample labels use selected filenames, stored scan metadata, and linked project records. The [coverage evidence](benchmarks/raw-integer-2026-10/evidence/coverage.json) records each label and its basis.
-
-*The Astral30 instrument name comes from the project record. The benchmark reader returned an unknown instrument model, and all complete conversions failed.
-
-This table covers Thermo RAW files. It does not claim benchmarks for every instrument or acquisition method in each source project.
+The original hybrid campaign used vendor code for metadata and calibration. Its 268 attempts and recovery limits remain in the [historical evidence](benchmarks/raw-integer-2026-10/evidence/original-warrior.json). Those timings are not used above.
 
 </details>
 <!-- END INSTRUMENT COMPARISON -->
 
-![Conversion speedup for each eligible file. The chart compares the native reader and the Thermo reader with official default.](benchmarks/raw-integer-2026-10/conversion-speed.svg)
-
-The native converter passed complete validation on **12/13 files**. The validator examined **3,355,346,983 points**. All **1,009,282,702 zero values** remained zero. The official converter completed only 11 of these files. Thus, only 11 files have a valid speedup comparison.
+In the latest default campaign, the native converter passed complete validation on **12/13 files**. The validator examined **3,355,346,983 points**. All **1,009,282,702 zero values** remained zero. The official converter completed only 11 of these files. Thus, only 11 files have a valid speedup comparison.
 
 The total error limits are **0.01 ppm for m/z** and **0.1% for intensity**. The experimental archive keeps every source point. Official default keeps retained values unchanged, but it can remove interior zero runs. The two formats therefore have different precision requirements. The storage comparison includes this difference.
 
-[All per-file times, RAM and sizes →](benchmarks/raw-integer-2026-10/RESULTS.md) · [Per-repeat JSON →](benchmarks/raw-integer-2026-10/evidence/conversion-results.json)
+[All reader-mode times, RAM and sizes →](benchmarks/raw-integer-2026-10/RESULTS.md) · [Per-repeat JSON →](benchmarks/raw-integer-2026-10/evidence/conversion-results.json)
 
 ## Integer storage
 
@@ -172,12 +126,12 @@ The encoder reserves a margin for reader error. It also examines the error after
 
 The big Astral validation includes **all 744,726 scans and 1,511,811,155 points**. All **162,582,445 zero values** remained zero.
 
-| Big Astral error | Mean absolute | 99th percentile⁴ | Maximum | Limit |
+| Big Astral error | Mean absolute | 99th percentile¹ | Maximum | Limit |
 |:--|--:|--:|--:|--:|
 | m/z, ppm | 0.001859 | ≈0.007684 | 0.009055 | 0.01 |
 | Positive intensity, % | 0.049948 | ≈0.098950 | 0.09999990 | 0.1 |
 
-⁴ The percentile values use the rounded upper endpoints of histogram intervals. The calculation includes every point. Relative-intensity statistics exclude zero values.
+¹ The percentile values use the rounded upper endpoints of histogram intervals. The calculation includes every point. Relative-intensity statistics exclude zero values.
 
 The sum of intensity across the file changed by **−0.00006401%**. The largest scan TIC error was **0.08622%**. TIC means total ion current. These measurements use decoded arrays. A small change in the total does not give a smaller error limit for each peak.
 
@@ -208,11 +162,11 @@ XIC means extracted ion chromatogram. Each query uses the same selected scans. S
 | Exploris, vendor mode | Retained output validated; third measured conversion timed out | Vendor comparison excluded |
 | Big Astral | Native completed and validated; vendor and official timed out during warmup | Native median **268.10 s**; no baseline speedup |
 
-The primary benchmark used eight CPUs and a 64 GiB allocation. Each mode had one warmup run. The analysis excludes warmup time. The first three completed cases retain seven measured repeats. The remaining cases use three repeats after a documented protocol change. The binaries and error limits did not change.
+The latest default campaign used eight CPUs and a 64 GiB allocation. Each mode had one warmup run. The analysis excludes warmup time. The first three completed cases retain seven measured repeats. The remaining cases use three repeats after a documented protocol change. The binaries and error limits did not change.
 
 A comparison requires all specified repeats to succeed. It also requires matching signal hashes and independent validation of every point. A 600-second timeout is a failed conversion.
 
-A second benchmark compares official default and delta encoding on another node. Its results remain separate. Earlier process-tree RSS samples missed child processes from worker threads. Those memory measurements are invalid. The primary table uses the corrected sampler.
+The delta comparison uses the separate native/default/delta campaign. Its timings remain paired within that campaign. Earlier process-tree RSS samples missed child processes from worker threads. Those memory measurements are invalid. The reader-mode results use the corrected sampler. The main comparison table uses maximum process RSS for both campaigns.
 
 Run the verification script:
 
@@ -220,7 +174,7 @@ Run the verification script:
 python3 benchmarks/raw-integer-2026-10/verify_results.py
 ```
 
-The script examines all 39 case/mode cells. It verifies speedups, storage totals, repeat eligibility, signal hashes, and recorded error limits. It does not repeat RAW conversion.
+The script examines all 39 reader-mode cells and checks the main default/delta table. It verifies speedups, storage totals, repeat eligibility, signal hashes, and recorded error limits. It does not repeat RAW conversion.
 
 [Protocol and reproduction scope →](benchmarks/raw-integer-2026-10/REPRODUCIBILITY.md) · [Frozen runtime hashes →](benchmarks/raw-integer-2026-10/evidence/execution.json) · [Failure evidence →](benchmarks/raw-integer-2026-10/evidence/failures)
 
