@@ -97,40 +97,56 @@ def render():
     lines.extend(['',
         'Speedups are paired geometric means with equal weight per file. Storage reduction uses combined bytes on eligible files. Failed baselines receive no ratio.', '',
         '### Full instrument range: native versus official default and delta', '',
-        'Each cell has two lines: **Default**, then **Delta:50**. Time, RAM, and archive cells show **ours / official**. All times and RAM values are medians. The two comparisons use different nodes and native builds; each line keeps its matched native measurement.', '',
-        '| Instrument / dataset / acquisition | RAW GB | Baseline | Time, s<br>ours / official | Speedup | Peak process RAM, GiB<br>ours / official | Archive, MB<br>ours / official | Less storage | Status<br>ours / official |',
-        '|:--|--:|:--|--:|--:|--:|--:|--:|:--|'])
+        'One row per file. **Higher speedups and storage savings are better.** Delta means `delta:50`; both official modes use Zstd 3.', '',
+        'Each baseline uses its latest matched campaign. Default and delta used different nodes and native builds. No timing is transferred between them.', '',
+        '| Instrument | Acquisition / sample | Speedup vs default | Speedup vs delta | Storage saved vs default | Storage saved vs delta |',
+        '|:--|:--|--:|--:|--:|--:|'])
     def value(row, key, scale, digits):
         return f"{row['metrics'][key] / scale:,.{digits}f}" if row['eligible'] else '—'
-    def status(row):
-        return 'Pass' if row['eligible'] else 'Timeout' if 'Timeout' in row['status'] else 'Metadata'
+    def instrument(c):
+        name = c['instrument_display'].replace('Orbitrap ', '').replace('LTQ Velos', 'LTQ Orbitrap Velos').rstrip('*')
+        if c['case'] == '00-HeLa_control':
+            return name + ' (control)'
+        if c['case'] == '11-PXD046453':
+            name += ' (30 min)'
+        elif c['case'] == '12-PXD049028':
+            name += ' (60 min)'
+        return f"[{name}]({c['project_url']})"
     for i, c in enumerate(coverage):
         pairs = [p[i] for p in by_campaign]
         for n, o in pairs:
             assert n['source_sha256'] == o['source_sha256'] == c['source_sha256']
             assert n['source_bytes'] == o['source_bytes'] == pairs[0][0]['source_bytes']
-        source = f"[{c['dataset']}]({c['project_url']})" if c.get('project_url') else 'HeLa control'
-        metrics = []
-        for key, scale, digits in [('median_seconds', 1, 2), ('median_peak_process_rss_bytes', 2**30, 2), ('output_bytes', 1e6, 1)]:
-            metrics.append('<br>'.join(f'{value(n,key,scale,digits)} / {value(o,key,scale,digits)}' for n, o in pairs))
         speeds, savings = [], []
         for n, o in pairs:
             ratio = speedup(n, o)
             speeds.append(f'**{ratio:.2f}×**' if ratio is not None else '—')
             savings.append(f"{100*(1-n['metrics']['output_bytes']/o['metrics']['output_bytes']):.1f}%" if ratio is not None else '—')
-        cells = [c['instrument_display']+'<br>'+source+'<br>'+c['acquisition_sample_label'],
-                 f"{pairs[0][0]['source_bytes']/1e9:.3f}", 'Default<br>Delta', metrics[0], '<br>'.join(speeds), metrics[1], metrics[2],
-                 '<br>'.join(savings), '<br>'.join(f'{status(n)} / {status(o)}' for n,o in pairs)]
+        cells = [instrument(c), c['acquisition_sample_label'], *speeds, *savings]
         lines.append('| '+' | '.join(cells)+' |')
     lines.extend(['',
-        '**Pass** requires all declared repeats and independent all-point validation. **Timeout** means a required run exceeded 600 seconds. **Metadata** means complete metadata export failed.', '',
+        '**Astral:** the 30-minute file failed metadata export in both campaigns. Native conversion of the 60-minute file passed; both official baselines timed out. Dashes mean no valid comparison.', '',
         '**Precision:** ours keeps all source points within 0.01 ppm m/z and 0.1% intensity error. Official default and delta retain exact values after profile-zero filtering. Storage savings include this difference.', '',
-        '**RAM:** both lines report GNU time maximum process RSS, not concurrent process-tree memory. GiB means 2³⁰ bytes; MB and GB are decimal units. Native RAM is higher on several instruments.', '',
-        '**Matched campaigns:** Default uses the later native/vendor campaign on mem1 (8 CPUs, 64 GiB). Delta uses the latest campaign that measured delta on tta1 (8 CPUs, 32 GiB). The native signal binaries differ: `f27b8331` and `53a4ac2e`. Each ratio uses its own matched native run; no timing is transferred between campaigns. Delta has not been measured with the later binary.', '',
+        '**RAM is not a consistent win.** Native conversion uses more memory on several instruments. Expand the measurements below for every time, RAM value, and archive size.', '',
+        '<details>', '<summary><strong>Full measurements: time, RAM, and archive size</strong></summary>', '',
+        'Each cell contains one value. Times and RAM values are medians. RAM is GNU time maximum process RSS, not concurrent process-tree memory. GiB means 2³⁰ bytes; MB and GB are decimal units.', ''])
+    for (name, _, _), pairs in zip(campaigns, by_campaign):
+        lines.extend([f'#### Native versus official {name.lower()}', '',
+            '| Instrument | Native s | Official s | Native GiB | Official GiB | Native MB | Official MB |',
+            '|:--|--:|--:|--:|--:|--:|--:|'])
+        for c, (n, o) in zip(coverage, pairs):
+            cells = [instrument(c)]
+            for key, scale, digits in [('median_seconds', 1, 2), ('median_peak_process_rss_bytes', 2**30, 2), ('output_bytes', 1e6, 1)]:
+                cells.extend([value(n, key, scale, digits), value(o, key, scale, digits)])
+            lines.append('| '+' | '.join(cells)+' |')
+        lines.append('')
+    lines.extend(['A reported measurement requires all declared repeats and independent all-point validation. A timeout means a required run exceeded 600 seconds. Warmups are excluded. No ratio uses a failed baseline.', '',
+        '</details>', '', '<details>', '<summary>Campaigns, repeats, and source evidence</summary>', '',
+        'Default uses the later native/vendor campaign on mem1 (8 CPUs, 64 GiB). Delta uses the latest campaign that measured delta on tta1 (8 CPUs, 32 GiB). The native signal binaries differ: `f27b8331` and `53a4ac2e`. Each ratio uses its own matched native run. Delta has not been measured with the later binary.', '',
         'Default retains seven repeats for the first three files and three for the rest. Delta retains seven for the first eight files and three for the rest. Each mode has one excluded warmup. The user-requested amendment preserved completed runs and frozen binaries.', '',
-        'The Astral30 instrument name comes from the project record. Its reader reported an unknown model. These data cover Thermo RAW, not other vendor formats.', '',
+        'The selected RAW files range from 0.116 GB to 21.777 GB. Instrument links open their source project. The Astral30 model comes from its project record; its reader reported an unknown model. These data cover Thermo RAW, not other vendor formats.', '',
         '[Instrument and acquisition evidence](benchmarks/raw-integer-2026-10/evidence/coverage.json) · [Default campaign runs](benchmarks/raw-integer-2026-10/evidence/conversion-results.json) · [Delta campaign runs and validation](benchmarks/raw-integer-2026-10/evidence/native-delta-results.json)', '',
-        '<details>', '<summary>Thermo-reader option and earlier campaign history</summary>', '',
+        '</details>', '', '<details>', '<summary>Thermo-reader option and earlier campaign history</summary>', '',
         'Our Thermo RawFileReader path is **1.74× faster** and uses **74.43% less combined storage** than official default on 10/13 eligible files. Its corrected process-tree RSS ratio is 0.71× official. These measurements belong to the mem1 campaign. [Full reader-mode results](benchmarks/raw-integer-2026-10/RESULTS.md).', '',
         'The original hybrid campaign used vendor code for metadata and calibration. Its 268 attempts and recovery limits remain in the [historical evidence](benchmarks/raw-integer-2026-10/evidence/original-warrior.json). Those timings are not used above.', '',
         '</details>', END])
