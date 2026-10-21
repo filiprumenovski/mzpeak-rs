@@ -14,7 +14,7 @@ The test set contains 49.48 GB in 13 RAW files. Custom output has total limits o
 - [Reproduction scope, revisions and limitations](REPRODUCIBILITY.md)
 - [12-slide presentation](raw-integer-archive.pptx)
 - [Per-repeat conversion evidence](evidence/conversion-results.json)
-- [Failure logs](evidence/failures) (paths relocated; original hashes retained)
+- [Failure logs](evidence/failures) (paths relocated and trailing whitespace normalized; original hashes retained)
 - [Independent validation details](evidence/validation.json)
 - [HeLa loss distributions](evidence/hela-fidelity.json) and [big-Astral loss distributions](evidence/astral-fidelity.json)
 - [Astral query measurements](evidence/astral-queries.json)
