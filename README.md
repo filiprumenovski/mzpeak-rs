@@ -1,576 +1,232 @@
+<div align="center">
+
 # mzpeak-rs
 
-> Disclaimer: This repository is an independent Rust implementation. The official mzPeak implementation is maintained at https://github.com/HUPO-PSI/mzPeak — many thanks to the HUPO-PSI team for their leadership and work on the format.
+### Store spectra. Measure size, speed, and error.
 
-[![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
-[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](#license)
+An independent Rust implementation using Apache Arrow and Parquet.<br>
+Includes a benchmark study of direct RAW conversion.
 
-A modern, scalable, and interoperable mass spectrometry data format based on Apache Parquet.
+[**Results**](#measured-results) · [**Design**](#integer-storage) · [**Quick start**](#use-the-rust-crate) · [**Writeup**](benchmarks/raw-integer-2026-10/WRITEUP.md) · [**Slides**](benchmarks/raw-integer-2026-10/raw-integer-archive.pptx)
 
+[![License: MIT or Apache-2.0](https://img.shields.io/badge/license-MIT%20or%20Apache--2.0-087f8c)](#attribution-and-license)
+[![Evidence: 13 RAW files](https://img.shields.io/badge/evidence-13%20RAW%20files-142630)](benchmarks/raw-integer-2026-10/RESULTS.md)
+[![Validation: 3.355 billion points](https://img.shields.io/badge/validation-3.355%20billion%20points-087f8c)](benchmarks/raw-integer-2026-10/evidence/validation.json)
 
-## Overview
+</div>
 
-mzpeak-rs is an independent Rust implementation for storing mass spectrometry data in Apache Parquet containers. It includes:
+This project tests how integer storage can reduce file size within specified error limits. The experimental converter reads Thermo RAW files directly. It uses either native **rawr-ms** or **Thermo RawFileReader**. Both readers supply data to the same encoder.
 
-- **Compressed columnar storage** using Parquet
-- **Queries** over selected columns and spectra
-- **Universal compatibility** with any Parquet-compatible tool (Python, R, DuckDB, Spark)
-- **Single-file container format** (`.mzpeak`) - ZIP archive for easy distribution
-- **Self-contained format** with all metadata embedded and human-readable JSON
-- **Streaming processing** for arbitrarily large files with minimal memory
-- **Multi-format support** for Thermo RAW, Bruker .d, and mzML
+This repository contains the Rust crate and the benchmark study. **The study measures a separate experimental converter. It does not measure the current Rust crate.** The experimental archive is not an official mzPeak file. The [HUPO-PSI mzPeak project](https://github.com/HUPO-PSI/mzPeak) maintains the official implementation.
 
-### Validated RAW benchmark study
+## Measured results
 
-The [October 2026 benchmark package](benchmarks/raw-integer-2026-10/README.md) includes the technical report, presentation, per-repeat speed/RAM/storage measurements, full-point validation and loss distributions for 13 RAW files. It compares a **separate experimental integer archive pipeline** with the pinned official mzPeak converter; these are not performance measurements of this crate. Native and vendor input paths, failures, precision tradeoffs and query startup costs are reported explicitly.
+**13 RAW files · 49.48 GB · complete conversion · independently validated output**
 
-### Architecture
+Against official mzPeak default encoding at Zstd level 3:
 
+| Experimental input path | Eligible files | Conversion speedup¹ | Less output storage² | Relative tree RSS³ |
+|:--|--:|--:|--:|--:|
+| **Native rawr-ms** | **11/13** | **4.74×** | **73.14%** | 1.72× official |
+| **Thermo RawFileReader** | **10/13** | **1.74×** | **74.43%** | 0.71× official |
+
+¹ Each file has equal weight in the geometric mean. Each speedup uses paired measurements from the same benchmark block.
+
+² Storage reduction uses the sum of output bytes for eligible files. The two rows use different sets of eligible files.
+
+³ RSS means resident set size. This measurement adds the RSS of each process in the process tree. The ratio uses per-file median RSS values. A lower ratio means less memory use. Native conversion is faster, but it often uses more memory.
+
+![Conversion speedup for each eligible file. The chart compares the native reader and the Thermo reader with official default.](benchmarks/raw-integer-2026-10/conversion-speed.svg)
+
+The native converter passed complete validation on **12/13 files**. The validator examined **3,355,346,983 points**. All **1,009,282,702 zero values** remained zero. The official converter completed only 11 of these files. Thus, only 11 files have a valid speedup comparison.
+
+The total error limits are **0.01 ppm for m/z** and **0.1% for intensity**. The experimental archive keeps every source point. Official default keeps retained values unchanged, but it can remove interior zero runs. The two formats therefore have different precision requirements. The storage comparison includes this difference.
+
+[All per-file times, RAM and sizes →](benchmarks/raw-integer-2026-10/RESULTS.md) · [Per-repeat JSON →](benchmarks/raw-integer-2026-10/evidence/conversion-results.json)
+
+## Integer storage
+
+A floating-point value stores an exponent and a mantissa. The experimental encoder converts signal values to integers within a specified relative-error limit. It then compresses the integer data.
+
+```mermaid
+flowchart LR
+    RAW[Thermo RAW] --> N[Native rawr-ms]
+    RAW --> V[Thermo RawFileReader]
+    N --> E[Shared integer encoder]
+    V --> E
+    E --> M[m/z: linear integer codes]
+    E --> I[Intensity: log codes + exact zero]
+    M --> B[Bit packing / delta / Zstd blocks]
+    I --> B
+    B --> A[Experimental archive]
+    RAW --> D[Acquisition metadata]
+    D --> P[Parquet tables]
+    P --> A
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    .mzpeak Container (ZIP)                      │
-├─────────────────────────────────────────────────────────────────┤
-│  mimetype                    application/vnd.mzpeak             │
-│  ─────────────────────────── (uncompressed, first entry)        │
-├─────────────────────────────────────────────────────────────────┤
-│  metadata.json               Human-readable experimental data   │
-│  ─────────────────────────── (Deflate compressed)               │
-├─────────────────────────────────────────────────────────────────┤
-│  peaks/peaks.parquet         Long-table spectral data           │
-│  ───────────────────────────  • spectrum_id: Int64              │
-│                               • mz: Float64 (MS:1000040)        │
-│                               • intensity: Float32 (MS:1000042) │
-│                               • retention_time: Float32         │
-│                               • ion_mobility: Float64 (opt)     │
-│                               (Stored for seekability)          │
-├─────────────────────────────────────────────────────────────────┤
-│  chromatograms/*.parquet     TIC/BPC traces (wide format)       │
-│  ─────────────────────────── (Stored, optional)                 │
-└─────────────────────────────────────────────────────────────────┘
+
+Both readers read RAW directly. Neither reader requires an intermediate mzML file. The user selects the reader. Native conversion does not automatically switch to the Thermo reader. The independent validator uses the Thermo reader for its reference values.
+
+| Layer | Representation | Reason |
+|:--|:--|:--|
+| m/z | Linear integer codes relative to each block's minimum | Bound error relative to the original value |
+| Positive intensity | Logarithmic integer codes | Allocate relative precision across the dynamic range |
+| Zero intensity | Reserved zero code | Preserve every zero and its position |
+| Signal | Independently compressed blocks of at most 16,384 points per axis | Decode selected blocks without a full signal scan |
+| Index | Compressed block directory | Locate each spectrum's signal |
+| Acquisition metadata | Parquet tables and JSON | Keep scan, precursor and instrument context accessible |
+
+For m/z, let `b` be the minimum value in a block. A step of `Δ = 2bεq` gives a rounding error of at most `bεq`. Because `x ≥ b`, the relative error is at most `εq`.
+
+For positive intensity, the logarithmic step is `h = 2 ln(1 + εI)`. The decoded value divided by the source value stays between `1/(1 + εI)` and `1 + εI`.
+
+The encoder reserves a margin for reader error. It also examines the error after floating-point reconstruction. The independent validator examines the saved output.
+
+[Quantization derivation, reader-error composition and archive layout →](benchmarks/raw-integer-2026-10/WRITEUP.md#storage-design)
+
+## Signal error
+
+The big Astral validation includes **all 744,726 scans and 1,511,811,155 points**. All **162,582,445 zero values** remained zero.
+
+| Big Astral error | Mean absolute | 99th percentile⁴ | Maximum | Limit |
+|:--|--:|--:|--:|--:|
+| m/z, ppm | 0.001859 | ≈0.007684 | 0.009055 | 0.01 |
+| Positive intensity, % | 0.049948 | ≈0.098950 | 0.09999990 | 0.1 |
+
+⁴ The percentile values use the rounded upper endpoints of histogram intervals. The calculation includes every point. Relative-intensity statistics exclude zero values.
+
+The sum of intensity across the file changed by **−0.00006401%**. The largest scan TIC error was **0.08622%**. TIC means total ion current. These measurements use decoded arrays. A small change in the total does not give a smaller error limit for each peak.
+
+**The output passed numerical validation. We have not tested whether the changes affect peptide identification, false discovery rate, or downstream quantification.**
+
+[Big Astral distributions →](benchmarks/raw-integer-2026-10/evidence/astral-fidelity.json) · [HeLa distributions →](benchmarks/raw-integer-2026-10/evidence/hela-fidelity.json)
+
+## Query speed and startup time
+
+The native decoder processes spectra in batches. On the big Astral, it reduces warm-query time. Archive opening still takes more time than the official reader.
+
+| Workload | Native warm | Official warm | Native open + first query | Official open + first query |
+|:--|--:|--:|--:|--:|
+| XIC, 494 scans | 1.068 s | 1.234 s | 5.195 s | 3.243 s |
+| MS2 arrays, 50,208 scans | 4.556 s | 7.053 s | 8.693 s | 8.999 s |
+
+The warm MS2 batch is **1.55× faster**. Peak process RSS is **3.87 GiB**, compared with **4.75 GiB** for the official reader. Opening takes approximately **4.12 s**, compared with **1.84 s**. The XIC takes more total time when the measurement includes archive opening.
+
+XIC means extracted ion chromatogram. Each query uses the same selected scans. Seven repeats use a new process and a randomized order. The filesystem cache is warm. Each decoder uses one worker. The benchmark uses no persistent index or decoded-signal cache. These results apply to two queries. They do not measure SQL or DuckDB performance.
+
+[Query protocol and every sample →](benchmarks/raw-integer-2026-10/evidence/astral-queries.json)
+
+## Failures and comparison rules
+
+| Case | Outcome | Treatment |
+|:--|:--|:--|
+| Astral30 | Both custom paths encoded signal, then failed instrument metadata; official also failed metadata mapping | No complete-archive ratio |
+| Exploris, vendor mode | Retained output validated; third measured conversion timed out | Vendor comparison excluded |
+| Big Astral | Native completed and validated; vendor and official timed out during warmup | Native median **268.10 s**; no baseline speedup |
+
+The primary benchmark used eight CPUs and a 64 GiB allocation. Each mode had one warmup run. The analysis excludes warmup time. The first three completed cases retain seven measured repeats. The remaining cases use three repeats after a documented protocol change. The binaries and error limits did not change.
+
+A comparison requires all specified repeats to succeed. It also requires matching signal hashes and independent validation of every point. A 600-second timeout is a failed conversion.
+
+A second benchmark compares official default and delta encoding on another node. Its results remain separate. Earlier process-tree RSS samples missed child processes from worker threads. Those memory measurements are invalid. The primary table uses the corrected sampler.
+
+Run the verification script:
+
+```bash
+python3 benchmarks/raw-integer-2026-10/verify_results.py
 ```
 
-## v2.0 Schema (NEW)
+The script examines all 39 case/mode cells. It verifies speedups, storage totals, repeat eligibility, signal hashes, and recorded error limits. It does not repeat RAW conversion.
 
-This implementation's v2.0 schema uses a **normalized two-table architecture**:
+[Protocol and reproduction scope →](benchmarks/raw-integer-2026-10/REPRODUCIBILITY.md) · [Frozen runtime hashes →](benchmarks/raw-integer-2026-10/evidence/execution.json) · [Failure evidence →](benchmarks/raw-integer-2026-10/evidence/failures)
 
-```
-output.mzpeak (v2.0)
-├── mimetype                    # "application/vnd.mzpeak+v2"
-├── manifest.json               # Schema version and modality
-├── spectra/spectra.parquet     # One row per spectrum (metadata)
-└── peaks/peaks.parquet         # One row per peak (mz, intensity, ion_mobility)
-```
+## Use the Rust crate
 
-**Key improvements:**
-- **Separated metadata** to avoid repeated per-peak metadata columns
-- **Faster metadata queries** (spectra table is small and efficient)
-- **Modality-aware columns** (LC-MS, LC-IMS-MS, MSI, MSI-IMS)
-- **Optimized encodings**: DELTA_BINARY_PACKED for integers, BYTE_STREAM_SPLIT for floats
+The Rust crate provides Arrow/Parquet readers and writers. It also provides ZIP containers, mzML conversion, optional Python bindings, and optional vendor integrations. Its Parquet signal layout differs from the experimental integer archive.
 
-See [docs/SCHEMA_V2.md](docs/SCHEMA_V2.md) for full specification.
-
-
-## Features
-
-- **Container format**: Single `.mzpeak` file (ZIP archive) with embedded Parquet and metadata
-- **Two schema versions**: v2.0 (normalized, recommended) and v1.0 (legacy, single table)
-- **Long table schema**: Each peak is a row, enabling efficient Run-Length Encoding (RLE) compression on spectrum metadata
-- **Ion Mobility support**: Native IM dimension for timsTOF and other IM-MS instruments
-- **Multi-format input**: Convert from Thermo RAW, Bruker .d, and mzML files
-- **Automatic TIC/BPC generation**: Total Ion Current and Base Peak Chromatograms automatically generated during conversion
-- **Chromatogram storage**: Wide-format storage for instant trace visualization without peak table scanning
-- **Rolling Writer (sharding)**: Automatic file partitioning for terabyte-scale datasets
-- **HUPO-PSI CV integration**: Full controlled vocabulary support for interoperability
-- **SDRF-Proteomics metadata**: Sample metadata following community standards
-- **Lossless technical metadata**: Preserves instrument settings, LC configurations, pump pressures
-- **Streaming mzML parser**: Memory-efficient conversion of large files
-- **Human-readable metadata**: Standalone JSON file for quick inspection without Parquet tools
-- **Built-in validator**: Comprehensive integrity checks to ensure format compliance and avoid fragmented implementations
-
-## Installation
-
-### From Source
+### Build and convert mzML
 
 ```bash
 git clone https://github.com/filiprumenovski/mzpeak-rs.git
 cd mzpeak-rs
-cargo build --release
+cargo build --release --locked
+
+./target/release/mzpeak convert input.mzML output.mzpeak
+./target/release/mzpeak info output.mzpeak
+./target/release/mzpeak validate output.mzpeak
 ```
 
-### As a Library
+The current CLI `convert` command takes mzML input. Thermo and Bruker integrations are available through optional library features and examples. This CLI does not run the experimental converter.
 
-### Vendor Dependencies
-This repository includes a vendored copy of `timsrust` located in `vendor/timsrust`. This is a custom fork patched to support 4D MALDI imaging data, which is not yet available in the upstream crate.
+| Capability | Cargo feature / entry point |
+|:--|:--|
+| mzML parsing and conversion | `mzml` — enabled by default |
+| Python extension | `python` — build with maturin |
+| Thermo RAW integration | `thermo` — vendor runtime required |
+| Bruker TDF integration | `tdf` — vendored `timsrust` fork |
+| Parallel mzML decoding | `mzml-parallel` |
 
-Add to your `Cargo.toml`:
-
-```toml
-[dependencies]
-mzpeak = "0.1"
-```
-
-### Python (Extension Module)
-
-This repository includes optional Python bindings (PyO3 + maturin) under the Cargo feature `python`. 
-
-Build locally with:
-```bash
-maturin develop -F python
-```
-
-## Quick Start
-
-### Supported Input Formats
-
-mzPeak supports conversion from the following mass spectrometry data formats:
-
-- **Thermo RAW** - Thermo Fisher Scientific instruments (Orbitrap, Q Exactive, etc.)
-- **Bruker .d** - Bruker Daltonics instruments (timsTOF, SolariX, etc.)
-- **mzML** - Open community standard (any vendor via conversion)
-
-### Command Line
-
-```bash
-# Convert various formats to mzPeak container
-mzpeak convert input.raw output.mzpeak
-mzpeak convert input.d output.mzpeak
-mzpeak convert input.mzML output.mzpeak
-
-# Generate demo data for testing
-mzpeak demo demo_run.mzpeak
-
-# Display dataset information
-mzpeak info demo_run.mzpeak
-
-# Validate file integrity and compliance
-mzpeak validate demo_run.mzpeak
-```
-
-
-### Reading mzPeak Files
-
-mzPeak supports two output formats:
-
-**Container Format (`.mzpeak`)** - Single ZIP archive (default, recommended for distribution):
-```
-output.mzpeak (ZIP archive)
-├── mimetype                  # "application/vnd.mzpeak" (uncompressed)
-├── metadata.json             # Human-readable metadata (compressed)
-└── peaks/peaks.parquet       # Spectral data (uncompressed for seekability)
-```
-
-**Directory Bundle** (legacy, for development):
-```
-output.mzpeak/
-├── peaks/peaks.parquet           # Spectral data
-├── chromatograms/chromatograms.parquet  # TIC/BPC traces
-└── metadata.json                  # Human-readable metadata
-```
-
-**Quick metadata inspection:**
-```bash
-# Container format
-unzip -p output.mzpeak metadata.json | jq .
-
-# Directory format
-cat output.mzpeak/metadata.json | jq .
-```
-
-**Read peak data with any Parquet tool:**
-
-
-**DuckDB**
-```sql
--- Query MS2 spectra
-SELECT spectrum_id, mz, intensity
-FROM read_parquet('output.mzpeak/peaks/peaks.parquet')
-WHERE ms_level = 2 AND precursor_mz BETWEEN 500 AND 600;
-
--- Query TIC chromatogram
-SELECT chromatogram_id, unnest(time_array) as time, unnest(intensity_array) as intensity
-FROM read_parquet('output.mzpeak/chromatograms/chromatograms.parquet')
-WHERE chromatogram_id = 'TIC';
-
--- Query ion mobility dimension (timsTOF data)
-SELECT spectrum_id, mz, intensity, ion_mobility
-FROM read_parquet('output.mzpeak/peaks/peaks.parquet')
-WHERE ion_mobility IS NOT NULL 
-  AND ion_mobility BETWEEN 20 AND 30
-  AND mz BETWEEN 400 AND 800;
-
--- Aggregate statistics by IM bin
-SELECT 
-  FLOOR(ion_mobility / 5) * 5 AS im_bin,
-  COUNT(*) as peak_count,
-  AVG(intensity) as avg_intensity
-FROM read_parquet('output.mzpeak/peaks/peaks.parquet')
-WHERE ion_mobility IS NOT NULL
-GROUP BY im_bin
-ORDER BY im_bin;
-```
-
-## Chromatogram Support
-
-mzPeak automatically generates Total Ion Current (TIC) and Base Peak Chromatogram (BPC) during mzML conversion:
-
-- **Automatic Generation**: When converting mzML files without embedded chromatograms, TIC and BPC are automatically calculated from MS1 spectra during the streaming process
-- **Preservation**: If the mzML file already contains chromatograms, they are preserved as-is
-- **Wide Format**: Chromatograms are stored in "wide" format (arrays of time and intensity values) for instant visualization without scanning the peak table
-- **MS1 Only**: Only MS1 spectra contribute to TIC/BPC calculation; MS2+ spectra are ignored
-
-### Example
+### Write spectra from Rust
 
 ```rust
-use mzpeak::mzml::MzMLConverter;
-use mzpeak::reader::MzPeakReader;
+use mzpeak::dataset::MzPeakDatasetWriter;
+use mzpeak::metadata::MzPeakMetadata;
+use mzpeak::writer::{PeakArrays, SpectrumArrays, WriterConfig};
 
-// Convert mzML with automatic TIC/BPC generation
-let converter = MzMLConverter::new();
-let stats = converter.convert("input.mzML", "output.mzpeak")?;
-
-println!("Converted {} spectra", stats.spectra_count);
-println!("Generated {} chromatograms", stats.chromatograms_converted);
-
-// Read back chromatograms
-let reader = MzPeakReader::open("output.mzpeak")?;
-let chromatograms = reader.read_chromatograms()?;
-
-for chrom in chromatograms {
-    println!("{}: {} points", chrom.chromatogram_id, chrom.time_array.len());
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let metadata = MzPeakMetadata::new();
+    let mut run = MzPeakDatasetWriter::new(
+        "example.mzpeak", &metadata, WriterConfig::default(),
+    )?;
+    let peaks = PeakArrays::new(vec![400.0, 500.0], vec![10_000.0, 25_000.0]);
+    let spectrum = SpectrumArrays::new_ms1(0, 1, 60.0, 1, peaks);
+    run.write_spectrum_arrays(&spectrum)?;
+    run.close()?;
+    Ok(())
 }
 ```
 
+This example uses the v1 dataset writer. The v2 writer separates spectrum metadata from peak rows. The ZIP container does not apply additional compression to Parquet members. Thus, readers can seek within the container. Generic Parquet tools can read extracted members. They do not automatically interpret every container or schema.
 
-## Validation
+### Python
 
-mzPeak includes a comprehensive validator to ensure file integrity and compliance with the format specification. This helps prevent the "fragmented implementation" issues seen in mzML.
-
-### Validation Checks
-
-The validator performs 4 categories of checks:
-
-1. **Structure Check**
-   - Validates file/directory structure
-   - Checks for required files (`metadata.json`, `peaks/peaks.parquet`)
-   - Verifies valid Parquet format
-
-2. **Metadata Integrity**
-   - Deserializes and validates `metadata.json`
-   - Verifies Parquet footer metadata
-   - Checks format version matches specification
-
-3. **Schema Contract**
-   - Validates all required columns exist with correct data types
-   - Verifies HUPO-PSI CV accessions (e.g., MS:1000040 for m/z)
-   - Checks column names match specification
-
-4. **Data Sanity** (samples first 1,000 rows)
-   - Asserts m/z > 0
-   - Asserts intensity >= 0
-   - Asserts ms_level >= 1
-   - Verifies retention_time is non-decreasing
-
-### Usage
+Install maturin in a Python virtual environment. Then build the extension:
 
 ```bash
-# Validate a file
-mzpeak validate data.mzpeak.parquet
-
-# Validate a directory bundle
-mzpeak validate data.mzpeak/
-
-# Example output
-# mzPeak Validation Report
-# ========================
-# File: data.mzpeak.parquet
-#
-# [✓] Path exists
-# [✓] Format: Single file
-# [✓] Valid Parquet file
-# [✓] Format version matches (1.0.0)
-# [✓] Column: mz
-# [✓] CV accession for mz: MS:1000040
-# [✓] m/z values positive (sampled 1000 rows)
-# ...
-# Summary: 21 passed, 0 warnings, 0 failed
-#
-# Validation PASSED
+maturin develop --release --features python
 ```
 
-The validator exits with code 0 on success, or 1 if validation fails. This makes it suitable for use in CI/CD pipelines and automated workflows.
+```python
+import mzpeak
 
-## Schema
-
-mzPeak uses a "long" table format where each peak is a row:
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `spectrum_id` | Int64 | Unique spectrum identifier |
-| `scan_number` | Int64 | Original scan number |
-| `ms_level` | Int16 | MS level (1, 2, etc.) |
-| `retention_time` | Float32 | Retention time in seconds |
-| `polarity` | Int8 | 1 for positive, -1 for negative |
-| `mz` | Float64 | Mass-to-charge ratio |
-| `intensity` | Float32 | Peak intensity |
-| `ion_mobility` | Float64? | Ion mobility drift time (ms) |
-| `precursor_mz` | Float64? | Precursor m/z (MS2+) |
-| `precursor_charge` | Int16? | Precursor charge state |
-| `precursor_intensity` | Float32? | Precursor intensity |
-| `isolation_window_lower` | Float32? | Lower isolation offset |
-| `isolation_window_upper` | Float32? | Upper isolation offset |
-| `collision_energy` | Float32? | Collision energy (eV) |
-| `total_ion_current` | Float64? | TIC value |
-| `base_peak_mz` | Float64? | Base peak m/z |
-| `base_peak_intensity` | Float32? | Base peak intensity |
-| `injection_time` | Float32? | Ion injection time (ms) |
-
-**Note**: The `ion_mobility` column enables support for ion mobility mass spectrometry (IM-MS) instruments like Bruker timsTOF, Waters SYNAPT, and Agilent IM-QTOF systems.
-
-## Metadata
-
-### Dataset Bundle Metadata
-
-The Dataset Bundle includes a `metadata.json` file in the root directory for quick inspection without Parquet tools:
-
-```json
-{
-  "format_version": "1.0.0",
-  "created": "2026-01-09T10:00:00Z",
-  "converter": "mzpeak-rs v0.1.0",
-  "sdrf": {
-    "source_name": "sample_01",
-    "organism": "Homo sapiens",
-    "instrument": "Orbitrap Exploris 480"
-  },
-  "instrument": {
-    "model": "Orbitrap Exploris 480",
-    "vendor": "Thermo Fisher Scientific"
-  },
-  "source_file": {
-    "name": "sample_01.raw",
-    "path": "/data/raw/sample_01.raw",
-    "format": "Thermo RAW"
-  }
-}
+with mzpeak.MzPeakReader("example.mzpeak") as run:
+    for spectrum in run.iter_spectra():
+        print(spectrum.scan_number, spectrum.num_peaks)
 ```
 
-### Parquet Footer Metadata
+[Python API →](docs/PYTHON_API.md) · [Rust examples →](examples) · [Schema documentation →](docs/SCHEMA_V2.md)
 
-All metadata is embedded in the Parquet footer's key-value metadata, making each file self-contained. The footer is the authoritative source of truth for metadata.
+## Documentation and development
 
-**Always Present:**
-- `mzpeak:format_version` - Format version (e.g., "1.0.0")
-- `mzpeak:conversion_timestamp` - ISO 8601 timestamp of conversion
-- `mzpeak:converter_info` - Converter software and version (e.g., "mzpeak-rs v0.1.0")
-
-**Optional (when provided):**
-- `mzpeak:sdrf_metadata` - SDRF-Proteomics sample metadata (JSON)
-- `mzpeak:instrument_config` - Instrument configuration (JSON)
-- `mzpeak:lc_config` - LC system configuration (JSON)
-- `mzpeak:run_parameters` - Run parameters and technical settings (JSON)
-- `mzpeak:source_file` - Original source file information (JSON)
-- `mzpeak:processing_history` - Processing provenance chain (JSON)
-- `mzpeak:raw_file_checksum` - SHA-256 checksum of original raw file
-
-## Performance and reproducibility
-
-Use [the Criterion benchmark guide](benches/README.md) for synthetic benchmarks of this crate. Their results depend on the dataset, machine, build and cache state; this README does not publish untraceable throughput or compression estimates.
-
-The [13-file RAW study](benchmarks/raw-integer-2026-10/README.md) publishes a separate custom-codec experiment with pinned baseline revisions, eligible-file denominators and independent numerical validation. Its experimental signal storage does not use the Parquet signal layout documented above.
+| Start here | Contents |
+|:--|:--|
+| [Technical writeup](benchmarks/raw-integer-2026-10/WRITEUP.md) | Design, mathematical bounds, methods, results and limitations |
+| [Presentation](benchmarks/raw-integer-2026-10/raw-integer-archive.pptx) | 12 slides with editable charts and tables |
+| [Benchmark package](benchmarks/raw-integer-2026-10/README.md) | Full result set and provenance |
+| [Criterion guide](benches/README.md) | Synthetic benchmarks of the Rust crate |
+| [Vendor coverage](docs/vendor_coverage.md) | Ingestion contract and coverage requirements |
+| [Contributing](CONTRIBUTING.md) | Development and review workflow |
 
 ```bash
+cargo test --locked
+cargo fmt --all -- --check
 cargo bench --bench conversion
 cargo bench --bench query_performance
-cargo bench --bench filtering
 ```
 
-## API Documentation
+Further work must improve instrument metadata coverage, reduce native-reader memory, and reduce archive opening time. It must also test downstream proteomics results. The reproduction notes describe the lab setup. There is no portable installer for the experimental converter. This package excludes RAW datasets, proprietary vendor assemblies, and private reader source. Keep the original RAW files.
 
-### Dataset Writer (Recommended)
+## Attribution and license
 
-```rust
-use mzpeak::prelude::*;
+This is an independent project. The [HUPO-PSI mzPeak team](https://github.com/HUPO-PSI/mzPeak) developed the official format and reference implementation. See the [mzPeak paper](https://doi.org/10.1021/acs.jproteome.5c00435). The study uses [rawr-ms](https://github.com/filiprumenovski/rawr-ms), Thermo RawFileReader, Arrow/Parquet, and Zstandard. Earlier work on numerical compression includes [MS-Numpress](https://pmc.ncbi.nlm.nih.gov/articles/PMC4047472/).
 
-// Create a container file (.mzpeak) - default when path ends with .mzpeak
-let metadata = MzPeakMetadata::new();
-let config = WriterConfig::default();
-let mut dataset = MzPeakDatasetWriter::new("output.mzpeak", &metadata, config)?;
-
-// Or explicitly choose the output mode:
-// Container mode (single ZIP file):
-let mut dataset = MzPeakDatasetWriter::new_container("output.mzpeak", &metadata, config)?;
-// Directory mode (legacy bundle):
-let mut dataset = MzPeakDatasetWriter::new_directory("output_dir", &metadata, config)?;
-
-// Write spectra (SoA)
-let peaks = PeakArrays::new(vec![150.0, 250.0], vec![1000.0, 2000.0]);
-let mut spectrum = SpectrumArrays::new_ms2(0, 1, 120.5, 1, 500.25, peaks);
-spectrum.precursor_charge = Some(2);
-spectrum.precursor_intensity = Some(1e6);
-spectrum.collision_energy = Some(30.0);
-
-dataset.write_spectrum_arrays(&spectrum)?;
-let stats = dataset.close()?;
-println!("Wrote {} spectra", stats.peak_stats.spectra_written);
-```
-
-**Container Format Notes:**
-- The `.mzpeak` container is a ZIP archive
-- `mimetype` file is first entry, uncompressed (like `.docx`, `.jar`)
-- `metadata.json` is Deflate compressed
-- `peaks/peaks.parquet` is stored **uncompressed** within the ZIP for direct seek access
-
-
-
-### mzML Conversion
-
-```rust
-use mzpeak::mzml::{MzMLStreamer, MzMLConverter, ConversionConfig};
-
-// Low-level streaming API
-let mut streamer = MzMLStreamer::open("input.mzML")?;
-let metadata = streamer.read_metadata()?;
-
-while let Some(spectrum) = streamer.next_spectrum()? {
-    // Process each spectrum with minimal memory
-    println!("Spectrum {}: {} peaks", spectrum.id, spectrum.mz_array.len());
-}
-
-// High-level conversion API
-let config = ConversionConfig {
-    batch_size: 500,
-    ..Default::default()
-};
-let converter = MzMLConverter::with_config(config);
-let stats = converter.convert("input.mzML", "output.parquet")?;
-
-// For large datasets: Use sharding (automatic file partitioning)
-let mut config = ConversionConfig::default();
-config.writer_config.max_peaks_per_file = Some(50_000_000); // 50M peaks per file
-
-let converter = MzMLConverter::with_config(config);
-let stats = converter.convert_with_sharding("huge_dataset.mzML", "output.parquet")?;
-// Produces: output.parquet, output-part-0001.parquet, output-part-0002.parquet, ...
-```
-
-### Ion Mobility Support
-
-mzPeak natively supports ion mobility data from IM-MS instruments:
-
-```rust
-use mzpeak::prelude::*;
-
-// Create peaks with ion mobility values
-let mut peaks = PeakArrays::new(vec![500.25], vec![1e6]);
-peaks.ion_mobility = OptionalColumnBuf::AllPresent(vec![25.3]); // drift time in milliseconds
-
-let spectrum = SpectrumArrays::new_ms1(0, 1, 60.0, 1, peaks);
-dataset.write_spectrum_arrays(&spectrum)?;
-```
-
-**Supported Instruments:**
-- Bruker timsTOF series (TIMS)
-- Waters SYNAPT series (TWIMS)
-- Any mzML with ion mobility arrays (CV: MS:1002893)
-
-### Rolling Writer (Sharding for Large Datasets)
-
-For terabyte-scale datasets, use `RollingWriter` to automatically partition output:
-
-```rust
-use mzpeak::writer::RollingWriter;
-
-// Configure automatic sharding
-let mut config = WriterConfig::default();
-config.max_peaks_per_file = Some(50_000_000); // 50M peaks per file (~1-2 GB)
-
-let mut writer = RollingWriter::new("output/dataset.parquet", &metadata, config)?;
-
-// Write spectra - files are automatically rotated when threshold is reached
-writer.write_spectra_arrays(&spectra)?;
-
-let stats = writer.finish()?;
-println!("Wrote {} peaks across {} files", 
-    stats.total_peaks_written, 
-    stats.files_written);
-// Output files: dataset.parquet, dataset-part-0001.parquet, dataset-part-0002.parquet, ...
-```
-
-**Benefits:**
-- Process datasets with billions of peaks
-- Optimal file sizes for cloud storage (1-2 GB per file)
-- Each file is self-contained with full metadata
-- Parallel processing friendly
-
-## Building from Source
-
-### Requirements
-
-- Rust 1.70 or later
-- Cargo
-
-### Build
-
-```bash
-# Debug build
-cargo build
-
-# Release build (optimized)
-cargo build --release
-
-# Run tests
-cargo test
-
-# Run with verbose output
-cargo run -- -vv convert input.mzML output.parquet
-```
-
-### Running Tests
-
-```bash
-# Run all tests
-cargo test
-
-# Run with output
-cargo test -- --nocapture
-
-# Run specific test
-cargo test test_spectrum_conversion
-```
-
-## Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Code Style
-
-- Run `cargo fmt` before committing
-- Run `cargo clippy` and address warnings
-- Add tests for new functionality
-- Update documentation as needed
-
-## References
-
-- [SCHEMA_V2.md](docs/SCHEMA_V2.md) - mzPeak v2.0 schema specification
-- [HUPO-PSI MS CV](https://www.ebi.ac.uk/ols/ontologies/ms) - Controlled vocabulary
-- [SDRF-Proteomics](https://github.com/bigbio/sdrf-pipelines) - Sample metadata standard
-- [Apache Parquet](https://parquet.apache.org/) - File format specification
-
-## License
-
-Licensed under either of:
-
-- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
-- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
-
-at your option.
-
-## Acknowledgments
-
-This implementation follows the mzPeak specification developed by the mass spectrometry community to address the limitations of XML-based data formats and enable modern data science workflows.
+Licensed under [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option. See vendored dependencies for their own license terms.
