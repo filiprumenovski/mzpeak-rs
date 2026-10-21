@@ -60,6 +60,11 @@ def speedup(native, official):
 
 def render():
     official_single = read('astral-official-single.json')
+    adapter = read('astral-adapter.json')
+    assert adapter['status'] == 'validated_with_documented_api_limits'
+    assert adapter['signal']['scans_checked'] == 744726
+    assert adapter['signal']['official_points'] == 1392038446
+    assert adapter['fixture_identity']['official']['sha256'] == official_single['archive_sha256_recorded_by_query_benchmark']
     log = (ROOT / 'evidence/astral-official-single.time').read_bytes()
     assert hashlib.sha256(log).hexdigest() == official_single['published_log_sha256']
     assert b'22:54.09' in log and b'Exit status: 0' in log
@@ -154,16 +159,16 @@ def render():
     assert official_single['query_validation'] == query['validation']
     assert official_single['archive_sha256_recorded_by_query_benchmark'] == query['sha256']['official.mzpeak']
     lines.extend(['',
-        '¹ **Astral’s official values are from a completed single run on mem4.** Native values are the three-run median on mem1. Official validation covered query selections only. These are separate runs, not a paired speedup, and the official single run is excluded from aggregates. All other displayed times are campaign medians.', '',
+        '¹ **Astral’s official values are from a completed single run on mem4.** Native values are the three-run median on mem1. The official archive now has a complete retained-signal comparison through the adapter. These are separate runs, not a paired speedup, and the official single run is excluded from aggregates. All other displayed times are campaign medians.', '',
         '<details>', '<summary>Astral run provenance and validation</summary>', '',
         '#### Completed big Astral conversions', '',
         '**Same 21.78 GB RAW file; separate allocations and validation scopes. These times do not form a paired speedup.**', '',
         '| Conversion | Runs | Time, s | Peak RAM, GiB | Archive, GB | Validation |',
         '|:--|--:|--:|--:|--:|:--|',
         f"| Native, latest campaign (mem1) | 3 | **{am['median_seconds']:.2f}** median | {am['median_peak_process_rss_bytes']/2**30:.2f} | **{am['output_bytes']/1e9:.2f}** | All {av['points']:,} points |",
-        f"| Official default, query setup (mem4) | 1 | **{official_single['wall_seconds']:.2f}** | {official_single['max_single_process_rss_bytes']/2**30:.2f} | **{official_single['output_bytes']/1e9:.2f}** | Query selections only |", '',
-        f"Native validation covered all **{av['spectra']:,} scans** and preserved all **{av['zeros_preserved']:,} zeros**. The official run exited successfully in **22m 54s**. Its selected query arrays passed comparison; whole-archive official validation is not recorded for this run. It is excluded from speedup and storage-saving aggregates. Official delta has no completed Astral conversion in the saved evidence.", '',
-        '[Successful official conversion evidence](benchmarks/raw-integer-2026-10/evidence/astral-official-single.json) · [Timing log](benchmarks/raw-integer-2026-10/evidence/astral-official-single.time) · [Query validation](benchmarks/raw-integer-2026-10/evidence/astral-queries.json)', '',
+        f"| Official default, query setup (mem4) | 1 | **{official_single['wall_seconds']:.2f}** | {official_single['max_single_process_rss_bytes']/2**30:.2f} | **{official_single['output_bytes']/1e9:.2f}** | All retained points compared |", '',
+        f"Native validation covered all **{av['spectra']:,} scans** and preserved all **{av['zeros_preserved']:,} zeros**. The official run exited successfully in **22m 54s**. All 1,392,038,446 retained official points now pass comparison against the independently RAW-validated native query fixture. This adds cross-reader evidence; it does not replace an independent official-to-RAW oracle. It is excluded from speedup and storage-saving aggregates. Official delta has no completed Astral conversion in the saved evidence.", '',
+        '[Successful official conversion evidence](benchmarks/raw-integer-2026-10/evidence/astral-official-single.json) · [Timing log](benchmarks/raw-integer-2026-10/evidence/astral-official-single.time) · [Adapter validation](benchmarks/raw-integer-2026-10/ADAPTER_VALIDATION.md)', '',
         '</details>', '',
         '² The tested converters do not support complete metadata export for the separate 30-minute Astral file. It is outside the validated set. Dashes mean no eligible measurement.\n\n³ The official delta converter exceeded the campaign’s 600-second limit. Native conversion and validation completed.', '',
         '**Precision:** ours keeps all source points within 0.01 ppm m/z and 0.1% intensity error. Official default and delta retain exact values after profile-zero filtering. Storage savings include this difference.', '',

@@ -1,0 +1,26 @@
+Downloading py-spy (2.8MiB)
+ Downloaded py-spy
+Installed 1 package in 4.35s
+Process 15410: <warrior-home>/rawr-full-native-20261020/.validation-venv/bin/python -u /tmp/mzpeak-adapter-40691827/code/validate_astral_adapter.py --output <warrior-home>/rawr-full-native-20261020/adapter-astral-20261021/job-40691827/report.json
+Python v3.12.14 (<warrior-home>/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/bin/python3.12)
+
+Thread 15410 (active+gil): "MainThread"
+    _batch_index_range (mzpeak/mz_reader.py:395)
+    _batch_has_index_query (mzpeak/mz_reader.py:403)
+    seek (mzpeak/mz_reader.py:459)
+    _seek_hook (mzpeak/mz_reader.py:440)
+    _skip_ahead (mzpeak/util.py:318)
+    seek (mzpeak/util.py:288)
+    _skip_ahead (mzpeak/mz_reader.py:1520)
+    seek (mzpeak/util.py:288)
+    seek (mzpeak/reader.py:354)
+    _seek_hook (mzpeak/reader.py:364)
+    _skip_ahead (mzpeak/util.py:318)
+    seek (mzpeak/util.py:288)
+    seek (mzpeak/reader.py:942)
+    read_spectrum (mzpeak/reader.py:1019)
+    __getitem__ (mzpeak/reader.py:1039)
+    lookup (validate_astral_adapter.py:195)
+    section (validate_astral_adapter.py:58)
+    main (validate_astral_adapter.py:205)
+    <module> (validate_astral_adapter.py:424)

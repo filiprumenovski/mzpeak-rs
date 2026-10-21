@@ -2,6 +2,7 @@
 import json
 import math
 from pathlib import Path
+import runpy
 import statistics
 
 EVIDENCE = Path(__file__).resolve().parent / 'evidence'
@@ -16,6 +17,9 @@ def geomean(values):
     return math.exp(statistics.mean(math.log(x) for x in values))
 
 def verify():
+    adapter = runpy.run_path(str(EVIDENCE.parent / 'adapter-validation/verify_evidence.py'))
+    assert read('astral-adapter.json') == adapter['derive']()
+    print('Full Astral adapter evidence and targeted audits verified.')
     rows = read('conversion-results.json')
     aggregates = read('aggregate.json')
     validations = {r['case']: r['validation'] for r in read('validation.json')}

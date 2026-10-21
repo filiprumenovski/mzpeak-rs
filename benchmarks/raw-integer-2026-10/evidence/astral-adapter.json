@@ -1,0 +1,231 @@
+{
+  "status": "validated_with_documented_api_limits",
+  "scope": "Same saved Astral archives as the query benchmark. Full retained-signal comparison, plus public API and zero-policy checks. Not a new timing or independent official-to-RAW benchmark.",
+  "fixture_identity": {
+    "native": {
+      "sha256": "fa08ba81bab5ec9aa3e4b69da8c87916cfcf3d1a937c753596a543c4aadc343e",
+      "bytes": 5467445679
+    },
+    "official": {
+      "sha256": "4f8aa8784e7e865a01d2fa4bec12351c441e681300e65a3695266c9df01c0c65",
+      "bytes": 11071619496
+    }
+  },
+  "adapter_sha256": "f79336adf4209534dbb42421e677957a97baa451b877326097da8d0955e912c8",
+  "signal": {
+    "scans_checked": 744726,
+    "native_points": 1511811155,
+    "official_points": 1392038446,
+    "native_zeros": 162582445,
+    "official_zeros": 42809736,
+    "removed_profile_zeros": 119772709,
+    "max_mz_error_ppm": 0.009055047341369618,
+    "max_intensity_relative_error": 0.0009999989966876668,
+    "batches": 218,
+    "maximum_native_batch_points": 6818363
+  },
+  "metadata_frames": {
+    "spectra": {
+      "rows": 744726,
+      "columns": 16,
+      "physical_event_summary_audit": {}
+    },
+    "scans": {
+      "rows": 744726,
+      "columns": 8,
+      "physical_event_summary_audit": {}
+    },
+    "precursors": {
+      "rows": 737461,
+      "columns": 4,
+      "physical_event_summary_audit": {}
+    },
+    "selected_ions": {
+      "rows": 737461,
+      "columns": 5,
+      "physical_event_summary_audit": {}
+    },
+    "chromatograms": {
+      "rows": 2,
+      "columns": 7,
+      "physical_event_summary_audit": {}
+    }
+  },
+  "acquisition_staging_audit": {
+    "status": "passed",
+    "source_sha1": "272b6e7f39a812050bdb3969d045af34643cbe13",
+    "audited_changes_official_native": {
+      "source_name": [
+        "astral.raw",
+        "20231206_HAP1_1ug_60min_DIA_2Th_5e4_3p5ms_rep01.raw"
+      ],
+      "source_location": [
+        "file:////tmp/mzlab-query-40648979/data",
+        "file:////tmp/rawr-astral-40643215/astral"
+      ],
+      "derived_run_id": [
+        "astral",
+        "20231206_HAP1_1ug_60min_DIA_2Th_5e4_3p5ms_rep01"
+      ]
+    },
+    "all_other_acquisition_metadata_equal": true,
+    "metadata_member_sha256": {
+      "official": "31bab9534216c00c85a42ca77ac2a00d5ce85e00ddc2a42c973f8825f3cfc72f",
+      "native": "975b4b59de3cf3009e9907b79a81ee4190802ab75b37a4c833e7e39016ea6279"
+    },
+    "audit_source_sha256": "9007a58ae281160ea9d18e88c1be471ec5d9c5bbca14035d12e5cf89444c7cdf",
+    "scope": "File-level metadata audit only; combine with separately recorded full-archive identity and signal validation."
+  },
+  "workloads": {
+    "xic": {
+      "scans": 494,
+      "points_compared": 15038451,
+      "max_mz_error_ppm": 0.009030483744978522,
+      "max_intensity_relative_error": 0.0009999989964911324,
+      "boundary_membership_differences": 0,
+      "max_xic_relative_error": 0.000981616118426506
+    },
+    "ms2_batch": {
+      "scans": 50208,
+      "points_compared": 83098323,
+      "max_mz_error_ppm": 0.008997921154296226,
+      "max_intensity_relative_error": 0.0009999989899470664,
+      "boundary_membership_differences": 0,
+      "max_xic_relative_error": 0.0
+    }
+  },
+  "boundaries": {
+    "scan_probes": 8,
+    "windows": 176,
+    "boundary_membership_differences": 120,
+    "max_crossing_distance_ppm": 0.005469619815224316,
+    "official_coordinate_argument_ignored": 176,
+    "identical_membership_windows": 56,
+    "examples": [
+      {
+        "scan": 0,
+        "lo": 380.69806461288135,
+        "hi": 380.69806461288135,
+        "native_points": 1,
+        "official_points_after_explicit_filter": 0
+      },
+      {
+        "scan": 0,
+        "lo": 380.6980646128813,
+        "hi": 380.69806461288135,
+        "native_points": 1,
+        "official_points_after_explicit_filter": 0
+      },
+      {
+        "scan": 0,
+        "lo": 380.69806461288135,
+        "hi": 380.6980646128814,
+        "native_points": 1,
+        "official_points_after_explicit_filter": 0
+      },
+      {
+        "scan": 0,
+        "lo": 380.69806660321257,
+        "hi": 380.69806660321257,
+        "native_points": 0,
+        "official_points_after_explicit_filter": 1
+      },
+      {
+        "scan": 0,
+        "lo": 380.6980666032125,
+        "hi": 380.69806660321257,
+        "native_points": 0,
+        "official_points_after_explicit_filter": 1
+      },
+      {
+        "scan": 0,
+        "lo": 380.69806660321257,
+        "hi": 380.6980666032126,
+        "native_points": 0,
+        "official_points_after_explicit_filter": 1
+      },
+      {
+        "scan": 0,
+        "lo": 504.5632134852616,
+        "hi": 504.5632134852616,
+        "native_points": 1,
+        "official_points_after_explicit_filter": 0
+      },
+      {
+        "scan": 0,
+        "lo": 504.56321348526154,
+        "hi": 504.5632134852616,
+        "native_points": 1,
+        "official_points_after_explicit_filter": 0
+      }
+    ]
+  },
+  "finite_time_queries": 85,
+  "time_ranges": 3,
+  "reference_timeouts": [
+    {
+      "query": "spectrum objects slice(744722, 744726, None)",
+      "limit_seconds": 30,
+      "comparison": "Native result checked against official scalar reads; original reference query did not complete."
+    },
+    {
+      "query": "iterator start=744706, prefer_peaks=False",
+      "limit_seconds": 30,
+      "comparison": "Native result checked against official scalar reads; original reference query did not complete."
+    },
+    {
+      "query": "iterator start=744706, prefer_peaks=True",
+      "limit_seconds": 30,
+      "comparison": "Native result checked against official scalar reads; original reference query did not complete."
+    },
+    {
+      "query": "time slice slice(73.59568166666666, 73.5959902, None)",
+      "limit_seconds": 30,
+      "comparison": "Native result checked against official scalar reads; original reference query did not complete."
+    }
+  ],
+  "empty_array_range": {
+    "native_points": 0,
+    "official_error": "min() iterable argument is empty",
+    "same_behavior": false
+  },
+  "positive_infinity": {
+    "both_raise_same_error": true,
+    "error": {
+      "type": "KeyError",
+      "args": [
+        -1
+      ]
+    },
+    "supported": false
+  },
+  "additional_checks": {
+    "scalar_id_list_slice": {
+      "spectrum_comparisons": 157,
+      "read_peaks_for_queries": 69
+    },
+    "iterator_forward_seek_and_prefer_peaks": {
+      "forward_seek_spectrum_comparisons": 120
+    },
+    "range_list_duplicate_and_slice_contract": {
+      "same_argument_range_queries": 6
+    },
+    "chromatograms_tic_bpc": {
+      "tic_bpc_exact": true,
+      "chromatograms_checked": 2
+    },
+    "integrity_and_lifetime": {
+      "native_manifest_checksums": true,
+      "directory_input_and_idempotent_close": true
+    },
+    "flattened_columns": {
+      "flattened_metadata_rows": 744726,
+      "spectrum_queries": 3
+    }
+  },
+  "test_expectation_corrections": {
+    "acquisition_metadata_and_source_identity": "A separate strict audit verifies the known staged source name, location, and derived run ID; all other acquisition metadata agrees.",
+    "retention_time_boundaries": "Both readers reject +infinity with the same inherited KeyError. Supplemental tests complete all finite-time queries and record the unsupported case."
+  },
+  "provenance": "astral-adapter/provenance.json"
+}

@@ -1,0 +1,36 @@
+{
+  "full_run_job": 40695714,
+  "node": "sfx5",
+  "cpus_allocated": 8,
+  "memory_allocated_gib": 64,
+  "original_report_sha256": {
+    "contract-run.json": "77503c3b17a653fb0cb564c01321f09cd0922b9f797649387c6396956953895f",
+    "time-contract.json": "7f2343005bf2bffa5b77c1e4135f81c1f1f05f76d31fb78b7a1c44cc8c54c24c",
+    "staging-metadata-audit.json": "f14436df3db7f18bc476476bae772e1854b38af12899f4fed19bd5f113068524"
+  },
+  "published_file_sha256": {
+    "contract-run.json": "428e3efc46d4123244175f4ef0f35982e71d2cbdebee170dd03e4ae6dfcc6e31",
+    "time-contract.json": "7f2343005bf2bffa5b77c1e4135f81c1f1f05f76d31fb78b7a1c44cc8c54c24c",
+    "staging-metadata-audit.json": "f14436df3db7f18bc476476bae772e1854b38af12899f4fed19bd5f113068524",
+    "official-tail-stack.txt": "0f67083d1dfec0e8e815fb07da7bcf4fea9de133cc503da1c2caa41ff96fe3d6"
+  },
+  "path_redaction": "Home-directory paths replaced with <warrior-home>; metadata staging paths retained.",
+  "raw_report_policy": "Original full-run report and its two diagnostic errors remain unchanged. Separate strict staging and finite-time audits resolve those expectations. Signal bounds and the adapter source are unchanged across these checks.",
+  "fixture_source_sha256": "e18a895300ed8b10605cd9cb4013f0336609392410fedc96ca16db0c61382832",
+  "validation_memory_scope": "Full-run peak RSS is for a validation process holding three readers, plus two additional readers in the flattened-column check. It is not a per-reader benchmark. The time-contract check also ran in a separate Slurm step; no comparative timing/RAM claim is made.",
+  "prior_attempts": [
+    {
+      "job": 40691398,
+      "outcome": "Archive identities passed; setup selected an old orbitrap_convert module before signal tests."
+    },
+    {
+      "job": 40691823,
+      "outcome": "Preflight stopped because Slurm had removed prior job-local temporary files."
+    },
+    {
+      "job": 40691827,
+      "outcome": "All metadata frames passed; official terminal iterator loop captured with py-spy; diagnostic stopped and evidence retained."
+    }
+  ],
+  "frozen_archive_policy": "Saved native and official outputs were not modified. No new conversions were run."
+}
