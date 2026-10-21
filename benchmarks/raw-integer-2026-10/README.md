@@ -28,3 +28,9 @@ Run `python3 benchmarks/raw-integer-2026-10/verify_results.py` from the reposito
 First three cases retain seven measured repeats; remaining cases use three after a documented amendment. Each mode has an excluded warmup. A comparison requires all declared measured repeats and independent validation; timeout durations are never imputed as successful conversions. The supplementary campaign ran on another node and is not pooled into primary results.
 
 Peptide-identification and downstream quantification equivalence have not been established. The archive remains research software; retain the original RAW files.
+
+## Original Warrior campaign
+
+The [repository README](../../README.md#original-warrior-campaign-instrument-and-acquisition-coverage) also contains the earlier October 19–20 comparison against official default and delta encoding. It records 268 attempts across 13 files. Recovery validated 11 files and 1.84 billion points. This earlier pipeline still used vendor code for metadata and calibration. Its timings are separate from the later native and vendor-mode measurements.
+
+[Original runs and recovery checks](evidence/original-warrior.json) retain both failures and the limits of metadata recovery. Invalid process-tree RSS values are omitted. Run `python3 benchmarks/raw-integer-2026-10/render_comparison.py --check` from the repository root to verify both README tables.
