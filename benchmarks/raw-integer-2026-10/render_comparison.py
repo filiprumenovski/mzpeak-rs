@@ -1,5 +1,6 @@
 """Render the latest matched default and delta comparisons; --check verifies the README."""
 import argparse
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -58,6 +59,12 @@ def speedup(native, official):
 
 
 def render():
+    official_single = read('astral-official-single.json')
+    log = (ROOT / 'evidence/astral-official-single.time').read_bytes()
+    assert hashlib.sha256(log).hexdigest() == official_single['published_log_sha256']
+    assert b'22:54.09' in log and b'Exit status: 0' in log
+    assert official_single['wall_seconds'] == 1374.09 and official_single['measured_conversions'] == 1
+    assert not official_single['comparison_eligible']
     coverage = read('coverage.json')
     assert len({c['instrument_display'].rstrip('*') for c in coverage}) == 11
     primary = read('conversion-results.json')
@@ -121,6 +128,8 @@ def render():
         for n, o in pairs:
             ratio = speedup(n, o)
             unavailable = 'Official timeout' if n['eligible'] and 'Timeout' in o['status'] else 'Metadata failed'
+            if c['case'] == '12-PXD049028' and o['mode'] == 'official_default_z3':
+                unavailable = '[Single run¹](#completed-big-astral-conversions)'
             speeds.append(f'**{ratio:.2f}×**' if ratio is not None else unavailable)
             savings.append(f"{100*(1-n['metrics']['output_bytes']/o['metrics']['output_bytes']):.1f}%" if ratio is not None else '—')
         sample = c['acquisition_sample_label']
@@ -132,9 +141,20 @@ def render():
     assert astral['eligible']
     am = astral['metrics']
     av = astral['validation']['details']
+    assert official_single['source_sha256'] == astral['source_sha256']
+    query = read('astral-queries.json')
+    assert official_single['query_validation'] == query['validation']
+    assert official_single['archive_sha256_recorded_by_query_benchmark'] == query['sha256']['official.mzpeak']
     lines.extend(['',
-        f"**Big Astral completed and passed validation:** {astral['source_bytes']/1e9:.2f} GB RAW → **{am['output_bytes']/1e9:.2f} GB archive**, **{am['median_seconds']:.2f} s** median conversion, **{am['median_peak_process_rss_bytes']/2**30:.2f} GiB** peak process RAM. These are the latest default-campaign native results, with three measured repeats. All **{av['spectra']:,} scans and {av['points']:,} points** passed; all **{av['zeros_preserved']:,} zeros** were preserved.", '',
-        '“Official timeout” refers only to the 600-second conversion limit in the paired campaigns. It does not mean native Astral conversion failed or was skipped. The separate Astral query benchmark also used a successfully created official archive. We do not infer a conversion speedup from that query run.', '',
+        '¹ **Official default also completed the big Astral.** Its successful single run is shown below. The repeated campaigns stopped official runs at 600 seconds. The single run continued beyond that limit.', '',
+        '#### Completed big Astral conversions', '',
+        '**Same 21.78 GB RAW file; separate allocations and validation scopes. These times do not form a paired speedup.**', '',
+        '| Conversion | Runs | Time, s | Peak RAM, GiB | Archive, GB | Validation |',
+        '|:--|--:|--:|--:|--:|:--|',
+        f"| Native, latest campaign (mem1) | 3 | **{am['median_seconds']:.2f}** median | {am['median_peak_process_rss_bytes']/2**30:.2f} | **{am['output_bytes']/1e9:.2f}** | All {av['points']:,} points |",
+        f"| Official default, query setup (mem4) | 1 | **{official_single['wall_seconds']:.2f}** | {official_single['max_single_process_rss_bytes']/2**30:.2f} | **{official_single['output_bytes']/1e9:.2f}** | Query selections only |", '',
+        f"Native validation covered all **{av['spectra']:,} scans** and preserved all **{av['zeros_preserved']:,} zeros**. The official run exited successfully in **22m 54s**. Its selected query arrays passed comparison; whole-archive official validation is not recorded for this run. It is excluded from speedup and storage-saving aggregates. Official delta has no completed Astral conversion in the saved evidence.", '',
+        '[Successful official conversion evidence](benchmarks/raw-integer-2026-10/evidence/astral-official-single.json) · [Timing log](benchmarks/raw-integer-2026-10/evidence/astral-official-single.time) · [Query validation](benchmarks/raw-integer-2026-10/evidence/astral-queries.json)', '',
         'The separate 30-minute Astral file failed complete metadata export. It remains excluded. A dash in storage savings means that no eligible official archive size is available for comparison.', '',
         '**Precision:** ours keeps all source points within 0.01 ppm m/z and 0.1% intensity error. Official default and delta retain exact values after profile-zero filtering. Storage savings include this difference.', '',
         '**RAM is not a consistent win.** Native conversion uses more memory on several instruments. Expand the measurements below for every time, RAM value, and archive size.', '',

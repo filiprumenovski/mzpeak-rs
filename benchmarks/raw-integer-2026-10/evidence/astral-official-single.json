@@ -1,0 +1,35 @@
+{
+  "scope": "Separate successful official default conversion used to prepare the Astral query benchmark; not a paired conversion campaign.",
+  "job": "40648979",
+  "node": "mem4",
+  "measured_conversions": 1,
+  "exit_status": 0,
+  "wall_seconds": 1374.09,
+  "max_single_process_rss_bytes": 1708998656,
+  "output_bytes": 11071619496,
+  "source_sha256": "e18a895300ed8b10605cd9cb4013f0336609392410fedc96ca16db0c61382832",
+  "official_binary_sha256": "2201b00313bc3efc280de6f5eb411223d2e006b5c3533fc52a473190211aa644",
+  "archive_sha256_recorded_by_query_benchmark": "4f8aa8784e7e865a01d2fa4bec12351c441e681300e65a3695266c9df01c0c65",
+  "validation_scope": "Query-selected points only; no independent whole-archive official validation is recorded for this output.",
+  "query_validation": {
+    "xic": {
+      "all_selected_nonzero_points_checked": 11869373,
+      "native_zeros_retained": 12008331,
+      "max_mz_error_ppm": 0.009030483744978522,
+      "max_intensity_relative_error": 0.0009999989964911324,
+      "max_trace_relative_error": 0.000981616118426506,
+      "native_sum": 344913849.14183754,
+      "official_sum": 344930736.8310547
+    },
+    "ms2_batch": {
+      "all_selected_nonzero_points_checked": 83098323,
+      "native_zeros_retained": 0,
+      "max_mz_error_ppm": 0.008997921154296226,
+      "max_intensity_relative_error": 0.0009999989899470664
+    }
+  },
+  "comparison_eligible": false,
+  "source_log_sha256": "02701d640b466bad560bb2e7bd5592962c4c1f3aafc23b7f4ed3c6a09546d892",
+  "published_log_sha256": "16283c0dd5687c5df0a65504c861040320d57aef3c24ce56f8be725314860838",
+  "output_size_provenance": "Remote stat of retained query-40648979/official.mzpeak on 2026-10-21; no large file copied locally."
+}
