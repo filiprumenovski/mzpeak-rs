@@ -120,12 +120,22 @@ def render():
         speeds, savings = [], []
         for n, o in pairs:
             ratio = speedup(n, o)
-            speeds.append(f'**{ratio:.2f}×**' if ratio is not None else '—')
+            unavailable = 'Official timeout' if n['eligible'] and 'Timeout' in o['status'] else 'Metadata failed'
+            speeds.append(f'**{ratio:.2f}×**' if ratio is not None else unavailable)
             savings.append(f"{100*(1-n['metrics']['output_bytes']/o['metrics']['output_bytes']):.1f}%" if ratio is not None else '—')
-        cells = [instrument(c), c['acquisition_sample_label'], *speeds, *savings]
+        sample = c['acquisition_sample_label']
+        if c['case'] == '12-PXD049028':
+            sample += '; **native validated**'
+        cells = [instrument(c), sample, *speeds, *savings]
         lines.append('| '+' | '.join(cells)+' |')
+    astral = next(r for r in primary if r['case'] == '12-PXD049028' and r['mode'] == 'rawr')
+    assert astral['eligible']
+    am = astral['metrics']
+    av = astral['validation']['details']
     lines.extend(['',
-        '**Astral:** the 30-minute file failed metadata export in both campaigns. Native conversion of the 60-minute file passed; both official baselines timed out. Dashes mean no valid comparison.', '',
+        f"**Big Astral completed and passed validation:** {astral['source_bytes']/1e9:.2f} GB RAW → **{am['output_bytes']/1e9:.2f} GB archive**, **{am['median_seconds']:.2f} s** median conversion, **{am['median_peak_process_rss_bytes']/2**30:.2f} GiB** peak process RAM. These are the latest default-campaign native results, with three measured repeats. All **{av['spectra']:,} scans and {av['points']:,} points** passed; all **{av['zeros_preserved']:,} zeros** were preserved.", '',
+        '“Official timeout” refers only to the 600-second conversion limit in the paired campaigns. It does not mean native Astral conversion failed or was skipped. The separate Astral query benchmark also used a successfully created official archive. We do not infer a conversion speedup from that query run.', '',
+        'The separate 30-minute Astral file failed complete metadata export. It remains excluded. A dash in storage savings means that no eligible official archive size is available for comparison.', '',
         '**Precision:** ours keeps all source points within 0.01 ppm m/z and 0.1% intensity error. Official default and delta retain exact values after profile-zero filtering. Storage savings include this difference.', '',
         '**RAM is not a consistent win.** Native conversion uses more memory on several instruments. Expand the measurements below for every time, RAM value, and archive size.', '',
         '<details>', '<summary><strong>Full measurements: time, RAM, and archive size</strong></summary>', '',
