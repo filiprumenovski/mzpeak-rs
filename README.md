@@ -35,27 +35,30 @@ Speedups are paired geometric means with equal weight per file. Storage reductio
 
 ### Full instrument range: native versus official default and delta
 
-One row per file. **Higher speedups and storage savings are better.** Delta means `delta:50`; both official modes use Zstd 3.
+One row per file. Times and archive sizes are shown directly. Official time and size refer to default encoding. Delta means `delta:50`; both official modes use Zstd 3.
 
 Each baseline uses its latest matched campaign. Default and delta used different nodes and native builds. No timing is transferred between them.
 
-| Instrument | Acquisition / sample | Speedup vs default | Speedup vs delta | Storage saved vs default | Storage saved vs delta |
-|:--|:--|--:|--:|--:|--:|
-| Q Exactive HF (control) | DDA; HeLa control | **4.12×** | **5.26×** | 77.7% | 66.3% |
-| [Fusion](https://www.ebi.ac.uk/pride/archive/projects/PXD017803) | DDA / FAIMS; TMT, hrMS2 | **5.15×** | **8.79×** | 41.9% | 37.4% |
-| [Eclipse](https://www.ebi.ac.uk/pride/archive/projects/PXD023203) | FAIMS / SPS; TMTpro | **5.38×** | **7.16×** | 40.8% | 36.4% |
-| [Ascend](https://www.ebi.ac.uk/pride/archive/projects/PXD043660) | TMT16; hrMS2 | **3.94×** | **5.07×** | 73.2% | 58.8% |
-| [Q Exactive HF](https://www.ebi.ac.uk/pride/archive/projects/PXD019848) | HeLa; non-FAIMS | **4.04×** | **5.90×** | 77.6% | 66.1% |
-| [Fusion Lumos](https://www.ebi.ac.uk/pride/archive/projects/PXD046211) | TMTpro; single-cell study | **4.53×** | **6.83×** | 68.8% | 57.4% |
-| [LTQ Orbitrap Velos](https://www.ebi.ac.uk/pride/archive/projects/PXD005780) | DDA; gut metaproteome | **5.85×** | **4.28×** | 75.8% | 64.0% |
-| [Q Exactive HF-X](https://www.ebi.ac.uk/pride/archive/projects/PXD053241) | Wide-window DDA | **5.66×** | **8.97×** | 69.2% | 57.6% |
-| [Q Exactive](https://www.ebi.ac.uk/pride/archive/projects/PXD000612) | DDA; phosphoproteome | **4.46×** | **5.11×** | 75.9% | 64.9% |
-| [Q Exactive Plus](https://www.ebi.ac.uk/pride/archive/projects/PXD002370) | Label-free; UPS1 / yeast | **4.30×** | **4.98×** | 75.3% | 64.2% |
-| [Exploris 480](https://www.ebi.ac.uk/pride/archive/projects/PXD063416) | DIA; HeLa / yeast, 10 m/z | **5.18×** | **7.70×** | 53.8% | 44.1% |
-| [Astral (30 min)](https://www.ebi.ac.uk/pride/archive/projects/PXD046453) | DIA; 2 Th, 30 min | Metadata failed | Metadata failed | — | — |
-| [Astral (60 min)](https://www.ebi.ac.uk/pride/archive/projects/PXD049028) | DIA; 2 Th, 60 min; **native validated** | [Single run¹](#completed-big-astral-conversions) | Official timeout | — | — |
+| Instrument / acquisition | Native s | Official s | Native GB | Official GB | Default speedup | Delta speedup |
+|:--|--:|--:|--:|--:|--:|--:|
+| Q Exactive HF (control)<br>DDA; HeLa control | 14.86 | 61.82 | 0.240 | 1.080 | **4.12×** | **5.26×** |
+| [Fusion](https://www.ebi.ac.uk/pride/archive/projects/PXD017803)<br>DDA / FAIMS; TMT, hrMS2 | 3.26 | 16.97 | 0.026 | 0.045 | **5.15×** | **8.79×** |
+| [Eclipse](https://www.ebi.ac.uk/pride/archive/projects/PXD023203)<br>FAIMS / SPS; TMTpro | 7.44 | 40.06 | 0.063 | 0.107 | **5.38×** | **7.16×** |
+| [Ascend](https://www.ebi.ac.uk/pride/archive/projects/PXD043660)<br>TMT16; hrMS2 | 15.33 | 59.79 | 0.223 | 0.830 | **3.94×** | **5.07×** |
+| [Q Exactive HF](https://www.ebi.ac.uk/pride/archive/projects/PXD019848)<br>HeLa; non-FAIMS | 14.99 | 61.07 | 0.232 | 1.032 | **4.04×** | **5.90×** |
+| [Fusion Lumos](https://www.ebi.ac.uk/pride/archive/projects/PXD046211)<br>TMTpro; single-cell study | 14.32 | 64.81 | 0.193 | 0.621 | **4.53×** | **6.83×** |
+| [LTQ Orbitrap Velos](https://www.ebi.ac.uk/pride/archive/projects/PXD005780)<br>DDA; gut metaproteome | 14.65 | 68.08 | 0.352 | 1.451 | **5.85×** | **4.28×** |
+| [Q Exactive HF-X](https://www.ebi.ac.uk/pride/archive/projects/PXD053241)<br>Wide-window DDA | 26.44 | 109.28 | 0.348 | 1.130 | **5.66×** | **8.97×** |
+| [Q Exactive](https://www.ebi.ac.uk/pride/archive/projects/PXD000612)<br>DDA; phosphoproteome | 23.31 | 104.03 | 0.630 | 2.616 | **4.46×** | **5.11×** |
+| [Q Exactive Plus](https://www.ebi.ac.uk/pride/archive/projects/PXD002370)<br>Label-free; UPS1 / yeast | 34.33 | 148.04 | 0.802 | 3.247 | **4.30×** | **4.98×** |
+| [Exploris 480](https://www.ebi.ac.uk/pride/archive/projects/PXD063416)<br>DIA; HeLa / yeast, 10 m/z | 22.26 | 115.42 | 0.377 | 0.815 | **5.18×** | **7.70×** |
+| [Astral (30 min)](https://www.ebi.ac.uk/pride/archive/projects/PXD046453)<br>DIA; 2 Th, 30 min | — | — | — | — | Metadata failed | Metadata failed |
+| [Astral (60 min)](https://www.ebi.ac.uk/pride/archive/projects/PXD049028)<br>DIA; 2 Th, 60 min; **native validated** | 268.10 | 1,374.09¹ | 5.467 | 11.072¹ | Not paired¹ | Official timeout |
 
-¹ **Official default also completed the big Astral.** Its successful single run is shown below. The repeated campaigns stopped official runs at 600 seconds. The single run continued beyond that limit.
+¹ **Astral’s official values are from a completed single run on mem4.** Native values are the three-run median on mem1. Official validation covered query selections only. These are separate runs, not a paired speedup, and the official single run is excluded from aggregates. All other displayed times are campaign medians.
+
+<details>
+<summary>Astral run provenance and validation</summary>
 
 #### Completed big Astral conversions
 
@@ -70,7 +73,9 @@ Native validation covered all **744,726 scans** and preserved all **162,582,445 
 
 [Successful official conversion evidence](benchmarks/raw-integer-2026-10/evidence/astral-official-single.json) · [Timing log](benchmarks/raw-integer-2026-10/evidence/astral-official-single.time) · [Query validation](benchmarks/raw-integer-2026-10/evidence/astral-queries.json)
 
-The separate 30-minute Astral file failed complete metadata export. It remains excluded. A dash in storage savings means that no eligible official archive size is available for comparison.
+</details>
+
+The separate 30-minute Astral file failed complete metadata export. Dashes mean no eligible measurement.
 
 **Precision:** ours keeps all source points within 0.01 ppm m/z and 0.1% intensity error. Official default and delta retain exact values after profile-zero filtering. Storage savings include this difference.
 
@@ -116,6 +121,24 @@ Each cell contains one value. Times and RAM values are medians. RAM is GNU time 
 | [Exploris 480](https://www.ebi.ac.uk/pride/archive/projects/PXD063416) | 12.98 | 96.91 | 0.39 | 1.00 | 376.8 | 673.6 |
 | [Astral (30 min)](https://www.ebi.ac.uk/pride/archive/projects/PXD046453) | — | — | — | — | — | — |
 | [Astral (60 min)](https://www.ebi.ac.uk/pride/archive/projects/PXD049028) | 157.64 | — | 3.62 | — | 5,467.4 | — |
+
+#### Storage saved versus each official baseline
+
+| Instrument | Default | Delta |
+|:--|--:|--:|
+| Q Exactive HF (control) | 77.7% | 66.3% |
+| [Fusion](https://www.ebi.ac.uk/pride/archive/projects/PXD017803) | 41.9% | 37.4% |
+| [Eclipse](https://www.ebi.ac.uk/pride/archive/projects/PXD023203) | 40.8% | 36.4% |
+| [Ascend](https://www.ebi.ac.uk/pride/archive/projects/PXD043660) | 73.2% | 58.8% |
+| [Q Exactive HF](https://www.ebi.ac.uk/pride/archive/projects/PXD019848) | 77.6% | 66.1% |
+| [Fusion Lumos](https://www.ebi.ac.uk/pride/archive/projects/PXD046211) | 68.8% | 57.4% |
+| [LTQ Orbitrap Velos](https://www.ebi.ac.uk/pride/archive/projects/PXD005780) | 75.8% | 64.0% |
+| [Q Exactive HF-X](https://www.ebi.ac.uk/pride/archive/projects/PXD053241) | 69.2% | 57.6% |
+| [Q Exactive](https://www.ebi.ac.uk/pride/archive/projects/PXD000612) | 75.9% | 64.9% |
+| [Q Exactive Plus](https://www.ebi.ac.uk/pride/archive/projects/PXD002370) | 75.3% | 64.2% |
+| [Exploris 480](https://www.ebi.ac.uk/pride/archive/projects/PXD063416) | 53.8% | 44.1% |
+| [Astral (30 min)](https://www.ebi.ac.uk/pride/archive/projects/PXD046453) | — | — |
+| [Astral (60 min)](https://www.ebi.ac.uk/pride/archive/projects/PXD049028) | — | — |
 
 A reported measurement requires all declared repeats and independent all-point validation. A timeout means a required run exceeded 600 seconds. Warmups are excluded. No ratio uses a failed baseline.
 
