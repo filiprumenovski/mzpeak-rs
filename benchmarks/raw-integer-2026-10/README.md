@@ -10,6 +10,8 @@ This benchmark package is hosted in **mzpeak-rs**. It measures a separate experi
 The test set contains 49.48 GB in 13 RAW files. Custom output has total limits of **0.01 ppm m/z and 0.1% intensity**, with exact zeros. Official default retains exact values for retained points. Native RAM can be higher, and query startup remains slower. Failed comparisons remain visible and receive no speedup ratio.
 
 - [Technical writeup and quantizer derivation](WRITEUP.md)
+- [Complete instrument comparison](../../README.md#full-instrument-comparison)
+- [Acquisition and sample evidence](evidence/coverage.json)
 - [All per-file speed, RAM and storage results](RESULTS.md)
 - [Reproduction scope, revisions and limitations](REPRODUCIBILITY.md)
 - [12-slide presentation](raw-integer-archive.pptx)
@@ -21,7 +23,7 @@ The test set contains 49.48 GB in 13 RAW files. Custom output has total limits o
 - [Separate default/delta campaign](evidence/supplementary-summary.json)
 - [Frozen runtime hashes](evidence/execution.json) and [repeat amendment](evidence/protocol-amendment.json)
 
-Run `python3 benchmarks/raw-integer-2026-10/verify_results.py` from the repository root to verify the published arithmetic. Original reports remain archived; their SHA-256 identities are in [source-report-sha256.json](evidence/source-report-sha256.json). Public copies remove process arguments and relocate filesystem paths. They cannot be byte-compared with original-report hashes.
+Run `python3 benchmarks/raw-integer-2026-10/verify_results.py` from the repository root to verify the published arithmetic. Run `python3 benchmarks/raw-integer-2026-10/render_comparison.py --check` to verify every README comparison cell. Original reports remain archived; their SHA-256 identities are in [source-report-sha256.json](evidence/source-report-sha256.json). Public copies remove process arguments and relocate filesystem paths. They cannot be byte-compared with original-report hashes.
 
 First three cases retain seven measured repeats; remaining cases use three after a documented amendment. Each mode has an excluded warmup. A comparison requires all declared measured repeats and independent validation; timeout durations are never imputed as successful conversions. The supplementary campaign ran on another node and is not pooled into primary results.
 
