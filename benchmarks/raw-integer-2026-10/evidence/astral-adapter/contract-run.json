@@ -1,0 +1,382 @@
+{
+  "status": "failed",
+  "sections": {
+    "fixture_identity": {
+      "status": "passed",
+      "result": {
+        "native": {
+          "sha256": "fa08ba81bab5ec9aa3e4b69da8c87916cfcf3d1a937c753596a543c4aadc343e",
+          "bytes": 5467445679
+        },
+        "official": {
+          "sha256": "4f8aa8784e7e865a01d2fa4bec12351c441e681300e65a3695266c9df01c0c65",
+          "bytes": 11071619496
+        }
+      },
+      "elapsed_seconds": 181.62712822388858
+    },
+    "all_metadata_frames": {
+      "status": "passed",
+      "result": {
+        "spectra": {
+          "rows": 744726,
+          "columns": 16,
+          "physical_event_summary_audit": {}
+        },
+        "scans": {
+          "rows": 744726,
+          "columns": 8,
+          "physical_event_summary_audit": {}
+        },
+        "precursors": {
+          "rows": 737461,
+          "columns": 4,
+          "physical_event_summary_audit": {}
+        },
+        "selected_ions": {
+          "rows": 737461,
+          "columns": 5,
+          "physical_event_summary_audit": {}
+        },
+        "chromatograms": {
+          "rows": 2,
+          "columns": 7,
+          "physical_event_summary_audit": {}
+        }
+      },
+      "elapsed_seconds": 76.66938001662493
+    },
+    "acquisition_metadata_and_source_identity": {
+      "status": "failed",
+      "error": "['run']",
+      "traceback": "Traceback (most recent call last):\n  File \"/tmp/mzpeak-adapter-40695714/code/validate_astral_adapter.py\", line 60, in section\n    value = fn()\n            ^^^^\n  File \"/tmp/mzpeak-adapter-40695714/code/validate_astral_adapter.py\", line 210, in acquisition\n    assert original == actual, [key for key in original if original[key] != actual.get(key)]\n           ^^^^^^^^^^^^^^^^^^\nAssertionError: ['run']\n",
+      "elapsed_seconds": 0.011780612170696259
+    },
+    "zero_filter_edge_cases": {
+      "status": "passed",
+      "result": {
+        "synthetic_empty_all_zero_singleton_edge_and_interior_runs": 6
+      },
+      "elapsed_seconds": 0.00038280803710222244
+    },
+    "scalar_id_list_slice": {
+      "status": "passed",
+      "result": {
+        "spectrum_comparisons": 157,
+        "read_peaks_for_queries": 69
+      },
+      "elapsed_seconds": 45.59340631309897
+    },
+    "iterator_forward_seek_and_prefer_peaks": {
+      "status": "passed",
+      "result": {
+        "forward_seek_spectrum_comparisons": 120
+      },
+      "elapsed_seconds": 104.10931886080652
+    },
+    "retention_time_boundaries": {
+      "status": "failed",
+      "error": "-1",
+      "traceback": "Traceback (most recent call last):\n  File \"<warrior-home>/rawr-full-native-20261020/.validation-venv/lib/python3.12/site-packages/pandas/core/indexes/range.py\", line 413, in get_loc\n    return self._range.index(new_key)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^\nValueError: -1 is not in range\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/tmp/mzpeak-adapter-40695714/code/validate_astral_adapter.py\", line 60, in section\n    value = fn()\n            ^^^^\n  File \"/tmp/mzpeak-adapter-40695714/code/validate_astral_adapter.py\", line 275, in retention\n    assert f.time.resolve(float(t)) == o.time.resolve(float(t)), t\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<warrior-home>/rawr-full-native-20261020/reference/python/mzpeak/reader.py\", line 78, in resolve\n    hit = self._get_scan_by_time(time)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<warrior-home>/rawr-full-native-20261020/reference/python/mzpeak/reader.py\", line 111, in _get_scan_by_time\n    return indices[-1], times[-1]\n                        ~~~~~^^^^\n  File \"<warrior-home>/rawr-full-native-20261020/.validation-venv/lib/python3.12/site-packages/pandas/core/series.py\", line 1121, in __getitem__\n    return self._get_value(key)\n           ^^^^^^^^^^^^^^^^^^^^\n  File \"<warrior-home>/rawr-full-native-20261020/.validation-venv/lib/python3.12/site-packages/pandas/core/series.py\", line 1237, in _get_value\n    loc = self.index.get_loc(label)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<warrior-home>/rawr-full-native-20261020/.validation-venv/lib/python3.12/site-packages/pandas/core/indexes/range.py\", line 415, in get_loc\n    raise KeyError(key) from err\nKeyError: -1\n",
+      "elapsed_seconds": 0.19359641429036856
+    },
+    "range_list_duplicate_and_slice_contract": {
+      "status": "passed",
+      "result": {
+        "same_argument_range_queries": 6
+      },
+      "elapsed_seconds": 0.45496975537389517
+    },
+    "same_xic_and_ms2_queries": {
+      "status": "passed",
+      "result": {
+        "xic": {
+          "scans": 494,
+          "points_compared": 15038451,
+          "max_mz_error_ppm": 0.009030483744978522,
+          "max_intensity_relative_error": 0.0009999989964911324,
+          "boundary_membership_differences": 0,
+          "max_xic_relative_error": 0.000981616118426506
+        },
+        "ms2_batch": {
+          "scans": 50208,
+          "points_compared": 83098323,
+          "max_mz_error_ppm": 0.008997921154296226,
+          "max_intensity_relative_error": 0.0009999989899470664,
+          "boundary_membership_differences": 0,
+          "max_xic_relative_error": 0.0
+        }
+      },
+      "elapsed_seconds": 27.124450972303748
+    },
+    "all_scans_all_points_and_zero_policy": {
+      "status": "passed",
+      "result": {
+        "scans_checked": 744726,
+        "native_points": 1511811155,
+        "official_points": 1392038446,
+        "native_zeros": 162582445,
+        "official_zeros": 42809736,
+        "removed_profile_zeros": 119772709,
+        "max_mz_error_ppm": 0.009055047341369618,
+        "max_intensity_relative_error": 0.0009999989966876668,
+        "batches": 218,
+        "maximum_native_batch_points": 6818363
+      },
+      "elapsed_seconds": 413.84357549250126
+    },
+    "inclusive_mz_boundaries_and_quantization_crossings": {
+      "status": "passed",
+      "result": {
+        "scan_probes": 8,
+        "windows": 176,
+        "boundary_membership_differences": 120,
+        "max_crossing_distance_ppm": 0.005469619815224316,
+        "official_coordinate_argument_ignored": 176,
+        "identical_membership_windows": 56,
+        "examples": [
+          {
+            "scan": 0,
+            "lo": 380.69806461288135,
+            "hi": 380.69806461288135,
+            "native_points": 1,
+            "official_points_after_explicit_filter": 0
+          },
+          {
+            "scan": 0,
+            "lo": 380.6980646128813,
+            "hi": 380.69806461288135,
+            "native_points": 1,
+            "official_points_after_explicit_filter": 0
+          },
+          {
+            "scan": 0,
+            "lo": 380.69806461288135,
+            "hi": 380.6980646128814,
+            "native_points": 1,
+            "official_points_after_explicit_filter": 0
+          },
+          {
+            "scan": 0,
+            "lo": 380.69806660321257,
+            "hi": 380.69806660321257,
+            "native_points": 0,
+            "official_points_after_explicit_filter": 1
+          },
+          {
+            "scan": 0,
+            "lo": 380.6980666032125,
+            "hi": 380.69806660321257,
+            "native_points": 0,
+            "official_points_after_explicit_filter": 1
+          },
+          {
+            "scan": 0,
+            "lo": 380.69806660321257,
+            "hi": 380.6980666032126,
+            "native_points": 0,
+            "official_points_after_explicit_filter": 1
+          },
+          {
+            "scan": 0,
+            "lo": 504.5632134852616,
+            "hi": 504.5632134852616,
+            "native_points": 1,
+            "official_points_after_explicit_filter": 0
+          },
+          {
+            "scan": 0,
+            "lo": 504.56321348526154,
+            "hi": 504.5632134852616,
+            "native_points": 1,
+            "official_points_after_explicit_filter": 0
+          }
+        ]
+      },
+      "elapsed_seconds": 10.391341768205166
+    },
+    "chromatograms_tic_bpc": {
+      "status": "passed",
+      "result": {
+        "tic_bpc_exact": true,
+        "chromatograms_checked": 2
+      },
+      "elapsed_seconds": 0.31788429338485
+    },
+    "integrity_and_lifetime": {
+      "status": "passed",
+      "result": {
+        "native_manifest_checksums": true,
+        "directory_input_and_idempotent_close": true
+      },
+      "elapsed_seconds": 24.349253521300852
+    },
+    "flattened_columns": {
+      "status": "passed",
+      "result": {
+        "flattened_metadata_rows": 744726,
+        "spectrum_queries": 3
+      },
+      "elapsed_seconds": 46.74558075238019
+    }
+  },
+  "failures": [
+    "acquisition_metadata_and_source_identity",
+    "retention_time_boundaries"
+  ],
+  "method": {
+    "signal_mz_limit_ppm": 0.01,
+    "signal_intensity_relative_limit": 0.001,
+    "metadata_physical_event_mz_limit_ppm": 0.001,
+    "seed": 20261021,
+    "all_point_batch_scan_limit": 4096,
+    "all_point_batch_point_limit": 8000000,
+    "scope": "Adapter versus saved official-default archive; not a conversion or speed benchmark",
+    "coordinate_policy": "Inclusive comparisons on decoded values. Cross-format boundary membership is audited, not assumed identical."
+  },
+  "environment": {
+    "python": "3.12.14 (main, Sep  1 2026, 14:16:52) [Clang 22.1.3 ]",
+    "platform": "Linux-5.15.80-200.el7.x86_64-x86_64-with-glibc2.17",
+    "hostname": "sfx5",
+    "slurm_job_id": "40695714",
+    "native_library_sha256": "ab7a4ebd3aff222d3856cfc82b76d674e53a722ac06246ccfeda8ac200e6c44d"
+  },
+  "dependency_sha256": {
+    "orbitrap_convert.py": "b9ec46d4664e3affdd5c79c4048dafff7ca48e38b0a66a3a90da0491eac54499",
+    "native_batch.py": "a5466ecde8fd2c1b28dfe1ed87a04991462ff3d914d9e092899676b7a11e7b24",
+    "bench.py": "b8bb54a474cf4134edbf7e5ef0f4a337ccb8d4814e0d598081cddc8122be19e8",
+    "integer_codecs.py": "c75b910d4c8558e3e59a7363391d40aa91a1bf4adf6d2c0359a46ba2c6406c08",
+    "more_optimization.py": "830053e632227cd520810c5e1eb338f96529058552f7e5a681d313d0adaeadb7",
+    "quantize.py": "f1465ad326a17f6f71595472b06606d3ac97d2e0c6a2631f9d58f408e2b1d643"
+  },
+  "dependency_versions": {
+    "numpy": "2.2.6",
+    "pandas": "2.2.3"
+  },
+  "official_python_sha256": {
+    "__init__.py": "9a8db78760b4735815da84070ce66a9ea3b93abad26f4db81d61c23a11833bf5",
+    "file_index.py": "1c6fbf0d3e4a337a752c607d5e17d606c9199a9605833a8cecc60ac019e6b1ce",
+    "filters.py": "808ff7a77acc9ef119d27240f2a11a525378b338539962871ba15aae4a02692c",
+    "grid.py": "066a8cb182053838e1537e92b123fe080e8577acd537c7f5c8e5a95353eedfc1",
+    "mz_reader.py": "0b4066d05d1c91a2a13e914bbbfc1a57461413cead406f0f5250593fa45bc4aa",
+    "reader.py": "b052d88c992782e093538e95995b86bfd44abb9f0886938d8dd0e2477951fdb2",
+    "util.py": "9bf65182090916346d8eda344ec8a58b77533d21f6beb034fe94858f8849fc3a"
+  },
+  "source_sha256": "b13c520ee24c077e3724dc8a98b08bf20c8dc3103c140e5d656d6c6898c30c44",
+  "adapter_sha256": "f79336adf4209534dbb42421e677957a97baa451b877326097da8d0955e912c8",
+  "peak_validator_process_rss_bytes": 18477666304,
+  "three_reader_open_seconds": 33.44104889687151,
+  "coverage": {
+    "scans": 744726,
+    "profile_scans": 7265,
+    "centroid_scans": 737461,
+    "scalar_scan_indices": [
+      0,
+      1,
+      5633,
+      5972,
+      9040,
+      19123,
+      24525,
+      28704,
+      28921,
+      38469,
+      40804,
+      65236,
+      95011,
+      95425,
+      116783,
+      120948,
+      129067,
+      144134,
+      149364,
+      159801,
+      160694,
+      161640,
+      163378,
+      168582,
+      208211,
+      212012,
+      214915,
+      226297,
+      249187,
+      259144,
+      279930,
+      286198,
+      316983,
+      333413,
+      340115,
+      352469,
+      372362,
+      372450,
+      375819,
+      377929,
+      409645,
+      422797,
+      422847,
+      426270,
+      433612,
+      433802,
+      465609,
+      489464,
+      499111,
+      501330,
+      515683,
+      517046,
+      523511,
+      541360,
+      560120,
+      569925,
+      571031,
+      581397,
+      594658,
+      607863,
+      611660,
+      642220,
+      645532,
+      650409,
+      664457,
+      676909,
+      677626,
+      744675,
+      744725
+    ]
+  },
+  "reference_timeouts": [
+    {
+      "query": "spectrum objects slice(744722, 744726, None)",
+      "limit_seconds": 30,
+      "comparison": "Native result checked against official scalar reads; original reference query did not complete."
+    },
+    {
+      "query": "iterator start=744706, prefer_peaks=False",
+      "limit_seconds": 30,
+      "comparison": "Native result checked against official scalar reads; original reference query did not complete."
+    },
+    {
+      "query": "iterator start=744706, prefer_peaks=True",
+      "limit_seconds": 30,
+      "comparison": "Native result checked against official scalar reads; original reference query did not complete."
+    }
+  ],
+  "all_point_progress": {
+    "scans_checked": 714448,
+    "native_points": 1492244182,
+    "official_points": 1375961851,
+    "native_zeros": 157875821,
+    "official_zeros": 41593490,
+    "removed_profile_zeros": 116282331,
+    "max_mz_error_ppm": 0.009051311003702944,
+    "max_intensity_relative_error": 0.0009999989966876668,
+    "batches": 210,
+    "maximum_native_batch_points": 6818363
+  },
+  "compatibility_limits": {
+    "bit_identical_signal": false,
+    "same_exact_boundary_membership": false,
+    "same_coordinate_argument_behavior": false,
+    "all_reference_queries_completed": false,
+    "scope": "Pinned Python API paths listed in sections; excludes SQL, URI inputs, wavelength signal, and Python fallback decoder."
+  },
+  "elapsed_seconds": 968.9581016087905
+}

@@ -1,0 +1,35 @@
+{
+  "status": "passed_with_documented_reference_limits",
+  "scope": "Retention-time and empty-query checks; no signal code or numerical bounds changed.",
+  "finite_time_queries_passed": 85,
+  "positive_infinity": {
+    "both_raise_same_error": true,
+    "error": {
+      "type": "KeyError",
+      "args": [
+        -1
+      ]
+    },
+    "supported": false
+  },
+  "time_ranges_checked": 3,
+  "reference_timeouts": [
+    {
+      "query": "time slice slice(73.59568166666666, 73.5959902, None)",
+      "limit_seconds": 30,
+      "comparison": "Native result checked against official scalar reads; original reference query did not complete."
+    }
+  ],
+  "empty_array_range": {
+    "native_points": 0,
+    "official_error": "min() iterable argument is empty",
+    "same_behavior": false
+  },
+  "invalid_spectrum_indices_same_error": [
+    -1,
+    744726
+  ],
+  "elapsed_seconds": 82.53917932976037,
+  "source_sha256": "23a3c53724adbc1605ab2b8334b3bdee070265554d73c761652b11b7dd34aa7b",
+  "adapter_sha256": "f79336adf4209534dbb42421e677957a97baa451b877326097da8d0955e912c8"
+}

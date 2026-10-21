@@ -55,7 +55,7 @@ Each baseline uses its latest matched campaign. Default and delta used different
 | [Astral (30 min)](https://www.ebi.ac.uk/pride/archive/projects/PXD046453)<br>DIA; 2 Th, 30 min | — | — | — | — | Outside scope² | Outside scope² |
 | [Astral (60 min)](https://www.ebi.ac.uk/pride/archive/projects/PXD049028)<br>DIA; 2 Th, 60 min; **native validated** | 268.10 | 1,374.09¹ | 5.467 | 11.072¹ | Not paired¹ | 600 s limit³ |
 
-¹ **Astral’s official values are from a completed single run on mem4.** Native values are the three-run median on mem1. Official validation covered query selections only. These are separate runs, not a paired speedup, and the official single run is excluded from aggregates. All other displayed times are campaign medians.
+¹ **Astral’s official values are from a completed single run on mem4.** Native values are the three-run median on mem1. The official archive now has a complete retained-signal comparison through the adapter. These are separate runs, not a paired speedup, and the official single run is excluded from aggregates. All other displayed times are campaign medians.
 
 <details>
 <summary>Astral run provenance and validation</summary>
@@ -67,11 +67,11 @@ Each baseline uses its latest matched campaign. Default and delta used different
 | Conversion | Runs | Time, s | Peak RAM, GiB | Archive, GB | Validation |
 |:--|--:|--:|--:|--:|:--|
 | Native, latest campaign (mem1) | 3 | **268.10** median | 3.62 | **5.47** | All 1,511,811,155 points |
-| Official default, query setup (mem4) | 1 | **1374.09** | 1.59 | **11.07** | Query selections only |
+| Official default, query setup (mem4) | 1 | **1374.09** | 1.59 | **11.07** | All retained points compared |
 
-Native validation covered all **744,726 scans** and preserved all **162,582,445 zeros**. The official run exited successfully in **22m 54s**. Its selected query arrays passed comparison; whole-archive official validation is not recorded for this run. It is excluded from speedup and storage-saving aggregates. Official delta has no completed Astral conversion in the saved evidence.
+Native validation covered all **744,726 scans** and preserved all **162,582,445 zeros**. The official run exited successfully in **22m 54s**. All 1,392,038,446 retained official points now pass comparison against the independently RAW-validated native query fixture. This adds cross-reader evidence; it does not replace an independent official-to-RAW oracle. It is excluded from speedup and storage-saving aggregates. Official delta has no completed Astral conversion in the saved evidence.
 
-[Successful official conversion evidence](benchmarks/raw-integer-2026-10/evidence/astral-official-single.json) · [Timing log](benchmarks/raw-integer-2026-10/evidence/astral-official-single.time) · [Query validation](benchmarks/raw-integer-2026-10/evidence/astral-queries.json)
+[Successful official conversion evidence](benchmarks/raw-integer-2026-10/evidence/astral-official-single.json) · [Timing log](benchmarks/raw-integer-2026-10/evidence/astral-official-single.time) · [Adapter validation](benchmarks/raw-integer-2026-10/ADAPTER_VALIDATION.md)
 
 </details>
 
@@ -245,6 +245,23 @@ The warm MS2 batch is **1.55× faster**. Peak process RSS is **3.87 GiB**, compa
 XIC means extracted ion chromatogram. Each query uses the same selected scans. Seven repeats use a new process and a randomized order. The filesystem cache is warm. Each decoder uses one worker. The benchmark uses no persistent index or decoded-signal cache. These results apply to two queries. They do not measure SQL or DuckDB performance.
 
 [Query protocol and every sample →](benchmarks/raw-integer-2026-10/evidence/astral-queries.json)
+
+## Python adapter validation
+
+**The big Astral adapter check covers all 744,726 scans.** With `filter_profile_zeros=True`, all **1,392,038,446 retained points** agree with the official archive in order, count, zero positions, and the existing numerical bounds. Maximum differences are **0.009055 ppm m/z** and **0.0999999% intensity**.
+
+The default adapter preserves all **1,511,811,155 source points** and **162,582,445 zeros**. Compatibility mode removes exactly the same **119,772,709 interior profile zeros** as the official exporter. The 494-scan XIC and 50,208-scan MS2 workloads also passed.
+
+The check covers metadata, ID/list/slice/time access, iteration, peak preference, chromatograms, archive checksums, and file closure. An array-slice endpoint bug was fixed and has a regression test.
+
+<details>
+<summary>Exact-cutoff behavior and pinned-reader API limits</summary>
+
+Exact m/z cutoffs can select different points within the quantization band. Our adapter applies the m/z-window argument; the pinned official reader ignores it, so comparisons use the same explicit array mask. Four official tail queries reached a time limit; native results were checked against official point reads for those scan IDs. Empty array ranges and infinite-time inputs also have documented behavior. These checks cover the listed Python operations, not universal API or dtype identity.
+
+</details>
+
+[Full adapter checks, boundary results, source snapshots, and provenance →](benchmarks/raw-integer-2026-10/ADAPTER_VALIDATION.md)
 
 ## Validation scope and comparison rules
 

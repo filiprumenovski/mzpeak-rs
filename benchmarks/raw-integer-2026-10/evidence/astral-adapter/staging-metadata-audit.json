@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "source_sha1": "272b6e7f39a812050bdb3969d045af34643cbe13",
+  "audited_changes_official_native": {
+    "source_name": [
+      "astral.raw",
+      "20231206_HAP1_1ug_60min_DIA_2Th_5e4_3p5ms_rep01.raw"
+    ],
+    "source_location": [
+      "file:////tmp/mzlab-query-40648979/data",
+      "file:////tmp/rawr-astral-40643215/astral"
+    ],
+    "derived_run_id": [
+      "astral",
+      "20231206_HAP1_1ug_60min_DIA_2Th_5e4_3p5ms_rep01"
+    ]
+  },
+  "all_other_acquisition_metadata_equal": true,
+  "metadata_member_sha256": {
+    "official": "31bab9534216c00c85a42ca77ac2a00d5ce85e00ddc2a42c973f8825f3cfc72f",
+    "native": "975b4b59de3cf3009e9907b79a81ee4190802ab75b37a4c833e7e39016ea6279"
+  },
+  "audit_source_sha256": "9007a58ae281160ea9d18e88c1be471ec5d9c5bbca14035d12e5cf89444c7cdf",
+  "scope": "File-level metadata audit only; combine with separately recorded full-archive identity and signal validation."
+}
