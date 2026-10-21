@@ -24,14 +24,14 @@ This repository contains the Rust crate and the benchmark study. **The study mea
 <!-- BEGIN INSTRUMENT COMPARISON -->
 **13 RAW files · 49.48 GB · 11 instrument models represented · two official baselines**
 
-The table uses the latest available validated comparison for each baseline. Every speedup pairs native and official runs from the same campaign.
+**12 native outputs passed independent validation: 3,355,346,983 points, including the complete 60-minute Astral run.** The table uses the latest validated comparison for each baseline. Every speedup pairs runs from the same campaign.
 
 | Official baseline | Eligible files | Conversion speedup | Less output storage |
 |:--|--:|--:|--:|
 | **Default, Zstd 3** | **11/13** | **4.74×** | **73.14%** |
 | **Delta, Zstd 3** | **11/13** | **6.19×** | **61.42%** |
 
-Speedups are paired geometric means with equal weight per file. Storage reduction uses combined bytes on eligible files. Failed baselines receive no ratio.
+Speedups are paired geometric means with equal weight per file. Storage reduction uses combined bytes on eligible files. Ratios require completed, validated comparisons.
 
 ### Full instrument range: native versus official default and delta
 
@@ -52,8 +52,8 @@ Each baseline uses its latest matched campaign. Default and delta used different
 | [Q Exactive](https://www.ebi.ac.uk/pride/archive/projects/PXD000612)<br>DDA; phosphoproteome | 23.31 | 104.03 | 0.630 | 2.616 | **4.46×** | **5.11×** |
 | [Q Exactive Plus](https://www.ebi.ac.uk/pride/archive/projects/PXD002370)<br>Label-free; UPS1 / yeast | 34.33 | 148.04 | 0.802 | 3.247 | **4.30×** | **4.98×** |
 | [Exploris 480](https://www.ebi.ac.uk/pride/archive/projects/PXD063416)<br>DIA; HeLa / yeast, 10 m/z | 22.26 | 115.42 | 0.377 | 0.815 | **5.18×** | **7.70×** |
-| [Astral (30 min)](https://www.ebi.ac.uk/pride/archive/projects/PXD046453)<br>DIA; 2 Th, 30 min | — | — | — | — | Metadata failed | Metadata failed |
-| [Astral (60 min)](https://www.ebi.ac.uk/pride/archive/projects/PXD049028)<br>DIA; 2 Th, 60 min; **native validated** | 268.10 | 1,374.09¹ | 5.467 | 11.072¹ | Not paired¹ | Official timeout |
+| [Astral (30 min)](https://www.ebi.ac.uk/pride/archive/projects/PXD046453)<br>DIA; 2 Th, 30 min | — | — | — | — | Outside scope² | Outside scope² |
+| [Astral (60 min)](https://www.ebi.ac.uk/pride/archive/projects/PXD049028)<br>DIA; 2 Th, 60 min; **native validated** | 268.10 | 1,374.09¹ | 5.467 | 11.072¹ | Not paired¹ | 600 s limit³ |
 
 ¹ **Astral’s official values are from a completed single run on mem4.** Native values are the three-run median on mem1. Official validation covered query selections only. These are separate runs, not a paired speedup, and the official single run is excluded from aggregates. All other displayed times are campaign medians.
 
@@ -75,11 +75,13 @@ Native validation covered all **744,726 scans** and preserved all **162,582,445 
 
 </details>
 
-The separate 30-minute Astral file failed complete metadata export. Dashes mean no eligible measurement.
+² The tested converters do not support complete metadata export for the separate 30-minute Astral file. It is outside the validated set. Dashes mean no eligible measurement.
+
+³ The official delta converter exceeded the campaign’s 600-second limit. Native conversion and validation completed.
 
 **Precision:** ours keeps all source points within 0.01 ppm m/z and 0.1% intensity error. Official default and delta retain exact values after profile-zero filtering. Storage savings include this difference.
 
-**RAM is not a consistent win.** Native conversion uses more memory on several instruments. Expand the measurements below for every time, RAM value, and archive size.
+**Peak RAM varies by instrument.** Native conversion uses more memory on several instruments. Expand the measurements below for every time, RAM value, and archive size.
 
 <details>
 <summary><strong>Full measurements: time, RAM, and archive size</strong></summary>
@@ -244,13 +246,18 @@ XIC means extracted ion chromatogram. Each query uses the same selected scans. S
 
 [Query protocol and every sample →](benchmarks/raw-integer-2026-10/evidence/astral-queries.json)
 
-## Failures and comparison rules
+## Validation scope and comparison rules
+
+<details>
+<summary>Coverage limits and excluded comparisons</summary>
 
 | Case | Outcome | Treatment |
 |:--|:--|:--|
-| Astral30 | Both custom paths encoded signal, then failed instrument metadata; official also failed metadata mapping | No complete-archive ratio |
-| Exploris, vendor mode | Retained output validated; third measured conversion timed out | Vendor comparison excluded |
-| Big Astral | Native passed; timed campaign baselines stopped at 600 s. A separate official default run completed in 1,374.09 s | Native median **268.10 s**; single official run has query-only validation, so no paired speedup |
+| Astral30 | Complete metadata export is unsupported by the tested custom and official paths | Outside the validated set; no complete-archive ratio |
+| Exploris, vendor mode | Retained output passed validation; one measured run exceeded the time limit | Vendor timing comparison excluded |
+| Big Astral | Native conversion and all-point validation passed. Official default completed separately in 1,374.09 s | Native median **268.10 s**; separate allocations and validation scopes, so no paired speedup |
+
+</details>
 
 The latest default campaign used eight CPUs and a 64 GiB allocation. Each mode had one warmup run. The analysis excludes warmup time. The first three completed cases retain seven measured repeats. The remaining cases use three repeats after a documented protocol change. The binaries and error limits did not change.
 

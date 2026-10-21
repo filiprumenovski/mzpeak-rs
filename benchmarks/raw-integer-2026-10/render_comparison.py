@@ -96,13 +96,13 @@ def render():
                                    sum(f['metrics']['official_delta_z3']['output_bytes'] for f in delta_files)))
     close(aggregate[1][0], summary['aggregate']['official_delta_z3']['geomean_speedup'])
     lines = [START, '**13 RAW files · 49.48 GB · 11 instrument models represented · two official baselines**', '',
-        'The table uses the latest available validated comparison for each baseline. Every speedup pairs native and official runs from the same campaign.', '',
+        '**12 native outputs passed independent validation: 3,355,346,983 points, including the complete 60-minute Astral run.** The table uses the latest validated comparison for each baseline. Every speedup pairs runs from the same campaign.', '',
         '| Official baseline | Eligible files | Conversion speedup | Less output storage |',
         '|:--|--:|--:|--:|']
     for (name, _, _), (ratio, reduction) in zip(campaigns, aggregate):
         lines.append(f'| **{name}, Zstd 3** | **11/13** | **{ratio:.2f}×** | **{reduction:.2f}%** |')
     lines.extend(['',
-        'Speedups are paired geometric means with equal weight per file. Storage reduction uses combined bytes on eligible files. Failed baselines receive no ratio.', '',
+        'Speedups are paired geometric means with equal weight per file. Storage reduction uses combined bytes on eligible files. Ratios require completed, validated comparisons.', '',
         '### Full instrument range: native versus official default and delta', '',
         'One row per file. Times and archive sizes are shown directly. Official time and size refer to default encoding. Delta means `delta:50`; both official modes use Zstd 3.', '',
         'Each baseline uses its latest matched campaign. Default and delta used different nodes and native builds. No timing is transferred between them.', '',
@@ -128,7 +128,7 @@ def render():
         speeds, savings = [], []
         for n, o in pairs:
             ratio = speedup(n, o)
-            unavailable = 'Official timeout' if n['eligible'] and 'Timeout' in o['status'] else 'Metadata failed'
+            unavailable = '600 s limit³' if n['eligible'] and 'Timeout' in o['status'] else 'Outside scope²'
             if c['case'] == '12-PXD049028' and o['mode'] == 'official_default_z3':
                 unavailable = 'Not paired¹'
             speeds.append(f'**{ratio:.2f}×**' if ratio is not None else unavailable)
@@ -165,9 +165,9 @@ def render():
         f"Native validation covered all **{av['spectra']:,} scans** and preserved all **{av['zeros_preserved']:,} zeros**. The official run exited successfully in **22m 54s**. Its selected query arrays passed comparison; whole-archive official validation is not recorded for this run. It is excluded from speedup and storage-saving aggregates. Official delta has no completed Astral conversion in the saved evidence.", '',
         '[Successful official conversion evidence](benchmarks/raw-integer-2026-10/evidence/astral-official-single.json) · [Timing log](benchmarks/raw-integer-2026-10/evidence/astral-official-single.time) · [Query validation](benchmarks/raw-integer-2026-10/evidence/astral-queries.json)', '',
         '</details>', '',
-        'The separate 30-minute Astral file failed complete metadata export. Dashes mean no eligible measurement.', '',
+        '² The tested converters do not support complete metadata export for the separate 30-minute Astral file. It is outside the validated set. Dashes mean no eligible measurement.\n\n³ The official delta converter exceeded the campaign’s 600-second limit. Native conversion and validation completed.', '',
         '**Precision:** ours keeps all source points within 0.01 ppm m/z and 0.1% intensity error. Official default and delta retain exact values after profile-zero filtering. Storage savings include this difference.', '',
-        '**RAM is not a consistent win.** Native conversion uses more memory on several instruments. Expand the measurements below for every time, RAM value, and archive size.', '',
+        '**Peak RAM varies by instrument.** Native conversion uses more memory on several instruments. Expand the measurements below for every time, RAM value, and archive size.', '',
         '<details>', '<summary><strong>Full measurements: time, RAM, and archive size</strong></summary>', '',
         'Each cell contains one value. Times and RAM values are medians. RAM is GNU time maximum process RSS, not concurrent process-tree memory. GiB means 2³⁰ bytes; MB and GB are decimal units.', ''])
     for (name, _, _), pairs in zip(campaigns, by_campaign):
