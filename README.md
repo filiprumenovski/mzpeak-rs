@@ -52,10 +52,14 @@ Each baseline uses its latest matched campaign. Default and delta used different
 | [Q Exactive](https://www.ebi.ac.uk/pride/archive/projects/PXD000612) | DDA; phosphoproteome | **4.46×** | **5.11×** | 75.9% | 64.9% |
 | [Q Exactive Plus](https://www.ebi.ac.uk/pride/archive/projects/PXD002370) | Label-free; UPS1 / yeast | **4.30×** | **4.98×** | 75.3% | 64.2% |
 | [Exploris 480](https://www.ebi.ac.uk/pride/archive/projects/PXD063416) | DIA; HeLa / yeast, 10 m/z | **5.18×** | **7.70×** | 53.8% | 44.1% |
-| [Astral (30 min)](https://www.ebi.ac.uk/pride/archive/projects/PXD046453) | DIA; 2 Th, 30 min | — | — | — | — |
-| [Astral (60 min)](https://www.ebi.ac.uk/pride/archive/projects/PXD049028) | DIA; 2 Th, 60 min | — | — | — | — |
+| [Astral (30 min)](https://www.ebi.ac.uk/pride/archive/projects/PXD046453) | DIA; 2 Th, 30 min | Metadata failed | Metadata failed | — | — |
+| [Astral (60 min)](https://www.ebi.ac.uk/pride/archive/projects/PXD049028) | DIA; 2 Th, 60 min; **native validated** | Official timeout | Official timeout | — | — |
 
-**Astral:** the 30-minute file failed metadata export in both campaigns. Native conversion of the 60-minute file passed; both official baselines timed out. Dashes mean no valid comparison.
+**Big Astral completed and passed validation:** 21.78 GB RAW → **5.47 GB archive**, **268.10 s** median conversion, **3.62 GiB** peak process RAM. These are the latest default-campaign native results, with three measured repeats. All **744,726 scans and 1,511,811,155 points** passed; all **162,582,445 zeros** were preserved.
+
+“Official timeout” refers only to the 600-second conversion limit in the paired campaigns. It does not mean native Astral conversion failed or was skipped. The separate Astral query benchmark also used a successfully created official archive. We do not infer a conversion speedup from that query run.
+
+The separate 30-minute Astral file failed complete metadata export. It remains excluded. A dash in storage savings means that no eligible official archive size is available for comparison.
 
 **Precision:** ours keeps all source points within 0.01 ppm m/z and 0.1% intensity error. Official default and delta retain exact values after profile-zero filtering. Storage savings include this difference.
 
