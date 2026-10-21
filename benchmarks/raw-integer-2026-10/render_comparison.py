@@ -104,10 +104,11 @@ def render():
     lines.extend(['',
         'Speedups are paired geometric means with equal weight per file. Storage reduction uses combined bytes on eligible files. Failed baselines receive no ratio.', '',
         '### Full instrument range: native versus official default and delta', '',
-        'One row per file. **Higher speedups and storage savings are better.** Delta means `delta:50`; both official modes use Zstd 3.', '',
+        'One row per file. Times and archive sizes are shown directly. Official time and size refer to default encoding. Delta means `delta:50`; both official modes use Zstd 3.', '',
         'Each baseline uses its latest matched campaign. Default and delta used different nodes and native builds. No timing is transferred between them.', '',
-        '| Instrument | Acquisition / sample | Speedup vs default | Speedup vs delta | Storage saved vs default | Storage saved vs delta |',
-        '|:--|:--|--:|--:|--:|--:|'])
+        '| Instrument / acquisition | Native s | Official s | Native GB | Official GB | Default speedup | Delta speedup |',
+        '|:--|--:|--:|--:|--:|--:|--:|'])
+    storage_rows = []
     def value(row, key, scale, digits):
         return f"{row['metrics'][key] / scale:,.{digits}f}" if row['eligible'] else '—'
     def instrument(c):
@@ -129,13 +130,20 @@ def render():
             ratio = speedup(n, o)
             unavailable = 'Official timeout' if n['eligible'] and 'Timeout' in o['status'] else 'Metadata failed'
             if c['case'] == '12-PXD049028' and o['mode'] == 'official_default_z3':
-                unavailable = '[Single run¹](#completed-big-astral-conversions)'
+                unavailable = 'Not paired¹'
             speeds.append(f'**{ratio:.2f}×**' if ratio is not None else unavailable)
             savings.append(f"{100*(1-n['metrics']['output_bytes']/o['metrics']['output_bytes']):.1f}%" if ratio is not None else '—')
         sample = c['acquisition_sample_label']
         if c['case'] == '12-PXD049028':
             sample += '; **native validated**'
-        cells = [instrument(c), sample, *speeds, *savings]
+        native, official = pairs[0]
+        times = [value(native, 'median_seconds', 1, 2), value(official, 'median_seconds', 1, 2)]
+        sizes = [value(native, 'output_bytes', 1e9, 3), value(official, 'output_bytes', 1e9, 3)]
+        if c['case'] == '12-PXD049028':
+            times[1] = f"{official_single['wall_seconds']:,.2f}¹"
+            sizes[1] = f"{official_single['output_bytes']/1e9:.3f}¹"
+        cells = [instrument(c)+'<br>'+sample, *times, *sizes, *speeds]
+        storage_rows.append('| '+' | '.join([instrument(c), *savings])+' |')
         lines.append('| '+' | '.join(cells)+' |')
     astral = next(r for r in primary if r['case'] == '12-PXD049028' and r['mode'] == 'rawr')
     assert astral['eligible']
@@ -146,7 +154,8 @@ def render():
     assert official_single['query_validation'] == query['validation']
     assert official_single['archive_sha256_recorded_by_query_benchmark'] == query['sha256']['official.mzpeak']
     lines.extend(['',
-        '¹ **Official default also completed the big Astral.** Its successful single run is shown below. The repeated campaigns stopped official runs at 600 seconds. The single run continued beyond that limit.', '',
+        '¹ **Astral’s official values are from a completed single run on mem4.** Native values are the three-run median on mem1. Official validation covered query selections only. These are separate runs, not a paired speedup, and the official single run is excluded from aggregates. All other displayed times are campaign medians.', '',
+        '<details>', '<summary>Astral run provenance and validation</summary>', '',
         '#### Completed big Astral conversions', '',
         '**Same 21.78 GB RAW file; separate allocations and validation scopes. These times do not form a paired speedup.**', '',
         '| Conversion | Runs | Time, s | Peak RAM, GiB | Archive, GB | Validation |',
@@ -155,7 +164,8 @@ def render():
         f"| Official default, query setup (mem4) | 1 | **{official_single['wall_seconds']:.2f}** | {official_single['max_single_process_rss_bytes']/2**30:.2f} | **{official_single['output_bytes']/1e9:.2f}** | Query selections only |", '',
         f"Native validation covered all **{av['spectra']:,} scans** and preserved all **{av['zeros_preserved']:,} zeros**. The official run exited successfully in **22m 54s**. Its selected query arrays passed comparison; whole-archive official validation is not recorded for this run. It is excluded from speedup and storage-saving aggregates. Official delta has no completed Astral conversion in the saved evidence.", '',
         '[Successful official conversion evidence](benchmarks/raw-integer-2026-10/evidence/astral-official-single.json) · [Timing log](benchmarks/raw-integer-2026-10/evidence/astral-official-single.time) · [Query validation](benchmarks/raw-integer-2026-10/evidence/astral-queries.json)', '',
-        'The separate 30-minute Astral file failed complete metadata export. It remains excluded. A dash in storage savings means that no eligible official archive size is available for comparison.', '',
+        '</details>', '',
+        'The separate 30-minute Astral file failed complete metadata export. Dashes mean no eligible measurement.', '',
         '**Precision:** ours keeps all source points within 0.01 ppm m/z and 0.1% intensity error. Official default and delta retain exact values after profile-zero filtering. Storage savings include this difference.', '',
         '**RAM is not a consistent win.** Native conversion uses more memory on several instruments. Expand the measurements below for every time, RAM value, and archive size.', '',
         '<details>', '<summary><strong>Full measurements: time, RAM, and archive size</strong></summary>', '',
@@ -170,6 +180,8 @@ def render():
                 cells.extend([value(n, key, scale, digits), value(o, key, scale, digits)])
             lines.append('| '+' | '.join(cells)+' |')
         lines.append('')
+    lines.extend(['#### Storage saved versus each official baseline', '',
+        '| Instrument | Default | Delta |', '|:--|--:|--:|', *storage_rows, ''])
     lines.extend(['A reported measurement requires all declared repeats and independent all-point validation. A timeout means a required run exceeded 600 seconds. Warmups are excluded. No ratio uses a failed baseline.', '',
         '</details>', '', '<details>', '<summary>Campaigns, repeats, and source evidence</summary>', '',
         'Default uses the later native/vendor campaign on mem1 (8 CPUs, 64 GiB). Delta uses the latest campaign that measured delta on tta1 (8 CPUs, 32 GiB). The native signal binaries differ: `f27b8331` and `53a4ac2e`. Each ratio uses its own matched native run. Delta has not been measured with the later binary.', '',
