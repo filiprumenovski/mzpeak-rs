@@ -1,0 +1,26 @@
+{
+  "vendor_vs_official_default_z3": {
+    "eligible_files": 10,
+    "reported_files": 13,
+    "planned_files": 13,
+    "geomean_speedup": 1.7389011848995863,
+    "aggregate_time_speedup": 1.7906093866874315,
+    "total_size_reduction_percent": 74.432351133237
+  },
+  "rawr_vs_official_default_z3": {
+    "eligible_files": 11,
+    "reported_files": 13,
+    "planned_files": 13,
+    "geomean_speedup": 4.739718135372574,
+    "aggregate_time_speedup": 4.442427476574856,
+    "total_size_reduction_percent": 73.13537071371555
+  },
+  "rawr_vs_vendor": {
+    "eligible_files": 10,
+    "reported_files": 13,
+    "planned_files": 13,
+    "geomean_speedup": 2.7017720920068755,
+    "aggregate_time_speedup": 2.4262512648965253,
+    "total_size_reduction_percent": -0.00032702442152032773
+  }
+}

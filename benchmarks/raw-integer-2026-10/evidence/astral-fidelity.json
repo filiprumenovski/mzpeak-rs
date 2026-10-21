@@ -1,0 +1,59 @@
+{
+  "raw": "astral.raw",
+  "archive": "native.zip",
+  "archive_sha256": "fa08ba81bab5ec9aa3e4b69da8c87916cfcf3d1a937c753596a543c4aadc343e",
+  "source_array_sha256": "0d9317fe57467eeb266bf60aab4d211ca24f5e501f539031356f015b48a9dc66",
+  "analysis_source_sha256": "a4030b52ec69d2d6a30f54695ec8c5fcd83bbdaccd67891db47e4bec06cfe070",
+  "scans": 744726,
+  "points": 1511811155,
+  "zeros_preserved": 162582445,
+  "mz_error_ppm": {
+    "count": 1511811155,
+    "max_absolute": 0.009055047341369618,
+    "mean_absolute": 0.0018587764184529517,
+    "rms": 0.0025888527672603286,
+    "mean_signed": -9.524591242228524e-07,
+    "absolute_quantile_intervals": {
+      "0.5": [
+        0.0012460000000000001,
+        0.001247
+      ],
+      "0.95": [
+        0.006037000000000001,
+        0.006038
+      ],
+      "0.99": [
+        0.007683,
+        0.007684000000000001
+      ]
+    },
+    "histogram_bin_width": 1e-06
+  },
+  "nonzero_intensity_error_percent": {
+    "count": 1349228710,
+    "max_absolute": 0.09999989966876668,
+    "mean_absolute": 0.04994779955721683,
+    "rms": 0.05769053084113754,
+    "mean_signed": 1.2691389710943316e-05,
+    "absolute_quantile_intervals": {
+      "0.5": [
+        0.049940000000000005,
+        0.04995
+      ],
+      "0.95": [
+        0.09494000000000001,
+        0.09495
+      ],
+      "0.99": [
+        0.09894000000000001,
+        0.09895
+      ]
+    },
+    "histogram_bin_width": 1e-05
+  },
+  "max_scan_tic_error_percent": 0.08622318608184631,
+  "source_total_intensity": 246645844524324.88,
+  "restored_total_intensity": 246645686638003.94,
+  "run_total_intensity_signed_error_percent": -6.401337158123965e-05,
+  "method": "Every source point; relative intensity statistics exclude exact zeros. Quantiles are bounded histogram intervals, not sampled estimates. Mean/RMS errors are streaming floating-point reductions. TIC uses float64 sums of decoded intensities, not preserved source-summary metadata. No peptide identification or downstream quantification benchmark."
+}

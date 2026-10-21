@@ -1,4 +1,4 @@
-# mzPeak
+# mzpeak-rs
 
 > Disclaimer: This repository is an independent Rust implementation. The official mzPeak implementation is maintained at https://github.com/HUPO-PSI/mzPeak — many thanks to the HUPO-PSI team for their leadership and work on the format.
 
@@ -10,26 +10,19 @@ A modern, scalable, and interoperable mass spectrometry data format based on Apa
 
 ## Overview
 
-mzPeak is a reference implementation for a next-generation mass spectrometry data format designed to replace XML-based standards like mzML. It leverages Apache Parquet's columnar storage for:
+mzpeak-rs is an independent Rust implementation for storing mass spectrometry data in Apache Parquet containers. It includes:
 
-- **5-10x compression** over mzML files
-- **Blazing fast queries** with column pruning and predicate pushdown
+- **Compressed columnar storage** using Parquet
+- **Queries** over selected columns and spectra
 - **Universal compatibility** with any Parquet-compatible tool (Python, R, DuckDB, Spark)
 - **Single-file container format** (`.mzpeak`) - ZIP archive for easy distribution
 - **Self-contained format** with all metadata embedded and human-readable JSON
 - **Streaming processing** for arbitrarily large files with minimal memory
 - **Multi-format support** for Thermo RAW, Bruker .d, and mzML
 
-### Why Parquet over mzML?
+### Validated RAW benchmark study
 
-Parquet offers significant advantages for mass spectrometry data:
-
-| Metric | mzML | mzPeak | Improvement |
-|--------|------|--------|-------------|
-| DDA file size | 2.5 GB | 400 MB | **6.2x smaller** |
-| Random spectrum access | Sequential scan | ~100 μs | **Column pruning** |
-| MS2 filtering | Load entire file | ~8 ms | **Predicate pushdown** |
-| Tool compatibility | XML parsers only | Any Parquet tool | **Universal** |
+The [October 2026 benchmark package](benchmarks/raw-integer-2026-10/README.md) includes the technical report, presentation, per-repeat speed/RAM/storage measurements, full-point validation and loss distributions for 13 RAW files. It compares a **separate experimental integer archive pipeline** with the pinned official mzPeak converter; these are not performance measurements of this crate. Native and vendor input paths, failures, precision tradeoffs and query startup costs are reported explicitly.
 
 ### Architecture
 
@@ -58,7 +51,7 @@ Parquet offers significant advantages for mass spectrometry data:
 
 ## v2.0 Schema (NEW)
 
-mzPeak v2.0 introduces a **normalized two-table architecture** that provides 30-40% smaller file sizes:
+This implementation's v2.0 schema uses a **normalized two-table architecture**:
 
 ```
 output.mzpeak (v2.0)
@@ -69,7 +62,7 @@ output.mzpeak (v2.0)
 ```
 
 **Key improvements:**
-- **30-40% smaller** files through elimination of repeated per-peak metadata
+- **Separated metadata** to avoid repeated per-peak metadata columns
 - **Faster metadata queries** (spectra table is small and efficient)
 - **Modality-aware columns** (LC-MS, LC-IMS-MS, MSI, MSI-IMS)
 - **Optimized encodings**: DELTA_BINARY_PACKED for integers, BYTE_STREAM_SPLIT for floats
@@ -379,116 +372,17 @@ All metadata is embedded in the Parquet footer's key-value metadata, making each
 - `mzpeak:processing_history` - Processing provenance chain (JSON)
 - `mzpeak:raw_file_checksum` - SHA-256 checksum of original raw file
 
-## Performance
+## Performance and reproducibility
 
-### Compression Ratios
+Use [the Criterion benchmark guide](benches/README.md) for synthetic benchmarks of this crate. Their results depend on the dataset, machine, build and cache state; this README does not publish untraceable throughput or compression estimates.
 
-Typical compression ratios compared to mzML:
-
-| Dataset Type | mzML Size | mzPeak Size | Ratio |
-|--------------|-----------|-------------|-------|
-| DDA Proteomics | 2.5 GB | 400 MB | 6.2x |
-| DIA Proteomics | 4.0 GB | 550 MB | 7.3x |
-| Metabolomics | 800 MB | 150 MB | 5.3x |
-
-### Benchmark Results
-
-All benchmarks were run using [Criterion.rs](https://github.com/bheisler/criterion.rs) on a modern workstation. Run `cargo bench` to reproduce these results on your system.
-
-#### Conversion Performance
-
-mzML to mzPeak conversion throughput:
-
-| Dataset Size | Conversion Time | Throughput (peaks/sec) |
-|--------------|-----------------|------------------------|
-| 10,000 peaks | 5.5 ms | 1.8 million peaks/sec |
-| 50,000 peaks | 19.5 ms | 2.6 million peaks/sec |
-| 100,000 peaks | 33.9 ms | 2.9 million peaks/sec |
-
-**Per-peak processing overhead**: ~2.5 ms per spectrum (includes metadata parsing, base64 decoding, and Parquet encoding)
-
-#### Write Performance
-
-Direct mzPeak file writing (bypassing mzML parsing):
-
-| Peaks Written | Time | Throughput |
-|---------------|------|------------|
-| 1,000 | 2.7 ms | 377K peaks/sec |
-| 10,000 | 4.8 ms | 2.1M peaks/sec |
-| 100,000 | 30.8 ms | 3.2M peaks/sec |
-
-**Scaling**: Write performance scales linearly with dataset size, demonstrating efficient batching and minimal overhead.
-
-#### Query Performance
-
-Random access and filtering operations on a 100,000-peak dataset (1,000 spectra):
-
-| Operation | Time | Description |
-|-----------|------|-------------|
-| Random access (spectrum by ID) | ~100 μs | Direct seek to spectrum in middle of file |
-| MS2 filtering | ~8 ms | Extract all MS2 spectra (66% of data) |
-| Retention time range query | ~5 ms | Query 50-second RT window |
-| Intensity threshold filter | ~12 ms | Filter peaks above intensity threshold |
-| Top-N peak extraction | ~15 ms | Extract top 50 peaks per spectrum |
-
-**Column pruning**: Parquet's columnar format enables reading only needed columns. Metadata-only queries (no peak data) complete in <1 ms.
-
-### Query Performance Benefits
-
-mzPeak leverages Parquet's advanced features for fast queries:
-
-- **Column pruning**: Only read needed columns (e.g., metadata without peak arrays)
-- **Predicate pushdown**: Filter before reading (e.g., `WHERE ms_level = 2`)
-- **Row group skipping**: Skip irrelevant data blocks entirely
-- **Zero-copy reads**: Direct memory mapping for maximum performance
-
-### Scalability
-
-mzPeak is designed for modern large-scale datasets:
-
-| Feature | Capability | Use Case |
-|---------|-----------|----------|
-| **Rolling Writer** | Billions of peaks | timsTOF PASEF, DIA deep proteomes |
-| **Streaming Parser** | Minimal memory footprint | Convert 100+ GB mzML files |
-| **Column Pruning** | Read only needed columns | Fast metadata queries |
-| **IM Dimension** | Native ion mobility support | 4D proteomics (m/z, RT, IM, intensity) |
-
-**Example**: A 50 GB timsTOF dataset with 2 billion peaks can be:
-- Converted in streaming fashion (< 2 GB RAM)
-- Automatically sharded into ~25 files (2 GB each)
-- Queried efficiently with column/row filtering
-
-### Running Benchmarks
+The [13-file RAW study](benchmarks/raw-integer-2026-10/README.md) publishes a separate custom-codec experiment with pinned baseline revisions, eligible-file denominators and independent numerical validation. Its experimental signal storage does not use the Parquet signal layout documented above.
 
 ```bash
-# Run all benchmarks (takes ~10 minutes)
-cargo bench
-
-# Run specific benchmark suite
 cargo bench --bench conversion
 cargo bench --bench query_performance
 cargo bench --bench filtering
-
-# Quick test mode
-./run_benchmarks.sh --quick
-
-# Save baseline for comparison
-./run_benchmarks.sh --baseline
-
-# Compare against baseline
-./run_benchmarks.sh --compare
-
-# View HTML reports
-open target/criterion/report/index.html
 ```
-
-Benchmark suites:
-- **conversion**: mzML parsing and conversion throughput
-- **query_performance**: Random access, range queries, MS level filtering
-- **filtering**: Peak filtering, precursor m/z ranges, intensity thresholds
-- **mzml_streamer**: Sequential parsing throughput for decoded and raw spectra
-
-
 
 ## API Documentation
 

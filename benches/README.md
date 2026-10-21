@@ -10,7 +10,7 @@ The benchmark suite provides reproducible performance metrics for:
 3. **Peak filtering** - MS2 extraction, intensity thresholds, precursor m/z ranges
 4. **mzML streaming** - Sequential parsing throughput for decoded and raw spectra
 
-These benchmarks are designed to support the performance claims in the mzPeak preprint.
+These are synthetic microbenchmarks of this crate. The separate [October 2026 real-RAW codec study](../benchmarks/raw-integer-2026-10/README.md) has its own measured pipeline, evidence and precision contract. Do not substitute one result set for the other.
 
 ## Benchmark Suites
 

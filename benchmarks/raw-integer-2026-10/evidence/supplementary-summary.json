@@ -1,0 +1,1375 @@
+{
+  "files": [
+    {
+      "id": "00-HeLa_control",
+      "source": {
+        "path": "hela.raw",
+        "group": "HeLa_control"
+      },
+      "status": "complete",
+      "error": null,
+      "duplicate_content_of": null,
+      "metrics": {
+        "rawr": {
+          "numerically_validated": true,
+          "successful_runs": 7,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            9.462695013731718,
+            9.582081235945225,
+            9.835306659340858,
+            9.464643452316523,
+            9.528634697198868,
+            9.9349941983819,
+            9.80611852183938
+          ],
+          "input_bytes_per_second": 74553600.97764085,
+          "source_points_per_second": 14334129.884513656,
+          "median_seconds": 9.582081235945225,
+          "output_bytes": 240474760,
+          "median_peak_process_rss_bytes": 1746116608,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        },
+        "official_default_z3": {
+          "numerically_validated": true,
+          "successful_runs": 7,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            59.61071352288127,
+            51.36441058665514,
+            59.48821718990803,
+            32.94434283673763,
+            36.53173007071018,
+            35.302860893309116,
+            41.60192184895277
+          ],
+          "input_bytes_per_second": 17171770.659868754,
+          "source_points_per_second": 3301549.3250213265,
+          "median_seconds": 41.60192184895277,
+          "output_bytes": 1080103379,
+          "median_peak_process_rss_bytes": 1496735744,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        },
+        "official_delta_z3": {
+          "numerically_validated": true,
+          "successful_runs": 7,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            50.511521972715855,
+            53.97486135736108,
+            42.92370159551501,
+            48.41537668183446,
+            61.06762334704399,
+            61.4874581694603,
+            41.19881550967693
+          ],
+          "input_bytes_per_second": 14142885.288348202,
+          "source_points_per_second": 2719197.356084241,
+          "median_seconds": 50.511521972715855,
+          "output_bytes": 713601612,
+          "median_peak_process_rss_bytes": 1780072448,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        }
+      },
+      "ratios": {
+        "official_default_z3": {
+          "paired_geomean_speedup": 4.561463875263215,
+          "exploratory_bootstrap_95_percent": [
+            3.850310243696178,
+            5.4441470784629225
+          ],
+          "storage_ratio_official_over_rawr": 4.491545719808599,
+          "peak_process_rss_ratio_official_over_rawr": 0.8571797193512519
+        },
+        "official_delta_z3": {
+          "paired_geomean_speedup": 5.263084625995154,
+          "exploratory_bootstrap_95_percent": [
+            4.685179295619631,
+            5.8699672461883114
+          ],
+          "storage_ratio_official_over_rawr": 2.9674698999595632,
+          "peak_process_rss_ratio_official_over_rawr": 1.019446490483183
+        }
+      }
+    },
+    {
+      "id": "01-PXD017803",
+      "source": {
+        "path": "Fig2_m23142_hrMS2.raw",
+        "bytes": 115881108,
+        "mtime_ns": 1792421753632761844,
+        "root": "bench-data",
+        "group": "PXD017803",
+        "name_hints_only": [],
+        "size_quartile": 0,
+        "instrument": {
+          "spectra": 17440,
+          "first_scan": 1,
+          "last_scan": 17440,
+          "model": "Orbitrap Fusion",
+          "source": "Fig2_m23142_hrMS2.raw",
+          "reader_version": "8.0.42.0",
+          "centroiding": false,
+          "mz_dtype": "<f8",
+          "intensity_dtype": "<f8",
+          "reader_workers": 1
+        },
+        "features": [
+          "dataset:PXD017803",
+          "model:Orbitrap Fusion",
+          "size_quartile:0"
+        ]
+      },
+      "status": "complete",
+      "error": null,
+      "duplicate_content_of": null,
+      "metrics": {
+        "rawr": {
+          "numerically_validated": true,
+          "successful_runs": 7,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            2.118451237678528,
+            2.0766962207853794,
+            2.1344573199748993,
+            2.450606271624565,
+            1.968256402760744,
+            1.9983901716768742,
+            1.898542806506157
+          ],
+          "input_bytes_per_second": 55800702.50052041,
+          "source_points_per_second": 2645747.098206826,
+          "median_seconds": 2.0766962207853794,
+          "output_bytes": 26367737,
+          "median_peak_process_rss_bytes": 167124992,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        },
+        "official_default_z3": {
+          "numerically_validated": true,
+          "successful_runs": 7,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            20.08940878137946,
+            20.03593535348773,
+            16.500431787222624,
+            17.520848374813795,
+            20.189336638897657,
+            19.564384873956442,
+            20.381372772157192
+          ],
+          "input_bytes_per_second": 5783663.500382983,
+          "source_points_per_second": 274227.9261269211,
+          "median_seconds": 20.03593535348773,
+          "output_bytes": 45412089,
+          "median_peak_process_rss_bytes": 314028032,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        },
+        "official_delta_z3": {
+          "numerically_validated": true,
+          "successful_runs": 7,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            21.281908936798573,
+            21.111153803765774,
+            20.474343441426754,
+            10.35385213792324,
+            18.502804666757584,
+            21.751243975013494,
+            18.160400073975325
+          ],
+          "input_bytes_per_second": 5659820.46415867,
+          "source_points_per_second": 268356.0044657101,
+          "median_seconds": 20.474343441426754,
+          "output_bytes": 42100879,
+          "median_peak_process_rss_bytes": 343146496,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        }
+      },
+      "ratios": {
+        "official_default_z3": {
+          "paired_geomean_speedup": 9.169785042610465,
+          "exploratory_bootstrap_95_percent": [
+            8.200479114957332,
+            10.098980193376132
+          ],
+          "storage_ratio_official_over_rawr": 1.722259631154543,
+          "peak_process_rss_ratio_official_over_rawr": 1.8790010293613058
+        },
+        "official_delta_z3": {
+          "paired_geomean_speedup": 8.788914729211054,
+          "exploratory_bootstrap_95_percent": [
+            6.823555348866668,
+            10.198202757370172
+          ],
+          "storage_ratio_official_over_rawr": 1.5966815430539223,
+          "peak_process_rss_ratio_official_over_rawr": 2.05323268467232
+        }
+      }
+    },
+    {
+      "id": "02-PXD023203",
+      "source": {
+        "path": "FAIMS_SPS_ea02045.raw",
+        "bytes": 228860164,
+        "mtime_ns": 1792421075975391028,
+        "root": "bench-data",
+        "group": "PXD023203",
+        "name_hints_only": [
+          "FAIMS"
+        ],
+        "size_quartile": 0,
+        "instrument": {
+          "spectra": 43770,
+          "first_scan": 1,
+          "last_scan": 43770,
+          "model": "Orbitrap Eclipse",
+          "source": "FAIMS_SPS_ea02045.raw",
+          "reader_version": "8.0.42.0",
+          "centroiding": false,
+          "mz_dtype": "<f8",
+          "intensity_dtype": "<f8",
+          "reader_workers": 1
+        },
+        "features": [
+          "dataset:PXD023203",
+          "model:Orbitrap Eclipse",
+          "name_hint:FAIMS",
+          "size_quartile:0"
+        ]
+      },
+      "status": "complete",
+      "error": null,
+      "duplicate_content_of": null,
+      "metrics": {
+        "rawr": {
+          "numerically_validated": true,
+          "successful_runs": 7,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            4.496040064841509,
+            4.336371701210737,
+            4.336006212979555,
+            4.3863703571259975,
+            5.493773091584444,
+            4.5214025638997555,
+            4.397024795413017
+          ],
+          "input_bytes_per_second": 52048868.18895069,
+          "source_points_per_second": 2936997.3108798377,
+          "median_seconds": 4.397024795413017,
+          "output_bytes": 63474490,
+          "median_peak_process_rss_bytes": 242823168,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        },
+        "official_default_z3": {
+          "numerically_validated": true,
+          "successful_runs": 7,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            26.750783398747444,
+            47.83092536404729,
+            31.09157456085086,
+            32.62628952041268,
+            47.35305790230632,
+            50.17721717059612,
+            34.47907932847738
+          ],
+          "input_bytes_per_second": 6637652.990083671,
+          "source_points_per_second": 374547.41401212156,
+          "median_seconds": 34.47907932847738,
+          "output_bytes": 107140149,
+          "median_peak_process_rss_bytes": 272019456,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        },
+        "official_delta_z3": {
+          "numerically_validated": true,
+          "successful_runs": 7,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            50.24364398419857,
+            24.18848679587245,
+            42.83330720663071,
+            24.529811266809702,
+            49.717126078903675,
+            25.2994313724339,
+            24.232085704803467
+          ],
+          "input_bytes_per_second": 9046059.598373605,
+          "source_points_per_second": 510448.2314203736,
+          "median_seconds": 25.2994313724339,
+          "output_bytes": 99758389,
+          "median_peak_process_rss_bytes": 368390144,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        }
+      },
+      "ratios": {
+        "official_default_z3": {
+          "paired_geomean_speedup": 8.26095358740611,
+          "exploratory_bootstrap_95_percent": [
+            7.073748513922207,
+            9.620140889550212
+          ],
+          "storage_ratio_official_over_rawr": 1.6879245347225318,
+          "peak_process_rss_ratio_official_over_rawr": 1.1202368301199332
+        },
+        "official_delta_z3": {
+          "paired_geomean_speedup": 7.15606171295002,
+          "exploratory_bootstrap_95_percent": [
+            5.953869187797265,
+            9.02113588329009
+          ],
+          "storage_ratio_official_over_rawr": 1.5716296263270488,
+          "peak_process_rss_ratio_official_over_rawr": 1.5171128316718114
+        }
+      }
+    },
+    {
+      "id": "03-PXD043660",
+      "source": {
+        "path": "20220726_Ascend_2ProteomeMix_Keese_qysrsColumn_HYpro_TMT16_G65min_HrMS2_HCD36_IT54_30K_phiSDM_028.raw",
+        "bytes": 688570668,
+        "mtime_ns": 1792421063126074027,
+        "root": "bench-data",
+        "group": "PXD043660",
+        "name_hints_only": [],
+        "size_quartile": 1,
+        "instrument": {
+          "spectra": 38640,
+          "first_scan": 1,
+          "last_scan": 38640,
+          "model": "Orbitrap Ascend",
+          "source": "20220726_Ascend_2ProteomeMix_Keese_qysrsColumn_HYpro_TMT16_G65min_HrMS2_HCD36_IT54_30K_phiSDM_028.raw",
+          "reader_version": "8.0.42.0",
+          "centroiding": false,
+          "mz_dtype": "<f8",
+          "intensity_dtype": "<f8",
+          "reader_workers": 1
+        },
+        "features": [
+          "dataset:PXD043660",
+          "model:Orbitrap Ascend",
+          "size_quartile:1"
+        ]
+      },
+      "status": "complete",
+      "error": null,
+      "duplicate_content_of": null,
+      "metrics": {
+        "rawr": {
+          "numerically_validated": true,
+          "successful_runs": 7,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            9.113378413021564,
+            8.960037268698215,
+            8.673523273319006,
+            8.882357865571976,
+            9.130256775766611,
+            8.663751862943172,
+            8.602723892778158
+          ],
+          "input_bytes_per_second": 77521158.05521643,
+          "source_points_per_second": 14933794.495506765,
+          "median_seconds": 8.882357865571976,
+          "output_bytes": 222729205,
+          "median_peak_process_rss_bytes": 1631166464,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        },
+        "official_default_z3": {
+          "numerically_validated": true,
+          "successful_runs": 7,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            56.490905828773975,
+            34.026305217295885,
+            55.4159342572093,
+            49.02220853418112,
+            31.60142821073532,
+            40.46152988448739,
+            52.064671859145164
+          ],
+          "input_bytes_per_second": 14046096.424233697,
+          "source_points_per_second": 2705861.505760407,
+          "median_seconds": 49.02220853418112,
+          "output_bytes": 829944838,
+          "median_peak_process_rss_bytes": 561987584,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        },
+        "official_delta_z3": {
+          "numerically_validated": true,
+          "successful_runs": 7,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            54.924558859318495,
+            46.732045851647854,
+            32.12090650945902,
+            35.42191394045949,
+            54.29873789101839,
+            49.59872432053089,
+            47.018586203455925
+          ],
+          "input_bytes_per_second": 14644648.501774585,
+          "source_points_per_second": 2821167.4937654817,
+          "median_seconds": 47.018586203455925,
+          "output_bytes": 540177040,
+          "median_peak_process_rss_bytes": 1130893312,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        }
+      },
+      "ratios": {
+        "official_default_z3": {
+          "paired_geomean_speedup": 5.027682643177445,
+          "exploratory_bootstrap_95_percent": [
+            4.193830127009027,
+            5.911190172838393
+          ],
+          "storage_ratio_official_over_rawr": 3.726250618997181,
+          "peak_process_rss_ratio_official_over_rawr": 0.3445311048278148
+        },
+        "official_delta_z3": {
+          "paired_geomean_speedup": 5.072297426117576,
+          "exploratory_bootstrap_95_percent": [
+            4.380386378244667,
+            5.737250652616962
+          ],
+          "storage_ratio_official_over_rawr": 2.4252636289883944,
+          "peak_process_rss_ratio_official_over_rawr": 0.6933034346640418
+        }
+      }
+    },
+    {
+      "id": "04-PXD019848",
+      "source": {
+        "path": "500ng_HeLa_350_1150mz_nonFAIMS_Rs30000_200ms_Rep4.raw",
+        "bytes": 688981291,
+        "mtime_ns": 1788848332595872904,
+        "root": "bench-data",
+        "group": "PXD019848",
+        "name_hints_only": [
+          "FAIMS"
+        ],
+        "size_quartile": 1,
+        "instrument": {
+          "spectra": 39625,
+          "first_scan": 1,
+          "last_scan": 39625,
+          "model": "Q Exactive HF Orbitrap",
+          "source": "500ng_HeLa_350_1150mz_nonFAIMS_Rs30000_200ms_Rep4.raw",
+          "reader_version": "8.0.42.0",
+          "centroiding": false,
+          "mz_dtype": "<f8",
+          "intensity_dtype": "<f8",
+          "reader_workers": 1
+        },
+        "features": [
+          "dataset:PXD019848",
+          "model:Q Exactive HF Orbitrap",
+          "name_hint:FAIMS",
+          "size_quartile:1"
+        ]
+      },
+      "status": "complete",
+      "error": null,
+      "duplicate_content_of": null,
+      "metrics": {
+        "rawr": {
+          "numerically_validated": true,
+          "successful_runs": 7,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            9.481041308492422,
+            9.38865676894784,
+            9.509555332362652,
+            9.780439548194408,
+            9.537148579955101,
+            9.819530826061964,
+            9.477845020592213
+          ],
+          "input_bytes_per_second": 72451472.95744504,
+          "source_points_per_second": 13846781.200366061,
+          "median_seconds": 9.509555332362652,
+          "output_bytes": 231611821,
+          "median_peak_process_rss_bytes": 1677651968,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        },
+        "official_default_z3": {
+          "numerically_validated": true,
+          "successful_runs": 7,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            55.80545950308442,
+            51.93545237183571,
+            60.70308654382825,
+            43.32544358819723,
+            50.038436342030764,
+            56.19897285103798,
+            55.04200412705541
+          ],
+          "input_bytes_per_second": 12517372.903239498,
+          "source_points_per_second": 2392295.3767462014,
+          "median_seconds": 55.04200412705541,
+          "output_bytes": 1032023810,
+          "median_peak_process_rss_bytes": 1322319872,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        },
+        "official_delta_z3": {
+          "numerically_validated": true,
+          "successful_runs": 7,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            57.87465050071478,
+            60.28462381660938,
+            62.958700366318226,
+            61.700621262192726,
+            35.03753050416708,
+            62.503011252731085,
+            61.32927167415619
+          ],
+          "input_bytes_per_second": 11234134.568898408,
+          "source_points_per_second": 2147045.4222838557,
+          "median_seconds": 61.32927167415619,
+          "output_bytes": 683757219,
+          "median_peak_process_rss_bytes": 1787899904,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        }
+      },
+      "ratios": {
+        "official_default_z3": {
+          "paired_geomean_speedup": 5.541923657734951,
+          "exploratory_bootstrap_95_percent": [
+            5.071082709202849,
+            5.94319224063732
+          ],
+          "storage_ratio_official_over_rawr": 4.455833927405631,
+          "peak_process_rss_ratio_official_over_rawr": 0.7881967757450871
+        },
+        "official_delta_z3": {
+          "paired_geomean_speedup": 5.896083721821016,
+          "exploratory_bootstrap_95_percent": [
+            5.011140035360389,
+            6.466071177325734
+          ],
+          "storage_ratio_official_over_rawr": 2.95216891801045,
+          "peak_process_rss_ratio_official_over_rawr": 1.065715618079852
+        }
+      }
+    },
+    {
+      "id": "05-PXD046211",
+      "source": {
+        "path": "CBIO680_1.raw",
+        "bytes": 734143177,
+        "mtime_ns": 1788846209673981534,
+        "root": "bench-data",
+        "group": "PXD046211",
+        "name_hints_only": [],
+        "size_quartile": 1,
+        "instrument": {
+          "spectra": 47830,
+          "first_scan": 1,
+          "last_scan": 47830,
+          "model": "Orbitrap Fusion Lumos",
+          "source": "CBIO680_1.raw",
+          "reader_version": "8.0.42.0",
+          "centroiding": false,
+          "mz_dtype": "<f8",
+          "intensity_dtype": "<f8",
+          "reader_workers": 1
+        },
+        "features": [
+          "dataset:PXD046211",
+          "model:Orbitrap Fusion Lumos",
+          "size_quartile:1"
+        ]
+      },
+      "status": "complete",
+      "error": null,
+      "duplicate_content_of": null,
+      "metrics": {
+        "rawr": {
+          "numerically_validated": true,
+          "successful_runs": 7,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            8.903108406811953,
+            8.714839041233063,
+            8.952272195369005,
+            9.206455323845148,
+            8.803841508924961,
+            8.78336851298809,
+            8.87659004330635
+          ],
+          "input_bytes_per_second": 82705540.46298464,
+          "source_points_per_second": 13055880.29126021,
+          "median_seconds": 8.87659004330635,
+          "output_bytes": 193426162,
+          "median_peak_process_rss_bytes": 1422217216,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        },
+        "official_default_z3": {
+          "numerically_validated": true,
+          "successful_runs": 7,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            43.40526431426406,
+            62.354268442839384,
+            36.38610949367285,
+            63.44848342239857,
+            60.670466136187315,
+            64.38466777279973,
+            65.26185243204236
+          ],
+          "input_bytes_per_second": 11773743.72811373,
+          "source_points_per_second": 1858600.8607612608,
+          "median_seconds": 62.354268442839384,
+          "output_bytes": 620715715,
+          "median_peak_process_rss_bytes": 795930624,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        },
+        "official_delta_z3": {
+          "numerically_validated": true,
+          "successful_runs": 7,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            52.61643789708614,
+            49.10343949496746,
+            66.29292887076735,
+            65.02256575599313,
+            65.67847565189004,
+            63.10218132659793,
+            65.93240608274937
+          ],
+          "input_bytes_per_second": 11290590.712076508,
+          "source_points_per_second": 1782330.4210249234,
+          "median_seconds": 65.02256575599313,
+          "output_bytes": 454010735,
+          "median_peak_process_rss_bytes": 1109274624,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        }
+      },
+      "ratios": {
+        "official_default_z3": {
+          "paired_geomean_speedup": 6.226644312104409,
+          "exploratory_bootstrap_95_percent": [
+            5.1916957562344255,
+            7.1833429961164
+          ],
+          "storage_ratio_official_over_rawr": 3.209057702339149,
+          "peak_process_rss_ratio_official_over_rawr": 0.5596406899352285
+        },
+        "official_delta_z3": {
+          "paired_geomean_speedup": 6.82995475059261,
+          "exploratory_bootstrap_95_percent": [
+            6.292193825365862,
+            7.3485580492222615
+          ],
+          "storage_ratio_official_over_rawr": 2.34720438179402,
+          "peak_process_rss_ratio_official_over_rawr": 0.7799614654643584
+        }
+      }
+    },
+    {
+      "id": "06-PXD005780",
+      "source": {
+        "path": "S34.raw",
+        "bytes": 935787869,
+        "mtime_ns": 1788850298266681155,
+        "root": "bench-data",
+        "group": "PXD005780",
+        "name_hints_only": [],
+        "size_quartile": 1,
+        "instrument": {
+          "spectra": 29004,
+          "first_scan": 1,
+          "last_scan": 29004,
+          "model": "LTQ Orbitrap Velos",
+          "source": "S34.raw",
+          "reader_version": "8.0.42.0",
+          "centroiding": false,
+          "mz_dtype": "<f8",
+          "intensity_dtype": "<f8",
+          "reader_workers": 1
+        },
+        "features": [
+          "dataset:PXD005780",
+          "model:LTQ Orbitrap Velos",
+          "size_quartile:1"
+        ]
+      },
+      "status": "complete",
+      "error": null,
+      "duplicate_content_of": null,
+      "metrics": {
+        "rawr": {
+          "numerically_validated": true,
+          "successful_runs": 7,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            11.350677784532309,
+            11.198772437870502,
+            10.763484429568052,
+            10.733901526778936,
+            11.14116533100605,
+            10.518077962100506,
+            11.090867351740599
+          ],
+          "input_bytes_per_second": 84374633.59014367,
+          "source_points_per_second": 19162671.97683556,
+          "median_seconds": 11.090867351740599,
+          "output_bytes": 351836340,
+          "median_peak_process_rss_bytes": 2633355264,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        },
+        "official_default_z3": {
+          "numerically_validated": true,
+          "successful_runs": 7,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            36.7951404415071,
+            37.209061808884144,
+            37.165625143796206,
+            43.46372260898352,
+            44.95690602064133,
+            51.61098589003086,
+            58.8452393040061
+          ],
+          "input_bytes_per_second": 21530320.295357812,
+          "source_points_per_second": 4889840.083694811,
+          "median_seconds": 43.46372260898352,
+          "output_bytes": 1451395268,
+          "median_peak_process_rss_bytes": 1135984640,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        },
+        "official_delta_z3": {
+          "numerically_validated": true,
+          "successful_runs": 7,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            53.41503602266312,
+            56.69134962186217,
+            37.63556231558323,
+            38.28636225312948,
+            37.40361572802067,
+            51.96015255153179,
+            59.28529694676399
+          ],
+          "input_bytes_per_second": 18009721.354684763,
+          "source_points_per_second": 4090262.2983876243,
+          "median_seconds": 51.96015255153179,
+          "output_bytes": 976120083,
+          "median_peak_process_rss_bytes": 1755811840,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        }
+      },
+      "ratios": {
+        "official_default_z3": {
+          "paired_geomean_speedup": 3.9800533126712687,
+          "exploratory_bootstrap_95_percent": [
+            3.510313259486536,
+            4.5655727937829065
+          ],
+          "storage_ratio_official_over_rawr": 4.1251999949749365,
+          "peak_process_rss_ratio_official_over_rawr": 0.43138297955076066
+        },
+        "official_delta_z3": {
+          "paired_geomean_speedup": 4.2807212136505735,
+          "exploratory_bootstrap_95_percent": [
+            3.739167431147783,
+            4.859884539274928
+          ],
+          "storage_ratio_official_over_rawr": 2.774358336606162,
+          "peak_process_rss_ratio_official_over_rawr": 0.6667584370416342
+        }
+      }
+    },
+    {
+      "id": "07-PXD053241",
+      "source": {
+        "path": "210129_wwDDA_10ug_60min_IW20.raw",
+        "bytes": 1176408520,
+        "mtime_ns": 1789284888047389581,
+        "root": "bench-picks",
+        "group": "PXD053241",
+        "name_hints_only": [
+          "DDA"
+        ],
+        "size_quartile": 2,
+        "instrument": {
+          "spectra": 85474,
+          "first_scan": 1,
+          "last_scan": 85474,
+          "model": "Q Exactive HF-X Orbitrap",
+          "source": "210129_wwDDA_10ug_60min_IW20.raw",
+          "reader_version": "8.0.42.0",
+          "centroiding": false,
+          "mz_dtype": "<f8",
+          "intensity_dtype": "<f8",
+          "reader_workers": 1
+        },
+        "features": [
+          "dataset:PXD053241",
+          "model:Q Exactive HF-X Orbitrap",
+          "name_hint:DDA",
+          "size_quartile:2"
+        ]
+      },
+      "status": "complete",
+      "error": null,
+      "duplicate_content_of": null,
+      "metrics": {
+        "rawr": {
+          "numerically_validated": true,
+          "successful_runs": 7,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            15.119462668895721,
+            15.36148451268673,
+            15.451465301215649,
+            14.75345990806818,
+            15.170436821877956,
+            15.421090804040432,
+            15.169377237558365
+          ],
+          "input_bytes_per_second": 77546120.37956938,
+          "source_points_per_second": 9949792.795835573,
+          "median_seconds": 15.170436821877956,
+          "output_bytes": 347684910,
+          "median_peak_process_rss_bytes": 1487630336,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        },
+        "official_default_z3": {
+          "numerically_validated": true,
+          "successful_runs": 6,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            83.41771996021271,
+            97.86012939363718,
+            96.5425991602242,
+            110.03174690157175,
+            111.26289062201977,
+            89.73209714889526,
+            600.0103994868696
+          ],
+          "input_bytes_per_second": 12102798.440651137,
+          "source_points_per_second": 1552886.6711166524,
+          "median_seconds": 97.20136427693069,
+          "output_bytes": 1130395011.0,
+          "median_peak_process_rss_bytes": 598286336.0,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        },
+        "official_delta_z3": {
+          "numerically_validated": true,
+          "successful_runs": 7,
+          "attempted_runs": 7,
+          "required_runs": 7,
+          "all_wall_seconds": [
+            107.24642930552363,
+            83.97852371260524,
+            112.65811229124665,
+            93.07650851085782,
+            110.46266582608223,
+            178.20208748430014,
+            470.7153103649616
+          ],
+          "input_bytes_per_second": 10649829.163567305,
+          "source_points_per_second": 1366458.9920150172,
+          "median_seconds": 110.46266582608223,
+          "output_bytes": 819647790,
+          "median_peak_process_rss_bytes": 1382875136,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        }
+      },
+      "ratios": {
+        "official_delta_z3": {
+          "paired_geomean_speedup": 8.96580857029758,
+          "exploratory_bootstrap_95_percent": [
+            6.439605426676711,
+            14.186495377138602
+          ],
+          "storage_ratio_official_over_rawr": 2.3574442445603982,
+          "peak_process_rss_ratio_official_over_rawr": 0.9295825061744372
+        }
+      }
+    },
+    {
+      "id": "08-PXD000612",
+      "source": {
+        "path": "20111225_EXQ5_KiSh_SA_LabelFree_HeLa_Phospho_Control_rep5_Fr1.raw",
+        "bytes": 1541507729,
+        "mtime_ns": 1788849322217232197,
+        "root": "bench-data",
+        "group": "PXD000612",
+        "name_hints_only": [],
+        "size_quartile": 2,
+        "instrument": {
+          "spectra": 43123,
+          "first_scan": 1,
+          "last_scan": 43123,
+          "model": "Q Exactive Orbitrap",
+          "source": "20111225_EXQ5_KiSh_SA_LabelFree_HeLa_Phospho_Control_rep5_Fr1.raw",
+          "reader_version": "8.0.42.0",
+          "centroiding": false,
+          "mz_dtype": "<f8",
+          "intensity_dtype": "<f8",
+          "reader_workers": 1
+        },
+        "features": [
+          "dataset:PXD000612",
+          "model:Q Exactive Orbitrap",
+          "size_quartile:2"
+        ]
+      },
+      "status": "complete",
+      "error": null,
+      "duplicate_content_of": null,
+      "metrics": {
+        "rawr": {
+          "numerically_validated": true,
+          "successful_runs": 3,
+          "attempted_runs": 3,
+          "required_runs": 3,
+          "all_wall_seconds": [
+            16.633839048445225,
+            16.952062651515007,
+            16.964735485613346
+          ],
+          "input_bytes_per_second": 90933343.07977179,
+          "source_points_per_second": 22108009.963407386,
+          "median_seconds": 16.952062651515007,
+          "output_bytes": 629727128,
+          "median_peak_process_rss_bytes": 4629606400,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        },
+        "official_default_z3": {
+          "numerically_validated": true,
+          "successful_runs": 3,
+          "attempted_runs": 3,
+          "required_runs": 3,
+          "all_wall_seconds": [
+            79.60121108964086,
+            84.3193298317492,
+            67.7478356398642
+          ],
+          "input_bytes_per_second": 19365380.349101357,
+          "source_points_per_second": 4708174.220841379,
+          "median_seconds": 79.60121108964086,
+          "output_bytes": 2615961426,
+          "median_peak_process_rss_bytes": 1199812608,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        },
+        "official_delta_z3": {
+          "numerically_validated": true,
+          "successful_runs": 3,
+          "attempted_runs": 3,
+          "required_runs": 3,
+          "all_wall_seconds": [
+            78.2283294275403,
+            94.39111030474305,
+            86.54556223005056
+          ],
+          "input_bytes_per_second": 17811516.723439272,
+          "source_points_per_second": 4330393.845080011,
+          "median_seconds": 86.54556223005056,
+          "output_bytes": 1793907863,
+          "median_peak_process_rss_bytes": 2231840768,
+          "tree_rss_invalid_reason": "Legacy sampler omitted children launched from worker threads"
+        }
+      },
+      "ratios": {
+        "official_default_z3": {
+          "paired_geomean_speedup": 4.563801045559298,
+          "exploratory_bootstrap_95_percent": [
+            3.9934507494865805,
+            4.973986444311163
+          ],
+          "storage_ratio_official_over_rawr": 4.154118998030524,
+          "peak_process_rss_ratio_official_over_rawr": 0.259160823693349
+        },
+        "official_delta_z3": {
+          "paired_geomean_speedup": 5.112020726845109,
+          "exploratory_bootstrap_95_percent": [
+            4.702962990065264,
+            5.568119481690761
+          ],
+          "storage_ratio_official_over_rawr": 2.8487066591801646,
+          "peak_process_rss_ratio_official_over_rawr": 0.4820800247727323
+        }
+      }
+    },
+    {
+      "id": "09-PXD002370",
+      "source": {
+        "path": "D-10fmol-R3_QEx2_000110.raw",
+        "bytes": 1930380748,
+        "mtime_ns": 1788850614497451310,
+        "root": "bench-data",
+        "group": "PXD002370",
+        "name_hints_only": [],
+        "size_quartile": 3,
+        "instrument": {
+          "spectra": 72510,
+          "first_scan": 1,
+          "last_scan": 72510,
+          "model": "Q Exactive Plus Orbitrap",
+          "source": "D-10fmol-R3_QEx2_000110.raw",
+          "reader_version": "8.0.42.0",
+          "centroiding": false,
+          "mz_dtype": "<f8",
+          "intensity_dtype": "<f8",
+          "reader_workers": 1
+        },
+        "features": [
+          "dataset:PXD002370",
+          "model:Q Exactive Plus Orbitrap",
+          "size_quartile:3"
+        ]
+      },
+      "status": "complete",
+      "error": null,
+      "duplicate_content_of": null,
+      "metrics": {
+        "rawr": {
+          "numerically_validated": true,
+          "successful_runs": 3,
+          "attempted_runs": 3,
+          "required_runs": 3,
+          "all_wall_seconds": [
+            22.261866308748722,
+            22.833780996501446,
+            22.164399322122335
+          ],
+          "input_bytes_per_second": 86712440.06354386,
+          "source_points_per_second": 20671441.271711856,
+          "median_seconds": 22.261866308748722,
+          "output_bytes": 801624043,
+          "median_peak_process_rss_bytes": 5616795648,
+          "median_tree_rss_bytes": 5636628480
+        },
+        "official_default_z3": {
+          "numerically_validated": true,
+          "successful_runs": 3,
+          "attempted_runs": 3,
+          "required_runs": 3,
+          "all_wall_seconds": [
+            138.07534626871347,
+            131.81241722404957,
+            96.88121962174773
+          ],
+          "input_bytes_per_second": 14644908.185841206,
+          "source_points_per_second": 3491210.249318134,
+          "median_seconds": 131.81241722404957,
+          "output_bytes": 3246579504,
+          "median_peak_process_rss_bytes": 942407680,
+          "median_tree_rss_bytes": 937955328
+        },
+        "official_delta_z3": {
+          "numerically_validated": true,
+          "successful_runs": 3,
+          "attempted_runs": 3,
+          "required_runs": 3,
+          "all_wall_seconds": [
+            125.28953181952238,
+            86.62988669425249,
+            128.13469354435802
+          ],
+          "input_bytes_per_second": 15407358.619399132,
+          "source_points_per_second": 3672971.3593541807,
+          "median_seconds": 125.28953181952238,
+          "output_bytes": 2237734565,
+          "median_peak_process_rss_bytes": 1756168192,
+          "median_tree_rss_bytes": 1756876800
+        }
+      },
+      "ratios": {
+        "official_default_z3": {
+          "paired_geomean_speedup": 5.388967507740687,
+          "exploratory_bootstrap_95_percent": [
+            4.371028432295495,
+            6.202325732881212
+          ],
+          "storage_ratio_official_over_rawr": 4.050002656918812,
+          "peak_process_rss_ratio_official_over_rawr": 0.1677838645127792
+        },
+        "official_delta_z3": {
+          "paired_geomean_speedup": 4.979105172693173,
+          "exploratory_bootstrap_95_percent": [
+            3.793935253540611,
+            5.781103817980147
+          ],
+          "storage_ratio_official_over_rawr": 2.791501308550447,
+          "peak_process_rss_ratio_official_over_rawr": 0.31266371469742316
+        }
+      }
+    },
+    {
+      "id": "10-PXD063416",
+      "source": {
+        "path": "HeLa_10mz_A_mixA.raw",
+        "bytes": 1998251500,
+        "mtime_ns": 1791868376318243262,
+        "root": "bench-picks",
+        "group": "PXD063416",
+        "name_hints_only": [],
+        "size_quartile": 3,
+        "instrument": {
+          "spectra": 72420,
+          "first_scan": 1,
+          "last_scan": 72420,
+          "model": "Orbitrap Exploris 480",
+          "source": "HeLa_10mz_A_mixA.raw",
+          "reader_version": "8.0.42.0",
+          "centroiding": false,
+          "mz_dtype": "<f8",
+          "intensity_dtype": "<f8",
+          "reader_workers": 1
+        },
+        "features": [
+          "dataset:PXD063416",
+          "model:Orbitrap Exploris 480",
+          "size_quartile:3"
+        ]
+      },
+      "status": "complete",
+      "error": null,
+      "duplicate_content_of": null,
+      "metrics": {
+        "rawr": {
+          "numerically_validated": true,
+          "successful_runs": 3,
+          "attempted_runs": 3,
+          "required_runs": 3,
+          "all_wall_seconds": [
+            12.725631758570671,
+            13.726549353450537,
+            12.97801323235035
+          ],
+          "input_bytes_per_second": 153972065.2325234,
+          "source_points_per_second": 8408547.752746971,
+          "median_seconds": 12.97801323235035,
+          "output_bytes": 376761488,
+          "median_peak_process_rss_bytes": 421617664,
+          "median_tree_rss_bytes": 441737216
+        },
+        "official_default_z3": {
+          "numerically_validated": true,
+          "successful_runs": 3,
+          "attempted_runs": 3,
+          "required_runs": 3,
+          "all_wall_seconds": [
+            108.26465163007379,
+            70.05842934176326,
+            96.85668616741896
+          ],
+          "input_bytes_per_second": 20631012.468731146,
+          "source_points_per_second": 1126677.4480738773,
+          "median_seconds": 96.85668616741896,
+          "output_bytes": 815432932,
+          "median_peak_process_rss_bytes": 448569344,
+          "median_tree_rss_bytes": 447934464
+        },
+        "official_delta_z3": {
+          "numerically_validated": true,
+          "successful_runs": 3,
+          "attempted_runs": 3,
+          "required_runs": 3,
+          "all_wall_seconds": [
+            96.91108603402972,
+            117.10796525329351,
+            91.1435635983944
+          ],
+          "input_bytes_per_second": 20619431.49928509,
+          "source_points_per_second": 1126045.0013085294,
+          "median_seconds": 96.91108603402972,
+          "output_bytes": 673591375,
+          "median_peak_process_rss_bytes": 1074409472,
+          "median_tree_rss_bytes": 1070915584
+        }
+      },
+      "ratios": {
+        "official_default_z3": {
+          "paired_geomean_speedup": 6.868721614104995,
+          "exploratory_bootstrap_95_percent": [
+            5.1038631441741185,
+            8.507605255602174
+          ],
+          "storage_ratio_official_over_rawr": 2.164321349107741,
+          "peak_process_rss_ratio_official_over_rawr": 1.063924456447821
+        },
+        "official_delta_z3": {
+          "paired_geomean_speedup": 7.698610010459533,
+          "exploratory_bootstrap_95_percent": [
+            7.022921148762619,
+            8.531493402881715
+          ],
+          "storage_ratio_official_over_rawr": 1.7878456170658292,
+          "peak_process_rss_ratio_official_over_rawr": 2.5483027959663476
+        }
+      }
+    },
+    {
+      "id": "11-PXD046453",
+      "source": {
+        "path": "20230320_OLEP08_1000ngHeK_uPAC_180k-30min_MontBlanc_2p5ms_0p5_2Th_01.raw",
+        "bytes": 16947502466,
+        "mtime_ns": 1789511252845352222,
+        "root": "bench-picks",
+        "group": "PXD046453",
+        "name_hints_only": [],
+        "size_quartile": 3,
+        "instrument": {
+          "spectra": 476802,
+          "first_scan": 1,
+          "last_scan": 476802,
+          "model": "Unknown instrument of Thermo Fisher Scientific",
+          "source": "20230320_OLEP08_1000ngHeK_uPAC_180k-30min_MontBlanc_2p5ms_0p5_2Th_01.raw",
+          "reader_version": "8.0.42.0",
+          "centroiding": false,
+          "mz_dtype": "<f8",
+          "intensity_dtype": "<f8",
+          "reader_workers": 1
+        },
+        "features": [
+          "dataset:PXD046453",
+          "model:Unknown instrument of Thermo Fisher Scientific",
+          "size_quartile:3"
+        ]
+      },
+      "status": "complete",
+      "error": null,
+      "duplicate_content_of": null,
+      "metrics": {
+        "rawr": {
+          "numerically_validated": false,
+          "successful_runs": 0,
+          "attempted_runs": 0,
+          "required_runs": 3,
+          "all_wall_seconds": []
+        },
+        "official_default_z3": {
+          "numerically_validated": false,
+          "successful_runs": 0,
+          "attempted_runs": 0,
+          "required_runs": 3,
+          "all_wall_seconds": []
+        },
+        "official_delta_z3": {
+          "numerically_validated": false,
+          "successful_runs": 0,
+          "attempted_runs": 0,
+          "required_runs": 3,
+          "all_wall_seconds": []
+        }
+      },
+      "ratios": {}
+    },
+    {
+      "id": "12-PXD049028",
+      "source": {
+        "path": "20231206_HAP1_1ug_60min_DIA_2Th_5e4_3p5ms_rep01.raw",
+        "bytes": 21777133294,
+        "mtime_ns": 1711754255000000000,
+        "root": "bench-picks",
+        "group": "PXD049028",
+        "name_hints_only": [
+          "DIA"
+        ],
+        "size_quartile": 3,
+        "instrument": {
+          "spectra": 744726,
+          "first_scan": 1,
+          "last_scan": 744726,
+          "model": "Orbitrap Astral",
+          "source": "20231206_HAP1_1ug_60min_DIA_2Th_5e4_3p5ms_rep01.raw",
+          "reader_version": "8.0.42.0",
+          "centroiding": false,
+          "mz_dtype": "<f8",
+          "intensity_dtype": "<f8",
+          "reader_workers": 1
+        },
+        "features": [
+          "dataset:PXD049028",
+          "model:Orbitrap Astral",
+          "name_hint:DIA",
+          "size_quartile:3"
+        ]
+      },
+      "status": "complete",
+      "error": null,
+      "duplicate_content_of": null,
+      "metrics": {
+        "rawr": {
+          "numerically_validated": true,
+          "successful_runs": 3,
+          "attempted_runs": 3,
+          "required_runs": 3,
+          "all_wall_seconds": [
+            157.63961709663272,
+            157.41143974661827,
+            163.27749906107783
+          ],
+          "input_bytes_per_second": 138145053.22383946,
+          "source_points_per_second": 9590299.588670425,
+          "median_seconds": 157.63961709663272,
+          "output_bytes": 5467444602,
+          "median_peak_process_rss_bytes": 3890933760,
+          "median_tree_rss_bytes": 3911659520
+        },
+        "official_default_z3": {
+          "numerically_validated": false,
+          "successful_runs": 0,
+          "attempted_runs": 0,
+          "required_runs": 3,
+          "all_wall_seconds": []
+        },
+        "official_delta_z3": {
+          "numerically_validated": false,
+          "successful_runs": 0,
+          "attempted_runs": 0,
+          "required_runs": 3,
+          "all_wall_seconds": []
+        }
+      },
+      "ratios": {}
+    }
+  ],
+  "aggregate": {
+    "official_default_z3": {
+      "eligible_files": 10,
+      "reported_files": 13,
+      "planned_files": 13,
+      "geomean_speedup": 5.761523138124964,
+      "aggregate_time_speedup": 5.761993038716349
+    },
+    "official_delta_z3": {
+      "eligible_files": 11,
+      "reported_files": 13,
+      "planned_files": 13,
+      "geomean_speedup": 6.187022298463438,
+      "aggregate_time_speedup": 6.083425948120608
+    }
+  },
+  "note": "Only the declared three or seven successful repeats plus full numerical validation qualify for comparative ratios. RAM comparison uses GNU time maximum process RSS, not simultaneous tree RSS. Legacy tree samples omitting worker-thread children are excluded."
+}

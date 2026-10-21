@@ -1,0 +1,21 @@
+Error: Custom { kind: InvalidData, error: "unsupported instrument configuration" }
+{"codec":"fixed_delta","encode_including_source_read_and_code_roundtrip_seconds":153.907746683,"index_bytes":27759492,"intensity_error_relative":0.001,"level":3,"mass_error_ppm":0.01,"modes":{"0:baseline":19,"0:delta_shuffle":483307,"1:packed":472447,"1:zero_runs":10879},"points":1106047267,"reader_header":{"calibration":"physical source event","reader":"rawr-ms native","spectra":476802},"signal_bytes":4170111757,"signal_reader":"rawr-ms native","spectra":476802,"timing_scope":"RAW reader startup and index construction, quantization, per-block checks, compression, signal and index writes; excludes complete acquisition metadata export, ZIP and independent persisted validation","validation":"per-block numeric bounds and integer roundtrip passed; independent persisted validation required","workers":6}
+Traceback (most recent call last):
+  File "<run>/runtime/code/complete_raw.py", line 208, in <module>
+    main()
+  File "<run>/runtime/code/complete_raw.py", line 192, in main
+    metadata_seconds = acquisition.result()
+                       ^^^^^^^^^^^^^^^^^^^^
+  File "<run>/runtime/python/lib/python3.12/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "<run>/runtime/python/lib/python3.12/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "<run>/runtime/python/lib/python3.12/concurrent/futures/thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<run>/runtime/code/complete_raw.py", line 180, in run_stage
+    subprocess.run([str(v) for v in command], env=env, check=True)
+  File "<run>/runtime/python/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['<run>/runtime/code/native_metadata/target/release/native_metadata', '<run>/11-PXD046453/20230320_OLEP08_1000ngHeK_uPAC_180k-30min_MontBlanc_2p5ms_0p5_2Th_01.raw', '<run>/11-PXD046453/.raw-metadata-cldb0aom/acquisition.metadata.mzpeak']' returned non-zero exit status 1.
