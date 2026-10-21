@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add the complete 13-file instrument comparison to the README, with acquisition/sample labels, native/vendor/official metrics, failures and source evidence.
+
 - Rebuild the README around validated conversion, fidelity and query results, with a data-derived per-file chart and source-checked CLI examples.
 
 - Publish the October 2026 direct-RAW integer archive study, including per-repeat measurements, independent validation, fidelity distributions, query results, failure evidence and a presentation. This study measures a separate experimental converter, not the current mzpeak-rs crate.

@@ -1,0 +1,92 @@
+[
+  {
+    "case": "01-PXD017803",
+    "archive_sha256": "761ae89db6027e2b2247850688c5ca008eaaef59960e71f01422cae1d4a216bf",
+    "archive_relative_path": "checks/01-PXD017803/vendor.metadata.mzpeak",
+    "ms_levels": {
+      "1": 3063,
+      "2": 14377
+    },
+    "representations": {
+      "MS:1000127": 17440
+    },
+    "filter_examples": [
+      "FTMS + c NSI cv=-40.00 Full ms [375.0000-1500.0000]",
+      "FTMS + c NSI cv=-60.00 Full ms [375.0000-1500.0000]",
+      "FTMS + c NSI cv=-40.00 d Full ms2 401.7128@hcd37.00 [87.0000-814.0000]",
+      "FTMS + c NSI cv=-40.00 d Full ms2 385.2248@hcd37.00 [85.0000-781.0000]",
+      "FTMS + c NSI cv=-80.00 Full ms [375.0000-1500.0000]",
+      "FTMS + c NSI cv=-60.00 d Full ms2 380.5292@hcd37.00 [106.0000-1152.0000]",
+      "FTMS + c NSI cv=-60.00 d Full ms2 532.2925@hcd37.00 [102.0000-1075.0000]",
+      "FTMS + c NSI cv=-60.00 d Full ms2 475.2951@hcd37.00 [95.0000-961.0000]"
+    ]
+  },
+  {
+    "case": "06-PXD005780",
+    "archive_sha256": "48b49bcea66f1bf7d38a4bfabcb06cd20a257fa0586e143ca20ee78513937009",
+    "archive_relative_path": "checks/06-PXD005780/vendor.metadata.mzpeak",
+    "ms_levels": {
+      "1": 6845,
+      "2": 22159
+    },
+    "representations": {
+      "MS:1000128": 29004
+    },
+    "filter_examples": [
+      "FTMS + p NSI Full ms [300.00-1700.00]",
+      "FTMS + p NSI d Full ms2 413.18@hcd40.00 [100.00-2000.00]",
+      "FTMS + p NSI d Full ms2 413.27@hcd40.00 [100.00-2000.00]",
+      "FTMS + p NSI d Full ms2 308.90@hcd40.00 [100.00-940.00]",
+      "FTMS + p NSI d Full ms2 313.31@hcd40.00 [100.00-950.00]",
+      "FTMS + p NSI d Full ms2 323.12@hcd40.00 [100.00-2000.00]",
+      "FTMS + p NSI d Full ms2 309.23@hcd40.00 [100.00-940.00]",
+      "FTMS + p NSI d Full ms2 313.31@hcd40.00 [100.00-1890.00]"
+    ]
+  },
+  {
+    "case": "12-PXD049028",
+    "archive_sha256": "6b9952d3ac699f269f0ab92c8de0f78756007326732c207da1e26892fc8cec67",
+    "archive_relative_path": "checks/12-PXD049028/vendor.metadata.mzpeak",
+    "ms_levels": {
+      "1": 7265,
+      "2": 737461
+    },
+    "representations": {
+      "MS:1000128": 7265,
+      "MS:1000127": 737461
+    },
+    "filter_examples": [
+      "FTMS + p NSI Full ms [380.0000-980.0000]",
+      "ASTMS + c NSI Full ms2 385.0000@hcd25.00 [150.0000-2000.0000]",
+      "ASTMS + c NSI Full ms2 389.0000@hcd25.00 [150.0000-2000.0000]",
+      "ASTMS + c NSI Full ms2 395.0000@hcd25.00 [150.0000-2000.0000]",
+      "ASTMS + c NSI Full ms2 397.0000@hcd25.00 [150.0000-2000.0000]",
+      "ASTMS + c NSI Full ms2 399.0000@hcd25.00 [150.0000-2000.0000]",
+      "ASTMS + c NSI Full ms2 405.0000@hcd25.00 [150.0000-2000.0000]",
+      "ASTMS + c NSI Full ms2 407.0000@hcd25.00 [150.0000-2000.0000]"
+    ]
+  },
+  {
+    "case": "00-HeLa_control",
+    "archive_sha256": "3833041d1ee0427b86eb08eb3bd174284ae853bae33de4c05259a813576b7ef0",
+    "archive_relative_path": "checks/hela/vendor.metadata.mzpeak",
+    "ms_levels": {
+      "1": 5531,
+      "2": 32888
+    },
+    "representations": {
+      "MS:1000128": 5531,
+      "MS:1000127": 32888
+    },
+    "filter_examples": [
+      "FTMS + p NSI Full ms [350.0000-1150.0000]",
+      "FTMS + c NSI d Full ms2 431.2002@hcd28.00 [60.0000-900.0000]",
+      "FTMS + c NSI d Full ms2 352.1900@hcd28.00 [50.0000-740.0000]",
+      "FTMS + c NSI d Full ms2 366.7155@hcd28.00 [51.3333-770.0000]",
+      "FTMS + c NSI d Full ms2 408.5415@hcd28.00 [84.6667-1270.0000]",
+      "FTMS + c NSI d Full ms2 436.2157@hcd28.00 [60.6667-910.0000]",
+      "FTMS + c NSI d Full ms2 537.7451@hcd28.00 [74.3333-1115.0000]",
+      "FTMS + c NSI d Full ms2 359.1790@hcd28.00 [50.0000-750.0000]"
+    ]
+  }
+]

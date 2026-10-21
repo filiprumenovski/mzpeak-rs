@@ -36,6 +36,44 @@ Against official mzPeak default encoding at Zstd level 3:
 
 ³ RSS means resident set size. This measurement adds the RSS of each process in the process tree. The ratio uses per-file median RSS values. A lower ratio means less memory use. Native conversion is faster, but it often uses more memory.
 
+<!-- BEGIN INSTRUMENT COMPARISON -->
+### Full instrument comparison
+
+All 13 selected files appear below. Each cell uses the order **N / V / O**: native rawr-ms, our Thermo-reader path, and official default.
+
+Our limits are 0.01 ppm for m/z and 0.1% for intensity. Official default preserves retained values exactly.
+
+Times and memory values are medians. Memory is sampled process-tree RSS in GiB. Archive sizes use decimal MB. RAW sizes use decimal GB.
+
+| Instrument / dataset | Acquisition / sample | RAW GB | Time, s<br>N / V / O | RSS, GiB<br>N / V / O | Archive, MB<br>N / V / O | Speedup vs O<br>N / V | Less storage vs O<br>N / V | Status<br>N / V / O |
+|:--|:--|--:|--:|--:|--:|--:|--:|:--|
+| Q Exactive HF<br>HeLa control | DDA; HeLa control | 0.714 | 14.86<br>34.69<br>61.82 | 1.64<br>0.74<br>1.24 | 240.5<br>240.5<br>1,080.1 | 4.12×<br>1.77× | 77.7%<br>77.7% | Pass<br>Pass<br>Pass |
+| Orbitrap Fusion<br>[PXD017803](https://www.ebi.ac.uk/pride/archive/projects/PXD017803) | DDA / FAIMS; TMT, hrMS2 | 0.116 | 3.26<br>14.82<br>16.97 | 0.16<br>0.31<br>0.30 | 26.4<br>26.4<br>45.4 | 5.15×<br>1.14× | 41.9%<br>41.9% | Pass<br>Pass<br>Pass |
+| Orbitrap Eclipse<br>[PXD023203](https://www.ebi.ac.uk/pride/archive/projects/PXD023203) | FAIMS / SPS; TMTpro | 0.229 | 7.44<br>34.68<br>40.06 | 0.22<br>0.34<br>0.27 | 63.5<br>63.5<br>107.1 | 5.38×<br>0.88× | 40.8%<br>40.8% | Pass<br>Pass<br>Pass |
+| Orbitrap Ascend<br>[PXD043660](https://www.ebi.ac.uk/pride/archive/projects/PXD043660) | TMT16; hrMS2 | 0.689 | 15.33<br>33.62<br>59.79 | 1.54<br>0.44<br>0.64 | 222.7<br>222.7<br>829.9 | 3.94×<br>1.79× | 73.2%<br>73.2% | Pass<br>Pass<br>Pass |
+| Q Exactive HF<br>[PXD019848](https://www.ebi.ac.uk/pride/archive/projects/PXD019848) | HeLa; non-FAIMS | 0.689 | 14.99<br>35.43<br>61.07 | 1.58<br>0.80<br>1.31 | 231.6<br>231.6<br>1,032.0 | 4.04×<br>1.72× | 77.6%<br>77.6% | Pass<br>Pass<br>Pass |
+| Fusion Lumos<br>[PXD046211](https://www.ebi.ac.uk/pride/archive/projects/PXD046211) | TMTpro; single-cell study | 0.734 | 14.32<br>40.52<br>64.81 | 1.34<br>0.45<br>0.76 | 193.4<br>193.4<br>620.7 | 4.53×<br>1.61× | 68.8%<br>68.8% | Pass<br>Pass<br>Pass |
+| LTQ Orbitrap Velos<br>[PXD005780](https://www.ebi.ac.uk/pride/archive/projects/PXD005780) | DDA; gut metaproteome | 0.936 | 14.65<br>29.90<br>68.08 | 2.47<br>0.48<br>1.04 | 351.8<br>351.8<br>1,451.4 | 5.85×<br>2.85× | 75.8%<br>75.8% | Pass<br>Pass<br>Pass |
+| Q Exactive HF-X<br>[PXD053241](https://www.ebi.ac.uk/pride/archive/projects/PXD053241) | Wide-window DDA | 1.176 | 26.44<br>72.43<br>109.28 | 1.41<br>0.58<br>0.56 | 347.7<br>347.7<br>1,130.4 | 5.66×<br>2.04× | 69.2%<br>69.2% | Pass<br>Pass<br>Pass |
+| Q Exactive<br>[PXD000612](https://www.ebi.ac.uk/pride/archive/projects/PXD000612) | DDA; phosphoproteome | 1.542 | 23.31<br>43.41<br>104.03 | 4.34<br>0.58<br>1.08 | 629.7<br>629.7<br>2,616.0 | 4.46×<br>2.40× | 75.9%<br>75.9% | Pass<br>Pass<br>Pass |
+| Q Exactive Plus<br>[PXD002370](https://www.ebi.ac.uk/pride/archive/projects/PXD002370) | Label-free; UPS1 / yeast | 1.930 | 34.33<br>70.40<br>148.04 | 5.25<br>0.60<br>0.89 | 801.6<br>801.6<br>3,246.6 | 4.30×<br>2.07× | 75.3%<br>75.3% | Pass<br>Pass<br>Pass |
+| Orbitrap Exploris 480<br>[PXD063416](https://www.ebi.ac.uk/pride/archive/projects/PXD063416) | DIA; HeLa / yeast, 10 m/z | 1.998 | 22.26<br>—<br>115.42 | 0.41<br>—<br>0.45 | 376.8<br>—<br>815.4 | 5.18×<br>— | 53.8%<br>— | Pass<br>Timeout<br>Pass |
+| Orbitrap Astral*<br>[PXD046453](https://www.ebi.ac.uk/pride/archive/projects/PXD046453) | DIA; 2 Th, 30 min | 16.948 | —<br>—<br>— | —<br>—<br>— | —<br>—<br>— | —<br>— | —<br>— | Metadata<br>Metadata<br>Metadata |
+| Orbitrap Astral<br>[PXD049028](https://www.ebi.ac.uk/pride/archive/projects/PXD049028) | DIA; 2 Th, 60 min | 21.777 | 268.10<br>—<br>— | 3.64<br>—<br>— | 5,467.4<br>—<br>— | —<br>— | —<br>— | Pass<br>Timeout<br>Timeout |
+
+**Pass** requires all declared repeats and independent validation. **Timeout** means that a required run exceeded 600 seconds. **Metadata** means that complete metadata export failed.
+
+A dash means no eligible measurement or ratio. Exploris vendor output passed numerical validation, but one repeat timed out. Its comparison remains excluded.
+
+Speedups use paired geometric means. They can differ from ratios of displayed median times. The slow Eclipse vendor repeat remains in the calculation.
+
+Acquisition and sample labels use selected filenames, stored scan metadata, and linked project records. The [coverage evidence](benchmarks/raw-integer-2026-10/evidence/coverage.json) records each label and its basis.
+
+*The Astral30 instrument name comes from the project record. The benchmark reader returned an unknown instrument model, and all complete conversions failed.
+
+This table covers Thermo RAW files. It does not claim benchmarks for every instrument or acquisition method in each source project.
+<!-- END INSTRUMENT COMPARISON -->
+
 ![Conversion speedup for each eligible file. The chart compares the native reader and the Thermo reader with official default.](benchmarks/raw-integer-2026-10/conversion-speed.svg)
 
 The native converter passed complete validation on **12/13 files**. The validator examined **3,355,346,983 points**. All **1,009,282,702 zero values** remained zero. The official converter completed only 11 of these files. Thus, only 11 files have a valid speedup comparison.
