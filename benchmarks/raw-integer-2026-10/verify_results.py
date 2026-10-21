@@ -72,6 +72,10 @@ def verify():
     assert sum(v['points'] for v in accepted) == 3_355_346_983
     assert sum(v['zeros_preserved'] for v in accepted) == 1_009_282_702
     print('39 cells checked; 12 native files / 3,355,346,983 points independently validated in recorded evidence.')
+    from render_comparison import README, START, END, render
+    text = README.read_text()
+    assert text[text.index(START):text.index(END)+len(END)] == render()
+    print('Main default/delta comparison also matches paired runs and independent validation.')
 
 if __name__ == '__main__':
     verify()

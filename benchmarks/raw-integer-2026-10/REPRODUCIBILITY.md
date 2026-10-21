@@ -6,7 +6,7 @@ To check the published arithmetic without those dependencies, run `python3 bench
 
 ## Read the result set
 
-The primary comparison is `native-validation/readers-three`, allocation 40651081 on mem1 (eight CPUs, 64 GiB). The separate default/delta comparison is `native-validation/campaign-three`, allocation 40639244 on tta1 (eight CPUs, 32 GiB). Their timings must not be pooled. Both allocations finished and were released after reports and failed outputs were persisted remotely.
+The primary comparison is `native-validation/readers-three`, allocation 40651081 on mem1 (eight CPUs, 64 GiB). The separate default/delta comparison is `native-validation/campaign-three`, allocation 40639244 on tta1 (eight CPUs, 32 GiB). The main README uses the latest matched default comparison from mem1 and delta comparison from tta1. Each row retains its own native measurement. The signal binaries differ (`f27b8331` and `53a4ac2e`). Their timings must not be pooled; the later binary has no delta comparison. Both allocations finished and were released after reports and failed outputs were persisted remotely.
 
 Original seven-repeat evidence remains in `native-validation/readers` and the remote original campaign results. The continuation's `protocol-amendment.json` documents the reduction to three measured blocks. Completed cases retain seven; unfinished cases use their first three randomized measured blocks. Each mode has one excluded warmup. No binary changed during the amendment.
 
