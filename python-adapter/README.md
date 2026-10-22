@@ -4,7 +4,7 @@ Read the study's integer archives through the official mzPeak Python interface.
 The package includes the native Rust decoder and installs the pinned official
 reader. It needs no RAW reader, vendor runtime, research checkout, or PYTHONPATH.
 
-Requires CPython 3.11 or later, Git, Rust 1.85 or later, and a C compiler to build
+Requires CPython 3.11–3.13, Git, Rust 1.85 or later, and a C compiler to build
 from source. Use a fresh virtual environment: the official reader owns the
 `mzpeak` import, so do not install this repository's separate Rust Python
 extension in that environment.

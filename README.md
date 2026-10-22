@@ -175,7 +175,7 @@ Our Thermo RawFileReader path is **1.74× faster** and uses **74.43% less combin
 
 **The adapter connects our integer archives to the official mzPeak Python implementation.** It subclasses the pinned official `MzPeakFile`, keeps its metadata parsing and public query methods, and supplies decoded signal arrays from our archive. Reads work in place, without archive extraction or an mzML intermediate.
 
-Install from a clone in a fresh virtual environment. Source builds require **Python 3.11+, Git, Rust 1.85+, and a C compiler**. The package installs the pinned official reader and compiles its own decoder; no vendor runtime or lab checkout is required.
+Install from a clone in a fresh virtual environment. Source builds require **Python 3.11–3.13, Git, Rust 1.85+, and a C compiler**. The package installs the pinned official reader and compiles its own decoder; no vendor runtime or lab checkout is required.
 
 ```bash
 git clone https://github.com/filiprumenovski/mzpeak-rs.git
