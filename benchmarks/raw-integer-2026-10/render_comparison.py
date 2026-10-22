@@ -190,12 +190,11 @@ def render():
     lines.extend(['A reported measurement requires all declared repeats and independent all-point validation. A timeout means a required run exceeded 600 seconds. Warmups are excluded. No ratio uses a failed baseline.', '',
         '</details>', '', '<details>', '<summary>Campaigns, repeats, and source evidence</summary>', '',
         'Default uses the later native/vendor campaign on mem1 (8 CPUs, 64 GiB). Delta uses the latest campaign that measured delta on tta1 (8 CPUs, 32 GiB). The native signal binaries differ: `f27b8331` and `53a4ac2e`. Each ratio uses its own matched native run. Delta has not been measured with the later binary.', '',
-        'Default retains seven repeats for the first three files and three for the rest. Delta retains seven for the first eight files and three for the rest. Each mode has one excluded warmup. The user-requested amendment preserved completed runs and frozen binaries.', '',
+        'Default retains seven repeats for the first three files and three for the rest. Delta retains seven for the first eight files and three for the rest. Each mode has one excluded warmup. The documented repeat amendment preserved completed runs and frozen binaries.', '',
         'The selected RAW files range from 0.116 GB to 21.777 GB. Instrument links open their source project. The Astral30 model comes from its project record; its reader reported an unknown model. These data cover Thermo RAW, not other vendor formats.', '',
         '[Instrument and acquisition evidence](benchmarks/raw-integer-2026-10/evidence/coverage.json) · [Default campaign runs](benchmarks/raw-integer-2026-10/evidence/conversion-results.json) · [Delta campaign runs and validation](benchmarks/raw-integer-2026-10/evidence/native-delta-results.json)', '',
-        '</details>', '', '<details>', '<summary>Thermo-reader option and earlier campaign history</summary>', '',
+        '</details>', '', '<details>', '<summary>Thermo RawFileReader conversion option</summary>', '',
         'Our Thermo RawFileReader path is **1.74× faster** and uses **74.43% less combined storage** than official default on 10/13 eligible files. Its corrected process-tree RSS ratio is 0.71× official. These measurements belong to the mem1 campaign. [Full reader-mode results](benchmarks/raw-integer-2026-10/RESULTS.md).', '',
-        'The original hybrid campaign used vendor code for metadata and calibration. Its 268 attempts and recovery limits remain in the [historical evidence](benchmarks/raw-integer-2026-10/evidence/original-warrior.json). Those timings are not used above.', '',
         '</details>', END])
     return '\n'.join(lines)
 
