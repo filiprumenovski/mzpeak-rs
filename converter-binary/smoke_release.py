@@ -26,8 +26,10 @@ def digest(path):
 
 def fetch(url, target):
     request = urllib.request.Request(url, headers={'User-Agent': 'mzpeak-release-validation'})
+    print('Downloading ' + target.name, flush=True)
     with urllib.request.urlopen(request, timeout=120) as source, target.open('xb') as dest:
         shutil.copyfileobj(source, dest, 1024 * 1024)
+    print(f'Downloaded {target.name}: {target.stat().st_size} bytes', flush=True)
 
 
 def main():
@@ -56,15 +58,18 @@ def main():
     binary = root / 'mzpeak-convert' / ('mzpeak-convert' + extension)
     for folder in ('home', 'empty-path', 'temp'):
         (root / folder).mkdir()
-    # Retain only OS-required Windows variables, not toolchains or user settings.
-    env = {key: value for key, value in os.environ.items() if key.upper() in ('SYSTEMROOT', 'WINDIR')}
+    # Windows known-folder APIs require the real OS user profile. The VM is fresh;
+    # preserve these OS paths, but remove toolchain and lab configuration.
+    os_keys = ('SYSTEMROOT', 'WINDIR', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'HOMEDRIVE', 'HOMEPATH')
+    env = {key: value for key, value in os.environ.items() if key.upper() in os_keys}
     env.update(PATH=str(root / 'empty-path'), HOME=str(root / 'home'),
-               USERPROFILE=str(root / 'home'), TEMP=str(root / 'temp'),
+               TEMP=str(root / 'temp'),
                TMP=str(root / 'temp'), TMPDIR=str(root / 'temp'),
                MZLAB_MZ_PPM='5', MZLAB_INTENSITY_ERROR='0.1')
     assert subprocess.check_output([binary, '--version'], cwd=root, env=env, text=True).strip() == 'mzpeak-convert 0.1.0'
     fetch(RAW_URL, root / 'hela.raw')
     assert digest(root / 'hela.raw') == RAW_SHA256, 'RAW checksum mismatch'
+    print('Running downloaded converter with empty PATH', flush=True)
     started = time.perf_counter()
     with (root / 'conversion.log').open('w') as log:
         subprocess.run([binary, root / 'hela.raw', root / 'output'], cwd=root, env=env,
@@ -80,6 +85,7 @@ def main():
     assert digest(archive) == before, 'Existing output changed'
     fetch(base + '/hela.vendor.metadata.mzpeak', root / 'metadata-oracle.mzpeak')
     assert digest(root / 'metadata-oracle.mzpeak') == ORACLE_SHA256
+    print('Checking every point against the independent vendor reader', flush=True)
     with (root / 'validation.log').open('w') as log:
         subprocess.run([sys.executable, HERE / 'validate_release.py', root / 'output',
                         '--raw', root / 'hela.raw', '--reference', root / 'metadata-oracle.mzpeak'],
@@ -101,6 +107,7 @@ def main():
                   asset_sha256=expected, downloaded_from=base + '/' + asset,
                   fresh_runner=os.environ.get('GITHUB_ACTIONS') == 'true',
                   empty_executable_search_path=True,
+                  preserved_os_environment_keys=sorted(key for key in env if key.upper() in os_keys),
                   raw_sha256=RAW_SHA256, metadata_oracle_sha256=ORACLE_SHA256,
                   precision_environment_override_ignored=True, overwrite_refused=True,
                   adapter_first_middle_last_equal=True, conversion_wall_seconds=wall_seconds,
