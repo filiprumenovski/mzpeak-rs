@@ -7,7 +7,7 @@
 An independent Rust implementation using Apache Arrow and Parquet.<br>
 Includes a benchmark study of direct RAW conversion.
 
-[**Results**](#measured-results) · [**Design**](#integer-storage) · [**Quick start**](#use-the-rust-crate) · [**Writeup**](benchmarks/raw-integer-2026-10/WRITEUP.md) · [**Slides**](benchmarks/raw-integer-2026-10/raw-integer-archive.pptx)
+[**Results**](#measured-results) · [**Official Python compatibility**](#use-the-official-python-interface) · [**Design**](#integer-storage) · [**Quick start**](#use-the-rust-crate) · [**Writeup**](benchmarks/raw-integer-2026-10/WRITEUP.md) · [**Slides**](benchmarks/raw-integer-2026-10/raw-integer-archive.pptx)
 
 [![License: MIT or Apache-2.0](https://img.shields.io/badge/license-MIT%20or%20Apache--2.0-087f8c)](#attribution-and-license)
 [![Evidence: 13 RAW files](https://img.shields.io/badge/evidence-13%20RAW%20files-142630)](benchmarks/raw-integer-2026-10/RESULTS.md)
@@ -17,7 +17,9 @@ Includes a benchmark study of direct RAW conversion.
 
 This project tests how integer storage can reduce file size within specified error limits. The experimental converter reads Thermo RAW files directly. It uses either native **rawr-ms** or **Thermo RawFileReader**. Both readers supply data to the same encoder.
 
-This repository contains the Rust crate and the benchmark study. **The study measures a separate experimental converter. It does not measure the current Rust crate.** The experimental archive is not an official mzPeak file. The [HUPO-PSI mzPeak project](https://github.com/HUPO-PSI/mzPeak) maintains the official implementation.
+**Use the official Python interface with our integer archives.** The [compatibility adapter](#use-the-official-python-interface) reuses the official reader's metadata and query methods with our signal decoder. Existing query code can use the tested interface by changing the reader import. The big Astral comparison checks every scan and retained signal point.
+
+This repository contains the Rust crate and a separate experimental converter study. **The benchmark results measure the experimental converter.** Its archives require the adapter; unmodified official readers cannot open them. The [HUPO-PSI mzPeak project](https://github.com/HUPO-PSI/mzPeak) maintains the official format and reference implementation.
 
 ## Measured results
 
@@ -151,7 +153,7 @@ A reported measurement requires all declared repeats and independent all-point v
 
 Default uses the later native/vendor campaign on mem1 (8 CPUs, 64 GiB). Delta uses the latest campaign that measured delta on tta1 (8 CPUs, 32 GiB). The native signal binaries differ: `f27b8331` and `53a4ac2e`. Each ratio uses its own matched native run. Delta has not been measured with the later binary.
 
-Default retains seven repeats for the first three files and three for the rest. Delta retains seven for the first eight files and three for the rest. Each mode has one excluded warmup. The user-requested amendment preserved completed runs and frozen binaries.
+Default retains seven repeats for the first three files and three for the rest. Delta retains seven for the first eight files and three for the rest. Each mode has one excluded warmup. The documented repeat amendment preserved completed runs and frozen binaries.
 
 The selected RAW files range from 0.116 GB to 21.777 GB. Instrument links open their source project. The Astral30 model comes from its project record; its reader reported an unknown model. These data cover Thermo RAW, not other vendor formats.
 
@@ -160,20 +162,57 @@ The selected RAW files range from 0.116 GB to 21.777 GB. Instrument links open t
 </details>
 
 <details>
-<summary>Thermo-reader option and earlier campaign history</summary>
+<summary>Thermo RawFileReader conversion option</summary>
 
 Our Thermo RawFileReader path is **1.74× faster** and uses **74.43% less combined storage** than official default on 10/13 eligible files. Its corrected process-tree RSS ratio is 0.71× official. These measurements belong to the mem1 campaign. [Full reader-mode results](benchmarks/raw-integer-2026-10/RESULTS.md).
-
-The original hybrid campaign used vendor code for metadata and calibration. Its 268 attempts and recovery limits remain in the [historical evidence](benchmarks/raw-integer-2026-10/evidence/original-warrior.json). Those timings are not used above.
 
 </details>
 <!-- END INSTRUMENT COMPARISON -->
 
-In the latest default campaign, the native converter passed complete validation on **12/13 files**. The validator examined **3,355,346,983 points**. All **1,009,282,702 zero values** remained zero. The official converter completed only 11 of these files. Thus, only 11 files have a valid speedup comparison.
+<a id="python-adapter-validation"></a>
 
-The total error limits are **0.01 ppm for m/z** and **0.1% for intensity**. The experimental archive keeps every source point. Official default keeps retained values unchanged, but it can remove interior zero runs. The two formats therefore have different precision requirements. The storage comparison includes this difference.
+## Use the official Python interface
 
-[All reader-mode times, RAM and sizes →](benchmarks/raw-integer-2026-10/RESULTS.md) · [Per-repeat JSON →](benchmarks/raw-integer-2026-10/evidence/conversion-results.json)
+**The adapter connects our integer archives to the official mzPeak Python implementation.** It subclasses the pinned official `MzPeakFile`, keeps its metadata parsing and public query methods, and supplies decoded signal arrays from our archive. Reads work in place, without archive extraction or an mzML intermediate.
+
+The same query function can read either archive:
+
+```python
+from mzpeak import MzPeakFile as OfficialFile
+from mzpeak_compat import MzPeakFile as IntegerFile
+
+def spectrum_arrays(run, index):
+    spectrum = run[index]
+    return spectrum["m/z array"], spectrum["intensity array"]
+
+with OfficialFile("official.mzpeak") as run:
+    official_mz, official_intensity = spectrum_arrays(run, 100)
+
+with IntegerFile("complete.experimental.zip", filter_profile_zeros=True) as run:
+    integer_mz, integer_intensity = spectrum_arrays(run, 100)
+```
+
+`filter_profile_zeros=True` matches the official exporter's removal of interior profile zeros. The default preserves every stored point. Compatibility mode scans profile spectra at open to update point counts; it keeps no decoded-signal cache.
+
+**Validated on all 744,726 big Astral scans:** all **1,392,038,446 retained points** agree in order, count, zero positions, and the declared error limits. Maximum differences are **0.009055 ppm m/z** and **0.0999999% intensity**. Default reads preserve all **1,511,811,155 points**, including **162,582,445 zeros**. The same XIC and MS2 workloads also passed.
+
+| Tested interface | Coverage |
+|:--|:--|
+| Spectrum access | Index, native ID, lists, slices, and finite retention times |
+| Array access | Batch ranges, profile/centroid selection, and zero filtering |
+| Metadata | Spectra, scans, precursors, selected ions, and acquisition context |
+| Other reader operations | Iteration, TIC/BPC, chromatograms, checksums, and file closure |
+
+The example requires the research decoder and pinned official Python package. The [adapter source](benchmarks/raw-integer-2026-10/adapter-validation/mzpeak_compat.py) is published with [setup requirements and validation evidence](benchmarks/raw-integer-2026-10/ADAPTER_VALIDATION.md#check-or-reproduce). It is separate from this crate's `mzpeak` Python extension.
+
+<details>
+<summary>Compatibility scope</summary>
+
+Values agree within the archive's error limits; array dtypes can differ. Exact m/z cutoffs can select different points within the quantization band. Our adapter applies the m/z-window argument; the pinned official reader ignores it, so comparisons use the same explicit array mask. Four official tail queries reached a time limit; native results were checked against official scalar reads for those scan IDs. Empty array ranges and infinite-time inputs have documented behavior. The tested interface does not include SQL, URI inputs, or wavelength data.
+
+[Full adapter checks, boundary results, and provenance →](benchmarks/raw-integer-2026-10/ADAPTER_VALIDATION.md)
+
+</details>
 
 ## Integer storage
 
@@ -246,51 +285,17 @@ XIC means extracted ion chromatogram. Each query uses the same selected scans. S
 
 [Query protocol and every sample →](benchmarks/raw-integer-2026-10/evidence/astral-queries.json)
 
-## Python adapter validation
+<a id="validation-scope-and-comparison-rules"></a>
 
-**The big Astral adapter check covers all 744,726 scans.** With `filter_profile_zeros=True`, all **1,392,038,446 retained points** agree with the official archive in order, count, zero positions, and the existing numerical bounds. Maximum differences are **0.009055 ppm m/z** and **0.0999999% intensity**.
-
-The default adapter preserves all **1,511,811,155 source points** and **162,582,445 zeros**. Compatibility mode removes exactly the same **119,772,709 interior profile zeros** as the official exporter. The 494-scan XIC and 50,208-scan MS2 workloads also passed.
-
-The check covers metadata, ID/list/slice/time access, iteration, peak preference, chromatograms, archive checksums, and file closure. An array-slice endpoint bug was fixed and has a regression test.
-
-<details>
-<summary>Exact-cutoff behavior and pinned-reader API limits</summary>
-
-Exact m/z cutoffs can select different points within the quantization band. Our adapter applies the m/z-window argument; the pinned official reader ignores it, so comparisons use the same explicit array mask. Four official tail queries reached a time limit; native results were checked against official point reads for those scan IDs. Empty array ranges and infinite-time inputs also have documented behavior. These checks cover the listed Python operations, not universal API or dtype identity.
-
-</details>
-
-[Full adapter checks, boundary results, source snapshots, and provenance →](benchmarks/raw-integer-2026-10/ADAPTER_VALIDATION.md)
-
-## Validation scope and comparison rules
-
-<details>
-<summary>Coverage limits and excluded comparisons</summary>
-
-| Case | Outcome | Treatment |
-|:--|:--|:--|
-| Astral30 | Complete metadata export is unsupported by the tested custom and official paths | Outside the validated set; no complete-archive ratio |
-| Exploris, vendor mode | Retained output passed validation; one measured run exceeded the time limit | Vendor timing comparison excluded |
-| Big Astral | Native conversion and all-point validation passed. Official default completed separately in 1,374.09 s | Native median **268.10 s**; separate allocations and validation scopes, so no paired speedup |
-
-</details>
-
-The latest default campaign used eight CPUs and a 64 GiB allocation. Each mode had one warmup run. The analysis excludes warmup time. The first three completed cases retain seven measured repeats. The remaining cases use three repeats after a documented protocol change. The binaries and error limits did not change.
-
-A comparison requires all specified repeats to succeed. It also requires matching signal hashes and independent validation of every point. A 600-second timeout is a failed conversion.
-
-The delta comparison uses the separate native/default/delta campaign. Its timings remain paired within that campaign. Earlier process-tree RSS samples missed child processes from worker threads. Those memory measurements are invalid. The reader-mode results use the corrected sampler. The main comparison table uses maximum process RSS for both campaigns.
-
-Run the verification script:
+## Verify the results
 
 ```bash
 python3 benchmarks/raw-integer-2026-10/verify_results.py
 ```
 
-The script examines all 39 reader-mode cells and checks the main default/delta table. It verifies speedups, storage totals, repeat eligibility, signal hashes, and recorded error limits. It does not repeat RAW conversion.
+This checks the conversion table, paired speedups, storage totals, repeat eligibility, signal hashes, error limits, and full Astral adapter evidence. It uses the published reports; it does not repeat RAW conversion.
 
-[Protocol and reproduction scope →](benchmarks/raw-integer-2026-10/REPRODUCIBILITY.md) · [Frozen runtime hashes →](benchmarks/raw-integer-2026-10/evidence/execution.json) · [Failure evidence →](benchmarks/raw-integer-2026-10/evidence/failures)
+[Full measurements and eligibility →](benchmarks/raw-integer-2026-10/RESULTS.md) · [Protocol, revisions, and reproduction scope →](benchmarks/raw-integer-2026-10/REPRODUCIBILITY.md)
 
 ## Use the Rust crate
 
@@ -318,43 +323,9 @@ The current CLI `convert` command takes mzML input. Thermo and Bruker integratio
 | Bruker TDF integration | `tdf` — vendored `timsrust` fork |
 | Parallel mzML decoding | `mzml-parallel` |
 
-### Write spectra from Rust
+### Rust and Python APIs
 
-```rust
-use mzpeak::dataset::MzPeakDatasetWriter;
-use mzpeak::metadata::MzPeakMetadata;
-use mzpeak::writer::{PeakArrays, SpectrumArrays, WriterConfig};
-
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let metadata = MzPeakMetadata::new();
-    let mut run = MzPeakDatasetWriter::new(
-        "example.mzpeak", &metadata, WriterConfig::default(),
-    )?;
-    let peaks = PeakArrays::new(vec![400.0, 500.0], vec![10_000.0, 25_000.0]);
-    let spectrum = SpectrumArrays::new_ms1(0, 1, 60.0, 1, peaks);
-    run.write_spectrum_arrays(&spectrum)?;
-    run.close()?;
-    Ok(())
-}
-```
-
-This example uses the v1 dataset writer. The v2 writer separates spectrum metadata from peak rows. The ZIP container does not apply additional compression to Parquet members. Thus, readers can seek within the container. Generic Parquet tools can read extracted members. They do not automatically interpret every container or schema.
-
-### Python
-
-Install maturin in a Python virtual environment. Then build the extension:
-
-```bash
-maturin develop --release --features python
-```
-
-```python
-import mzpeak
-
-with mzpeak.MzPeakReader("example.mzpeak") as run:
-    for spectrum in run.iter_spectra():
-        print(spectrum.scan_number, spectrum.num_peaks)
-```
+[Writer and reader examples](examples) cover the crate's Arrow/Parquet format. Build its optional Python extension with `maturin develop --release --features python` in a virtual environment.
 
 [Python API →](docs/PYTHON_API.md) · [Rust examples →](examples) · [Schema documentation →](docs/SCHEMA_V2.md)
 
