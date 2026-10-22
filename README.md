@@ -169,6 +169,18 @@ Our Thermo RawFileReader path is **1.74× faster** and uses **74.43% less combin
 </details>
 <!-- END INSTRUMENT COMPARISON -->
 
+## Download the RAW converter
+
+**[Download the converter binary for Apple Silicon Macs](https://github.com/filiprumenovski/mzpeak-rs/releases/tag/converter-v0.1.0).** Extract the archive and run:
+
+```sh
+./mzpeak-convert/mzpeak-convert input.raw new-output-directory
+```
+
+The bundle includes the native rawr-ms reader, encoder, and metadata writer. It needs no Python, Rust, .NET, or lab checkout. Keep its `_internal` directory beside the executable. The output is `new-output-directory/complete.experimental.zip`; read it with the adapter below.
+
+The release keeps the **0.01 ppm m/z** and **0.1% intensity** limits. It passed independent all-point validation on the HeLa RAW. It is an experimental, ad-hoc signed build, tested on macOS 26.5.1. Linux, Windows, and vendor-reader binaries are not included. [Usage and limits](converter-binary/README.md) · [Binary validation](benchmarks/raw-integer-2026-10/evidence/converter-binary-20261022.json).
+
 <a id="python-adapter-validation"></a>
 
 ## Use the official Python interface
@@ -361,7 +373,7 @@ cargo bench --bench conversion
 cargo bench --bench query_performance
 ```
 
-Further work must improve instrument metadata coverage, reduce native-reader memory, and reduce archive opening time. It must also test downstream proteomics results. The reproduction notes describe the lab setup. The reader has a standalone install path; RAW conversion still requires the research setup. This package excludes RAW datasets, proprietary vendor assemblies, and private reader source. Keep the original RAW files.
+Further work must improve instrument metadata coverage, reduce native-reader memory, and reduce archive opening time. It must also test downstream proteomics results. The reproduction notes describe the lab setup. The adapter has a standalone install path. Native RAW conversion has a binary bundle for Apple Silicon Macs; other conversion setups still use the research build. This package excludes RAW datasets, proprietary vendor assemblies, and private reader source. Keep the original RAW files.
 
 ## Attribution and license
 
