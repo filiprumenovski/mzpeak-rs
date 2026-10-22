@@ -1,0 +1,84 @@
+name: Converter release downloads
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: Published release tag to download
+        default: converter-v0.1.0
+        required: true
+        type: string
+      platform:
+        description: Platform to validate
+        default: both
+        required: true
+        type: choice
+        options: [both, linux, windows]
+permissions:
+  contents: read
+jobs:
+  download-and-convert:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(inputs.platform == 'linux' && '["ubuntu-22.04"]' || inputs.platform == 'windows' && '["windows-2022"]' || '["ubuntu-22.04","windows-2022"]') }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - name: Clone the public repository
+        shell: bash
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          git clone --no-checkout https://github.com/filiprumenovski/mzpeak-rs.git source
+          git -C source checkout "$SOURCE_COMMIT"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13.7'
+      - uses: dtolnay/rust-toolchain@1.98.0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Fetch independent vendor oracle packages
+        shell: bash
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/thermofisherlsms/RawFileReader.git vendor
+          git -C vendor sparse-checkout set Libs/NetCore/Net8
+          git -C vendor checkout cd0a429a9894c13cc8bc0a5a10d54f5b7eb991bb
+      - name: Install the adapter and independent validator
+        shell: python
+        run: |
+          import os, subprocess, sys
+          from pathlib import Path
+          subprocess.run([sys.executable, '-m', 'pip', 'install', './source/python-adapter'], check=True)
+          import xml.etree.ElementTree as ET
+          config = ET.Element('configuration')
+          sources = ET.SubElement(config, 'packageSources')
+          ET.SubElement(sources, 'clear')
+          ET.SubElement(sources, 'add', key='thermo', value=str(Path('vendor/Libs/NetCore/Net8').resolve()))
+          ET.SubElement(sources, 'add', key='nuget', value='https://api.nuget.org/v3/index.json')
+          config_path = Path('oracle-nuget.config').resolve()
+          ET.ElementTree(config).write(config_path, encoding='utf-8', xml_declaration=True)
+          project = 'source/converter-binary/oracle/VendorOracle.csproj'
+          subprocess.run(['dotnet', 'restore', project, '--configfile', str(config_path)], check=True)
+          subprocess.run(['dotnet', 'build', project, '-c', 'Release', '--no-restore'], check=True)
+          dll = Path('source/converter-binary/oracle/bin/Release/net8.0/VendorOracle.dll').resolve()
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write('MZPEAK_VALIDATION_READER_DLL=' + str(dll) + '\n')
+      - name: Download published bundle into a separate directory and test HeLa
+        env:
+          RELEASE_TAG: ${{ inputs.release || 'converter-v0.1.0' }}
+        shell: bash
+        run: python source/converter-binary/smoke_release.py --work fresh-download --release "$RELEASE_TAG"
+      - name: Check the installed adapter against the official reader
+        run: python -I -m mzpeak_compat.example
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fresh-download-${{ matrix.os }}
+          path: |
+            fresh-download/report.json
+            fresh-download/conversion.log
+            fresh-download/validation.log
+            fresh-download/output/*.json
+          if-no-files-found: warn
+          retention-days: 30

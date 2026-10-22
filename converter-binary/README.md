@@ -2,14 +2,23 @@
 
 Download and extract the archive for your system from the
 [converter release](https://github.com/filiprumenovski/mzpeak-rs/releases/tag/converter-v0.1.0).
-**Available build: macOS on Apple Silicon; tested on macOS 26.5.1.** This build is
-ad-hoc signed, not Apple notarized. Other platforms are not yet packaged.
+Choose the archive for your system: `linux-x86_64.tar.gz`,
+`windows-x86_64.zip`, or `darwin-arm64.tar.gz`. Fresh downloads passed full HeLa validation on Ubuntu 22.04, Windows Server
+2022, and macOS 26.5.1. The Linux build requires glibc 2.35 or later. Other OS
+versions have not been tested. Windows builds are not Authenticode signed;
+macOS builds are ad-hoc signed, not Apple notarized.
 
 Keep the executable and its `_internal` directory together. No Python, Rust,
 .NET, vendor runtime, or private repository access is required to run it.
 
 ```sh
 ./mzpeak-convert/mzpeak-convert input.raw new-output-directory
+```
+
+On Windows, extract the ZIP and use PowerShell:
+
+```powershell
+.\mzpeak-convert\mzpeak-convert.exe input.raw new-output-directory
 ```
 
 The output is `new-output-directory/complete.experimental.zip`. Open it with
@@ -43,3 +52,18 @@ python build.py --encoder /path/to/fast_raw \
   --manifest /path/to/native_metadata/Cargo.toml \
   --output /path/to/new-build-directory
 ```
+
+## Release checks
+
+The `Converter release downloads` workflow starts a fresh Linux or Windows runner.
+It downloads the published archive and checksum, extracts into a new folder, and
+runs the converter with an empty executable search path. It then checks every
+HeLa signal point against Thermo RawFileReader and acquisition metadata against
+a pinned independent export of the same SHA-256 RAW. Source-path differences
+are accepted only when source identity and SHA-1 match.
+
+The vendor oracle, .NET, Python, and the adapter are test dependencies. They are
+not dependencies of the converter executable. Oracle DLLs are fetched from the
+pinned upstream repository and are not included in the binary bundle. The test
+also checks output overwrite protection, fixed precision settings, and adapter
+readback. Failed runs retain logs; the workflow uploads small reports only.

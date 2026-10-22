@@ -1,0 +1,253 @@
+{
+  "scope": "Native converter release packaging; one fresh public download per successful platform. Not a comparative benchmark.",
+  "build_workflow": "https://github.com/filiprumenovski/rawr-ms/actions/runs/39799329544",
+  "rawr_source_commit": "2a0422f6a407aa66bb8146f636a5451eae0966ef",
+  "packaging_source_commit": "eb14e94531ab60fccd67a5595c9bb06d844434af",
+  "linux": {
+    "workflow": "https://github.com/filiprumenovski/mzpeak-rs/actions/runs/39801012618/job/119901359296",
+    "report": {
+      "status": "passed",
+      "platform": "Linux-6.8.0-1070-azure-x86_64-with-glibc2.35",
+      "asset": "mzpeak-convert-0.1.0-linux-x86_64.tar.gz",
+      "asset_sha256": "b9bba5d97b9cf513b1f3ed55d7177a1f7ca61f8790b0b4799500ddc507c2db3b",
+      "downloaded_from": "https://github.com/filiprumenovski/mzpeak-rs/releases/download/converter-v0.1.0/mzpeak-convert-0.1.0-linux-x86_64.tar.gz",
+      "fresh_runner": true,
+      "empty_executable_search_path": true,
+      "raw_sha256": "01522aefd49d2eb7eaf764687ae2ed591605a99d57c06113b97d2be32eb4f025",
+      "metadata_oracle_sha256": "ab373e304c344c92185131d7684d4cd54c7e5888aef24341ed9f4095f7b360ba",
+      "precision_environment_override_ignored": true,
+      "overwrite_refused": true,
+      "adapter_first_middle_last_equal": true,
+      "conversion_wall_seconds": 10.017871496999987,
+      "conversion": {
+        "path": "/home/runner/work/mzpeak-rs/mzpeak-rs/fresh-download/output/complete.experimental.zip",
+        "bytes": 240470827,
+        "sha256": {
+          "signal.bin": "c9a2d4ca421cdceba9b7f3e526d424f7e9a2f2515f8b441458da984bd109556c",
+          "signal.index.zst": "64d924787e0ed3c62224ebabd6a758e197e98f5548bbd787748db12657fdbc94",
+          "acquisition/spectra_metadata.parquet": "fc2da4536306055586c3dd9256908748fb11129ed35ae8d4265bee7eeb90390a",
+          "acquisition/spectra_metadata_scans.parquet": "0cf56f9352fa8b0c4ba20d924fccf1620f40a2b9bdef360a7839ffd0243bb30c",
+          "acquisition/spectra_metadata_precursors.parquet": "2a54da1626b75a126012d6dbbf49952e2f4694611c8706f4ebb06df7df1c46b5",
+          "acquisition/spectra_metadata_selected_ions.parquet": "4dbb7cbf01cc518fc03e27068a6c1f8c77dd35cad0eb4468cc39e9d276880d7f",
+          "acquisition/chromatograms_metadata.parquet": "6df55d552e5965a052da7078e3f3994395461b0c94630f1b2771e259adfd71b5",
+          "acquisition/chromatograms_metadata_precursors.parquet": "40bc42c2614f4b3f2525f698ded6f4f645c1a992737c60295937e8e530f02210",
+          "acquisition/chromatograms_metadata_selected_ions.parquet": "116dc0cb8040f0bcf21852ce803a514338f1bc6dff532ab947b44cf3444bbe37",
+          "acquisition/chromatograms_data.parquet": "abef8126b27f8c6644f2721e9c19b4baf98c8a522975f9b79d687f7b148801b6",
+          "acquisition/acquisition.json": "222a9776a06cd32fad2ab45ae5c61dab96cf5832c25aaa3e0166d416f6393681"
+        },
+        "spectra": 38419,
+        "points": 137350797,
+        "reader": "rawr",
+        "signal_stage_seconds": 8.829766606000021,
+        "metadata_stage_seconds": 1.5841858399999182,
+        "parallel_signal_metadata_and_packaging_seconds": 9.10605113300005,
+        "overlapped_bundle_prepare_seconds": 0.2740573390000236,
+        "bundle_stage_seconds": 0.7567383450000307,
+        "total_seconds": 9.862790718000042,
+        "timing_scope": "All conversion stages and final ZIP writes; independent persisted validation excluded; no fsync durability guarantee."
+      },
+      "independent_validation": {
+        "raw": "/home/runner/work/mzpeak-rs/mzpeak-rs/fresh-download/hela.raw",
+        "reference": "/home/runner/work/mzpeak-rs/mzpeak-rs/fresh-download/metadata-oracle.mzpeak",
+        "reference_scope": "vendor metadata-only export plus independent RAW summaries",
+        "source_location_normalization": {
+          "reference_location": "file:////Users/filiprumenovski/mzpeak-orbitrap-benchmark",
+          "archive_location": "file:////home/runner/work/mzpeak-rs/mzpeak-rs/fresh-download",
+          "source_sha1": "8db1205e317bdc8120f8c0b0d085a97a015424f0"
+        },
+        "acquisition_metadata_exact_except_converter_provenance_and_source_location": true,
+        "tables": {
+          "spectra_metadata.parquet": {
+            "rows": 38419,
+            "columns_exact": 11,
+            "absent_auxiliary_arrays_null_vs_empty": true
+          },
+          "spectra_metadata_scans.parquet": {
+            "rows": 38419,
+            "columns_exact": 12
+          },
+          "spectra_metadata_precursors.parquet": {
+            "rows": 32888,
+            "columns_exact": 5
+          },
+          "spectra_metadata_selected_ions.parquet": {
+            "rows": 32888,
+            "columns_exact": 9
+          },
+          "chromatograms_metadata.parquet": {
+            "rows": 2,
+            "columns_exact": 9
+          },
+          "chromatograms_metadata_precursors.parquet": {
+            "rows": 0,
+            "columns_exact": 5
+          },
+          "chromatograms_metadata_selected_ions.parquet": {
+            "rows": 0,
+            "columns_exact": 9
+          },
+          "chromatograms_data.parquet": {
+            "rows": 76838,
+            "columns_exact": 1
+          }
+        },
+        "all_source_point_counts_preserved": true,
+        "all_spectra_all_points_validated": true,
+        "all_source_summaries_validated": true,
+        "max_source_summary_mz_difference_ppm": 4.717251635786527e-05,
+        "spectra": 38419,
+        "points": 137350797,
+        "max_mz_error_ppm": 0.009021988039868423,
+        "max_intensity_relative_error": 0.0009999989301607063,
+        "max_tic_relative_error": 0.000680386399654509,
+        "zeros_preserved": 58900013,
+        "source_array_sha256": "9b657939094f00219b2d8e409957dc34d9ab074a17b9b5e596689b73a2050cda",
+        "declared_bounds": {
+          "mz_ppm": 0.01,
+          "intensity_relative": 0.001
+        }
+      },
+      "scope": "Fresh published download; conversion, full vendor signal validation, pinned metadata oracle, and installed adapter readback. Not a comparative speed benchmark."
+    },
+    "published_asset_bytes": 72906900
+  },
+  "failed_windows_setup_attempts": [
+    {
+      "run_id": 39801012618,
+      "job_id": 119901358600,
+      "stage": "Independent vendor oracle setup",
+      "error": "NU1301: NuGet treated the HTTPS source as a local Windows path. Converter not run."
+    },
+    {
+      "run_id": 39802781533,
+      "job_id": 119907835040,
+      "stage": "Independent vendor oracle setup",
+      "error": "The same NU1301 failure persisted after removing Git Bash. Replaced command-line sources with an explicit NuGet configuration."
+    },
+    {
+      "run_id": 39807252188,
+      "job_id": 119923662568,
+      "stage": "Conversion under an invalid temporary Windows user profile",
+      "error": "mzcv metadata export panicked: No suitable base directory could be found. The native signal encoder completed, but no successful complete archive was reported.",
+      "resolution": "The fresh-VM test now preserves standard Windows OS profile paths while keeping PATH empty. No binary or precision bounds changed."
+    }
+  ],
+  "windows": {
+    "workflow": "https://github.com/filiprumenovski/mzpeak-rs/actions/runs/39809770048/job/119932569785",
+    "report": {
+      "status": "passed",
+      "platform": "Windows-2022Server-10.0.20348-SP0",
+      "asset": "mzpeak-convert-0.1.0-windows-x86_64.zip",
+      "asset_sha256": "9286e611ddc0966a5a9ec8fd725f8799ece1d6d6d9673258d72e1018ba5439ff",
+      "downloaded_from": "https://github.com/filiprumenovski/mzpeak-rs/releases/download/converter-v0.1.0/mzpeak-convert-0.1.0-windows-x86_64.zip",
+      "fresh_runner": true,
+      "empty_executable_search_path": true,
+      "preserved_os_environment_keys": [
+        "APPDATA",
+        "HOMEDRIVE",
+        "HOMEPATH",
+        "LOCALAPPDATA",
+        "SYSTEMROOT",
+        "USERPROFILE",
+        "WINDIR"
+      ],
+      "raw_sha256": "01522aefd49d2eb7eaf764687ae2ed591605a99d57c06113b97d2be32eb4f025",
+      "metadata_oracle_sha256": "ab373e304c344c92185131d7684d4cd54c7e5888aef24341ed9f4095f7b360ba",
+      "precision_environment_override_ignored": true,
+      "overwrite_refused": true,
+      "adapter_first_middle_last_equal": true,
+      "conversion_wall_seconds": 15.18779870000003,
+      "conversion": {
+        "path": "D:\\a\\mzpeak-rs\\mzpeak-rs\\fresh-download\\output\\complete.experimental.zip",
+        "bytes": 240470701,
+        "sha256": {
+          "signal.bin": "c9a2d4ca421cdceba9b7f3e526d424f7e9a2f2515f8b441458da984bd109556c",
+          "signal.index.zst": "b35dd0ed9922c6b3c4b23f9e14a751a310be0e01f17b7a7ba7f6975403b73ffc",
+          "acquisition/spectra_metadata.parquet": "fc2da4536306055586c3dd9256908748fb11129ed35ae8d4265bee7eeb90390a",
+          "acquisition/spectra_metadata_scans.parquet": "bfe12c1ca41c71bd6ab8e2cda2a8a51f596eaeee674450dd0e7efd64cab537e3",
+          "acquisition/spectra_metadata_precursors.parquet": "e0950670e5627776305f5101b0a80608466e59315207276d28130487ceaa0a64",
+          "acquisition/spectra_metadata_selected_ions.parquet": "5d166a25a235ddc1e806854ee7d27bc1cd74b142358a7e82886e6626d45c7c8b",
+          "acquisition/chromatograms_metadata.parquet": "6df55d552e5965a052da7078e3f3994395461b0c94630f1b2771e259adfd71b5",
+          "acquisition/chromatograms_metadata_precursors.parquet": "40bc42c2614f4b3f2525f698ded6f4f645c1a992737c60295937e8e530f02210",
+          "acquisition/chromatograms_metadata_selected_ions.parquet": "116dc0cb8040f0bcf21852ce803a514338f1bc6dff532ab947b44cf3444bbe37",
+          "acquisition/chromatograms_data.parquet": "bf26a30d29c65688efe7c6af356a06a846fe61bdde154e9dffb1b80896c9da2d",
+          "acquisition/acquisition.json": "891814fd3af7a7e8680256913fedc5b0ebca544b29d18410628a73ded766dae8"
+        },
+        "spectra": 38419,
+        "points": 137350797,
+        "reader": "rawr",
+        "signal_stage_seconds": 13.930601399999887,
+        "metadata_stage_seconds": 6.128162900000007,
+        "parallel_signal_metadata_and_packaging_seconds": 14.242806499999915,
+        "overlapped_bundle_prepare_seconds": 0.30586300000004485,
+        "bundle_stage_seconds": 0.8017294999999649,
+        "total_seconds": 15.044537499999933,
+        "timing_scope": "All conversion stages and final ZIP writes; independent persisted validation excluded; no fsync durability guarantee."
+      },
+      "independent_validation": {
+        "raw": "D:\\a\\mzpeak-rs\\mzpeak-rs\\fresh-download\\hela.raw",
+        "reference": "D:\\a\\mzpeak-rs\\mzpeak-rs\\fresh-download\\metadata-oracle.mzpeak",
+        "reference_scope": "vendor metadata-only export plus independent RAW summaries",
+        "source_location_normalization": {
+          "reference_location": "file:////Users/filiprumenovski/mzpeak-orbitrap-benchmark",
+          "archive_location": "file:///\\\\?\\D:\\a\\mzpeak-rs\\mzpeak-rs\\fresh-download",
+          "source_sha1": "8db1205e317bdc8120f8c0b0d085a97a015424f0"
+        },
+        "acquisition_metadata_exact_except_converter_provenance_and_source_location": true,
+        "tables": {
+          "spectra_metadata.parquet": {
+            "rows": 38419,
+            "columns_exact": 11,
+            "absent_auxiliary_arrays_null_vs_empty": true
+          },
+          "spectra_metadata_scans.parquet": {
+            "rows": 38419,
+            "columns_exact": 12
+          },
+          "spectra_metadata_precursors.parquet": {
+            "rows": 32888,
+            "columns_exact": 5
+          },
+          "spectra_metadata_selected_ions.parquet": {
+            "rows": 32888,
+            "columns_exact": 9
+          },
+          "chromatograms_metadata.parquet": {
+            "rows": 2,
+            "columns_exact": 9
+          },
+          "chromatograms_metadata_precursors.parquet": {
+            "rows": 0,
+            "columns_exact": 5
+          },
+          "chromatograms_metadata_selected_ions.parquet": {
+            "rows": 0,
+            "columns_exact": 9
+          },
+          "chromatograms_data.parquet": {
+            "rows": 76838,
+            "columns_exact": 1
+          }
+        },
+        "all_source_point_counts_preserved": true,
+        "all_spectra_all_points_validated": true,
+        "all_source_summaries_validated": true,
+        "max_source_summary_mz_difference_ppm": 4.717251635786527e-05,
+        "spectra": 38419,
+        "points": 137350797,
+        "max_mz_error_ppm": 0.009021988039868423,
+        "max_intensity_relative_error": 0.0009999989301607063,
+        "max_tic_relative_error": 0.000680386399654509,
+        "zeros_preserved": 58900013,
+        "source_array_sha256": "9b657939094f00219b2d8e409957dc34d9ab074a17b9b5e596689b73a2050cda",
+        "declared_bounds": {
+          "mz_ppm": 0.01,
+          "intensity_relative": 0.001
+        }
+      },
+      "scope": "Fresh published download; conversion, full vendor signal validation, pinned metadata oracle, and installed adapter readback. Not a comparative speed benchmark."
+    },
+    "published_asset_bytes": 41886716
+  },
+  "vendor_dlls_in_bundles": false
+}

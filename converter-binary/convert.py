@@ -11,7 +11,8 @@ import time
 import zipfile
 
 CODE = Path(__file__).resolve().parent
-METADATA = CODE / 'bin/native_metadata'
+EXE = '.exe' if os.name == 'nt' else ''
+METADATA = CODE / ('bin/native_metadata' + EXE)
 SIGNAL_MEMBERS = {'spectra_data.parquet', 'spectra_peaks.parquet'}
 SUMMARY_FIELDS = ('lowest_observed_mz', 'highest_observed_mz', 'base_peak_mz',
                   'base_peak_intensity', 'total_ion_current')
@@ -154,7 +155,7 @@ def main():
     args = parser.parse_args()
     raw, folder = args.source.resolve(), args.output.resolve()
     metadata_exe = METADATA
-    encoder = CODE / 'bin/fast_raw'
+    encoder = CODE / ('bin/fast_raw' + EXE)
     if not raw.is_file() or folder.exists():
         parser.error('Input must exist and output directory must be new')
     for executable in (metadata_exe, encoder):
