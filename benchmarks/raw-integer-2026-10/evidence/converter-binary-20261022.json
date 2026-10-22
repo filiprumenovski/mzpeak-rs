@@ -1,0 +1,121 @@
+{
+  "scope": "Release-bundle installation check, not a comparative performance benchmark",
+  "platform": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+  "asset": "mzpeak-convert-0.1.0-darwin-arm64.tar.gz",
+  "asset_bytes": 43856179,
+  "asset_sha256": "04ba1c3b1ff6224c82bbb4e9fe0a7607f4d212f82bf4efc5d763ea4bb3cdc131",
+  "build": {
+    "version": "0.1.0",
+    "platform": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+    "python": "3.13.7",
+    "pyinstaller": "6.20.0",
+    "pyarrow": "20.0.0",
+    "driver_sha256": "02082b8b5a3308733b123f906d454377678edab7eb31bef7c58bda7cd0272e56",
+    "helpers": {
+      "fast_raw": "24d7080c5448dbc0c63dbc57e70e2b18d0506dae16a55436705e560b0f1d1dbb",
+      "native_metadata": "ec8665b9bc8390cb25a750b3ceaaeba7ea629db0077cb53c0bd34433393123c9"
+    },
+    "mass_error_ppm": 0.01,
+    "intensity_relative_error": 0.001,
+    "reader": "rawr-ms"
+  },
+  "execution": {
+    "fresh_archive_extraction": true,
+    "environment_cleared": true,
+    "PATH": "/usr/bin:/bin",
+    "python_rust_dotnet_unavailable_on_PATH": true,
+    "precision_environment_override_test": {
+      "MZLAB_MZ_PPM": "5",
+      "MZLAB_INTENSITY_ERROR": "0.1",
+      "actual_bounds": {
+        "mz_ppm": 0.01,
+        "intensity_relative": 0.001
+      }
+    },
+    "clean_os_vm_tested": false
+  },
+  "input": {
+    "name": "hela.raw",
+    "bytes": 714378661,
+    "sha256": "01522aefd49d2eb7eaf764687ae2ed591605a99d57c06113b97d2be32eb4f025"
+  },
+  "cli_tests": {
+    "adapter_open_and_first_scan": true,
+    "existing_output_refused": true,
+    "existing_output_sha256_unchanged": true,
+    "version": true,
+    "restricted_path": "/usr/bin:/bin"
+  },
+  "packaging_unit_tests": {
+    "passed": 3
+  },
+  "validation": {
+    "raw": "hela.raw",
+    "reference": "hela.vendor.metadata.mzpeak",
+    "reference_scope": "vendor metadata-only export plus independent RAW summaries",
+    "acquisition_metadata_exact_except_converter_provenance": true,
+    "tables": {
+      "spectra_metadata.parquet": {
+        "rows": 38419,
+        "columns_exact": 11,
+        "absent_auxiliary_arrays_null_vs_empty": true
+      },
+      "spectra_metadata_scans.parquet": {
+        "rows": 38419,
+        "columns_exact": 12
+      },
+      "spectra_metadata_precursors.parquet": {
+        "rows": 32888,
+        "columns_exact": 5
+      },
+      "spectra_metadata_selected_ions.parquet": {
+        "rows": 32888,
+        "columns_exact": 9
+      },
+      "chromatograms_metadata.parquet": {
+        "rows": 2,
+        "columns_exact": 9
+      },
+      "chromatograms_metadata_precursors.parquet": {
+        "rows": 0,
+        "columns_exact": 5
+      },
+      "chromatograms_metadata_selected_ions.parquet": {
+        "rows": 0,
+        "columns_exact": 9
+      },
+      "chromatograms_data.parquet": {
+        "rows": 76838,
+        "columns_exact": 1
+      }
+    },
+    "all_source_point_counts_preserved": true,
+    "all_spectra_all_points_validated": true,
+    "all_source_summaries_validated": true,
+    "max_source_summary_mz_difference_ppm": 4.717251635786527e-05,
+    "spectra": 38419,
+    "points": 137350797,
+    "max_mz_error_ppm": 0.009021988039868423,
+    "max_intensity_relative_error": 0.0009999989301607063,
+    "max_tic_relative_error": 0.000680386399654509,
+    "zeros_preserved": 58900013,
+    "source_array_sha256": "9b657939094f00219b2d8e409957dc34d9ab074a17b9b5e596689b73a2050cda",
+    "declared_bounds": {
+      "mz_ppm": 0.01,
+      "intensity_relative": 0.001
+    }
+  },
+  "unsupported_fixture": {
+    "name": "ThermoRawFileParserTest/Data/small.RAW",
+    "source_revision": "cf548e4a3fadcc796291a01fdbd088af986a5d72",
+    "error": "UnsupportedPacketType { scan_number: 2, packet_type: 19 }",
+    "conversion_exit_code": 1,
+    "success_report_created": false
+  },
+  "limits": [
+    "Apple Silicon macOS only; tested on macOS 26.5.1",
+    "Ad-hoc signed, not Apple notarized",
+    "Native reader only; vendor binary not included",
+    "Independent validation uses vendor software outside the runtime bundle"
+  ]
+}
