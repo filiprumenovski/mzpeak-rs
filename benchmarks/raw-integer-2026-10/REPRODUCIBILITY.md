@@ -1,6 +1,6 @@
 # Reproduction and provenance
 
-This directory publishes measurements and analysis, not a portable converter distribution. The commands below describe the original research checkout; its `code/`, `native-reference/` and `native-validation/` paths are not part of this repository. They are not commands for the `mzpeak-rs` crate. No RAW files, vendor assemblies or private rawr-ms source are included.
+This directory publishes measurements and analysis, not a portable converter distribution. The [reader adapter and decoder](../../python-adapter/README.md) have a separate standalone installation path. The commands below describe the original research checkout; its `code/`, `native-reference/` and `native-validation/` paths are not part of this repository. They are not commands for the `mzpeak-rs` crate. No RAW files, vendor assemblies or private rawr-ms source are included.
 
 To check the published arithmetic without those dependencies, run `python3 benchmarks/raw-integer-2026-10/verify_results.py` from the repository root. This rechecks comparison eligibility, paired speedups, storage reductions and validation limits against the included JSON evidence; it does not rerun RAW conversion.
 
@@ -87,7 +87,7 @@ This streams every point, checks source-array identity against the prior validat
 
 ## Current release gaps
 
-Astral30 complete metadata support, vendor metadata tail latency, native-reader memory and eager index parsing remain open. The source has research-environment paths and is not yet a polished installer. Preserve the original RAW files: this archive is lossy and experimental. A general-purpose release needs a portable setup flow, broader interoperability tests and downstream proteomics validation.
+Astral30 complete metadata support, vendor metadata tail latency, native-reader memory and eager index parsing remain open. The RAW converter source has research-environment paths and is not yet a polished installer; the reader adapter is packaged separately. Preserve the original RAW files: this archive is lossy and experimental. A general-purpose release needs a portable setup flow, broader interoperability tests and downstream proteomics validation.
 
 ## Successful official Astral query preparation
 

@@ -7,7 +7,7 @@
 An independent Rust implementation using Apache Arrow and Parquet.<br>
 Includes a benchmark study of direct RAW conversion.
 
-[**Results**](#measured-results) · [**Official Python compatibility**](#use-the-official-python-interface) · [**Design**](#integer-storage) · [**Quick start**](#use-the-rust-crate) · [**Writeup**](benchmarks/raw-integer-2026-10/WRITEUP.md) · [**Slides**](benchmarks/raw-integer-2026-10/raw-integer-archive.pptx)
+[**Results**](#measured-results) · [**Official Python compatibility**](#use-the-official-python-interface) · [**Design**](#integer-storage) · [**Install adapter**](python-adapter/README.md) · [**Writeup**](benchmarks/raw-integer-2026-10/WRITEUP.md) · [**Slides**](benchmarks/raw-integer-2026-10/raw-integer-archive.pptx)
 
 [![License: MIT or Apache-2.0](https://img.shields.io/badge/license-MIT%20or%20Apache--2.0-087f8c)](#attribution-and-license)
 [![Evidence: 13 RAW files](https://img.shields.io/badge/evidence-13%20RAW%20files-142630)](benchmarks/raw-integer-2026-10/RESULTS.md)
@@ -175,9 +175,23 @@ Our Thermo RawFileReader path is **1.74× faster** and uses **74.43% less combin
 
 **The adapter connects our integer archives to the official mzPeak Python implementation.** It subclasses the pinned official `MzPeakFile`, keeps its metadata parsing and public query methods, and supplies decoded signal arrays from our archive. Reads work in place, without archive extraction or an mzML intermediate.
 
+Install from a clone in a fresh virtual environment. Source builds require **Python 3.11+, Git, Rust 1.85+, and a C compiler**. The package installs the pinned official reader and compiles its own decoder; no vendor runtime or lab checkout is required.
+
+```bash
+git clone https://github.com/filiprumenovski/mzpeak-rs.git
+cd mzpeak-rs
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install ./python-adapter
+python -m mzpeak_compat.example
+```
+
+The bundled example compares seven synthetic scans against a matching official archive. The two archives total about **20 KB** and are included in the installed package. [Platform setup and tests →](python-adapter/README.md)
+
 The same query function can read either archive:
 
 ```python
+from contextlib import closing
 from mzpeak import MzPeakFile as OfficialFile
 from mzpeak_compat import MzPeakFile as IntegerFile
 
@@ -185,7 +199,7 @@ def spectrum_arrays(run, index):
     spectrum = run[index]
     return spectrum["m/z array"], spectrum["intensity array"]
 
-with OfficialFile("official.mzpeak") as run:
+with open("official.mzpeak", "rb") as handle, closing(OfficialFile(handle)) as run:
     official_mz, official_intensity = spectrum_arrays(run, 100)
 
 with IntegerFile("complete.experimental.zip", filter_profile_zeros=True) as run:
@@ -203,7 +217,7 @@ with IntegerFile("complete.experimental.zip", filter_profile_zeros=True) as run:
 | Metadata | Spectra, scans, precursors, selected ions, and acquisition context |
 | Other reader operations | Iteration, TIC/BPC, chromatograms, checksums, and file closure |
 
-The example requires the research decoder and pinned official Python package. The [adapter source](benchmarks/raw-integer-2026-10/adapter-validation/mzpeak_compat.py) is published with [setup requirements and validation evidence](benchmarks/raw-integer-2026-10/ADAPTER_VALIDATION.md#check-or-reproduce). It is separate from this crate's `mzpeak` Python extension.
+The installable package is **`mzpeak-integer`**; its import is **`mzpeak_compat`**. It reads existing integer archives. Keep it in a separate environment from this crate's Rust Python extension: the official reader owns the `mzpeak` import. [Package source](python-adapter) · [Full Astral validation](benchmarks/raw-integer-2026-10/ADAPTER_VALIDATION.md).
 
 <details>
 <summary>Compatibility scope</summary>
@@ -347,7 +361,7 @@ cargo bench --bench conversion
 cargo bench --bench query_performance
 ```
 
-Further work must improve instrument metadata coverage, reduce native-reader memory, and reduce archive opening time. It must also test downstream proteomics results. The reproduction notes describe the lab setup. There is no portable installer for the experimental converter. This package excludes RAW datasets, proprietary vendor assemblies, and private reader source. Keep the original RAW files.
+Further work must improve instrument metadata coverage, reduce native-reader memory, and reduce archive opening time. It must also test downstream proteomics results. The reproduction notes describe the lab setup. The reader has a standalone install path; RAW conversion still requires the research setup. This package excludes RAW datasets, proprietary vendor assemblies, and private reader source. Keep the original RAW files.
 
 ## Attribution and license
 

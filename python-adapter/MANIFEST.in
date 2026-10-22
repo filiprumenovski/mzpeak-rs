@@ -1,0 +1,4 @@
+include native/Cargo.toml native/Cargo.lock
+recursive-include native/src *.rs
+recursive-include tests *.py
+include tools/make_example.py
