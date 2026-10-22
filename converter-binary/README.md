@@ -3,8 +3,9 @@
 Download and extract the archive for your system from the
 [converter release](https://github.com/filiprumenovski/mzpeak-rs/releases/tag/converter-v0.1.0).
 Choose the archive for your system: `linux-x86_64.tar.gz`,
-`windows-x86_64.zip`, or `darwin-arm64.tar.gz`. The release page lists tested
-platforms and available downloads. Windows builds are not Authenticode signed;
+`windows-x86_64.zip`, or `darwin-arm64.tar.gz`. Fresh downloads passed full HeLa validation on Ubuntu 22.04, Windows Server
+2022, and macOS 26.5.1. The Linux build requires glibc 2.35 or later. Other OS
+versions have not been tested. Windows builds are not Authenticode signed;
 macOS builds are ad-hoc signed, not Apple notarized.
 
 Keep the executable and its `_internal` directory together. No Python, Rust,
