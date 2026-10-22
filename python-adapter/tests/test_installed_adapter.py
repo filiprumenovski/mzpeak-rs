@@ -87,7 +87,12 @@ class InstalledAdapter(unittest.TestCase):
         path.write_bytes(self.native_path.read_bytes())
         with MzPeakFile(folder) as run:
             self.same(run[0],self.native[0])
+            stream = run.open_stream('spectra.parquet')
+            metadata_streams = tuple(run._archive._streams)
+        self.assertTrue(stream.closed)
+        self.assertTrue(all(s.closed for s in metadata_streams))
         run.close()
+        path.unlink()
         with self.assertRaises(ValueError): run._signal.read_many([0])
         with self.assertRaises(IndexError): self.native._signal.read_many([-1])
 

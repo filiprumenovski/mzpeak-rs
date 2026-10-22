@@ -60,7 +60,7 @@ The evidence verifier requires exactly those two recorded errors and their succe
 
 ## Install the reader
 
-The [installable adapter and native decoder](../../python-adapter/README.md) now ship in this repository, with a small synthetic example pair and clean-install tests. They need no research checkout or vendor software to read existing integer archives. Package imports and library discovery differ from the frozen benchmark snapshot; the saved Astral measurements remain tied to their recorded sources.
+The [installable adapter and native decoder](../../python-adapter/README.md) now ship in this repository, with a small synthetic example pair and clean-install tests. They need no research checkout or vendor software to read existing integer archives. Package imports, library discovery, and explicit metadata-stream cleanup differ from the frozen benchmark snapshot; the saved Astral measurements remain tied to their recorded sources.
 
 ## Check or reproduce
 

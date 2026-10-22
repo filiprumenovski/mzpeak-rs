@@ -11,6 +11,7 @@ import io
 import json
 from pathlib import Path
 import zipfile
+import weakref
 
 import numpy as np
 import pandas as pd
@@ -32,6 +33,7 @@ def _official_zero_mask(intensity):
 class _MetadataArchive(zipfile.ZipFile):
     """Virtual official index; acquisition members stay in the original ZIP."""
     def __init__(self, path):
+        self._streams = weakref.WeakSet()
         super().__init__(path)
         try:
             manifest = json.loads(super().read('manifest.json'))
@@ -57,8 +59,20 @@ class _MetadataArchive(zipfile.ZipFile):
     def open(self, name, mode='r', pwd=None, *, force_zip64=False):
         key = name.filename if isinstance(name, zipfile.ZipInfo) else name
         if key == 'mzpeak_index.json':
-            return io.BytesIO(self.index_bytes)
-        return super().open(self.getinfo(key), mode, pwd, force_zip64=force_zip64)
+            stream = io.BytesIO(self.index_bytes)
+        else:
+            stream = super().open(self.getinfo(key), mode, pwd, force_zip64=force_zip64)
+        self._streams.add(stream)
+        return stream
+
+    def close(self):
+        # ParquetFile does not own the ZipExtFile passed through pa.PythonFile.
+        # Close those streams explicitly so Windows can release the archive.
+        try:
+            for stream in list(self._streams):
+                stream.close()
+        finally:
+            super().close()
 
     def namelist(self):
         return self.names
@@ -218,9 +232,11 @@ class MzPeakFile(OfficialMzPeakFile):
     def close(self):
         if self._closed:
             return
-        super().close()
-        self._signal.close()
-        self._closed = True
+        try:
+            super().close()
+        finally:
+            self._signal.close()
+            self._closed = True
 
     def __enter__(self):
         return self

@@ -39,7 +39,8 @@ at open to update metadata counts; it does not keep a signal cache.
 
 This package reads existing integer archives; it does not convert RAW files.
 It contains the native decoder tested on Astral, with package-relative imports
-and library discovery. The archived benchmark source and reports remain frozen.
+and library discovery. The adapter also closes metadata streams explicitly to
+release Windows file locks. The archived benchmark source and reports remain frozen.
 
 Values obey the archive's declared error bounds, not bitwise equality. Exact
 m/z cutoffs can differ within the quantization band. The pinned official reader
