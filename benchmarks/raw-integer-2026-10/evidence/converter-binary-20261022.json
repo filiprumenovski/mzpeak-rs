@@ -22,7 +22,7 @@
   "execution": {
     "fresh_archive_extraction": true,
     "environment_cleared": true,
-    "PATH": "/usr/bin:/bin",
+    "PATH": "empty directory",
     "python_rust_dotnet_unavailable_on_PATH": true,
     "precision_environment_override_test": {
       "MZLAB_MZ_PPM": "5",
@@ -32,7 +32,8 @@
         "intensity_relative": 0.001
       }
     },
-    "clean_os_vm_tested": false
+    "clean_os_vm_tested": false,
+    "empty_executable_search_path": true
   },
   "input": {
     "name": "hela.raw",
@@ -44,7 +45,7 @@
     "existing_output_refused": true,
     "existing_output_sha256_unchanged": true,
     "version": true,
-    "restricted_path": "/usr/bin:/bin"
+    "restricted_path": "empty directory"
   },
   "packaging_unit_tests": {
     "passed": 3
