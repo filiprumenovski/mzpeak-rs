@@ -1,0 +1,5 @@
+/build/
+/dist/
+/src/*.egg-info/
+/native/target/
+!src/mzpeak_compat/examples/synthetic.official.mzpeak

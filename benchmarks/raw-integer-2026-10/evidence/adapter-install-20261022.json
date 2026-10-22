@@ -1,0 +1,86 @@
+{
+  "source_commit": "2002f947dfb6b6128bdb97194487edaad9b32878",
+  "clone_source": "https://github.com/filiprumenovski/mzpeak-rs.git",
+  "date": "2026-10-22",
+  "platform": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+  "python": "3.13.7",
+  "rust": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "source_install": {
+    "fresh_github_clone": true,
+    "fresh_venv": true,
+    "pip_cache_disabled": true,
+    "python_isolated_mode": true,
+    "lab_paths_required": false,
+    "all_modules_and_library_in_venv": true,
+    "pip_check": "passed",
+    "tests_passed": 6,
+    "tests_skipped": 0
+  },
+  "source_distribution": {
+    "built_into_wheel": true,
+    "wheel_contents_match_clone": true,
+    "wheel_installed_and_tested": true,
+    "tests_passed": 6,
+    "tests_skipped": 0
+  },
+  "distributions": {
+    "mzpeak_integer-0.1.0-cp313-cp313-macosx_11_0_arm64.whl": {
+      "bytes": 362107,
+      "sha256": "e3fdaaaa7e04cee7100c24beb03c460fe11b1b68d61a20f8892f054273a358de"
+    },
+    "mzpeak_integer-0.1.0.tar.gz": {
+      "bytes": 33950,
+      "sha256": "1db2ff21237e3541627c70b6e3cdd871d3fc3d448764d4681c7a846fda91ae0f"
+    }
+  },
+  "official_dependency": {
+    "subdirectory": "python",
+    "url": "https://github.com/HUPO-PSI/mzPeak.git",
+    "vcs_info": {
+      "commit_id": "40c65521dcfdc3d1df22c16f1ef18e6013fc6ef6",
+      "requested_revision": "40c65521dcfdc3d1df22c16f1ef18e6013fc6ef6",
+      "vcs": "git"
+    }
+  },
+  "native_source_sha256": "973046659412b516ea99e795cd8d78abfbe7a73381bd1762b0cbdc016f42af1d",
+  "example": {
+    "scans": 7,
+    "source_points": 25,
+    "retained_points": 17,
+    "source_zeros": 17,
+    "max_mz_error_ppm": 0.0,
+    "max_intensity_error_percent": 0.08384290090401376,
+    "status": "passed"
+  },
+  "scope": "Synthetic installation and query regressions. Not a new Astral all-point run or performance benchmark.",
+  "ci_run_url": "https://github.com/filiprumenovski/mzpeak-rs/actions/runs/39789695671",
+  "ci": {
+    "status": "passed",
+    "jobs": [
+      {
+        "name": "Install and query (macos-latest, Python 3.11)",
+        "conclusion": "success"
+      },
+      {
+        "name": "Install and query (windows-latest, Python 3.13)",
+        "conclusion": "success"
+      },
+      {
+        "name": "Install and query (ubuntu-latest, Python 3.11)",
+        "conclusion": "success"
+      },
+      {
+        "name": "Install and query (ubuntu-latest, Python 3.13)",
+        "conclusion": "success"
+      },
+      {
+        "name": "Install and query (windows-latest, Python 3.11)",
+        "conclusion": "success"
+      },
+      {
+        "name": "Install and query (macos-latest, Python 3.13)",
+        "conclusion": "success"
+      }
+    ]
+  }
+}

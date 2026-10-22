@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mzpeak-integer"
+version = "0.1.0"
+description = "Official mzPeak Python interface for bounded-error integer archives"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = "MIT OR Apache-2.0"
+license-files = ["LICENSE-MIT", "LICENSE-APACHE"]
+dependencies = [
+    "numpy>=1.26,<3",
+    "pandas>=2.2,<3",
+    "pyarrow>=20,<21",
+    "mzpeak @ git+https://github.com/HUPO-PSI/mzPeak.git@40c65521dcfdc3d1df22c16f1ef18e6013fc6ef6#subdirectory=python",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+mzpeak_compat = ["examples/*.zip", "examples/*.mzpeak", "examples/*.json"]
