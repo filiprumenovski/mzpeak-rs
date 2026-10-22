@@ -10,6 +10,7 @@ import subprocess
 import sys
 import sysconfig
 import tarfile
+import zipfile
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
@@ -58,8 +59,12 @@ def main():
                     target = notices / name / Path(*file.parts)
                     target.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(source, target)
-    python_license = Path(sysconfig.get_path('stdlib')) / 'LICENSE.txt'
-    if not python_license.is_file():
+    python_license = next((p for p in (
+        Path(sysconfig.get_path('stdlib')) / 'LICENSE.txt',
+        Path(sys.base_prefix) / 'LICENSE.txt',
+        HERE / 'licenses/PYTHON-3.13.7-LICENSE.txt',
+    ) if p.is_file()), None)
+    if python_license is None:
         raise RuntimeError('Python LICENSE.txt is required for distribution')
     shutil.copy2(python_license, notices / 'PYTHON-LICENSE.txt')
     for name in ('LICENSE-MIT', 'LICENSE-APACHE'):
@@ -86,10 +91,19 @@ def main():
         'reader': 'rawr-ms',
     }
     (bundle / 'build.json').write_text(json.dumps(receipt, indent=2) + '\n')
-    name = f'mzpeak-convert-0.1.0-{platform.system().lower()}-{platform.machine()}.tar.gz'
+    machine = platform.machine().lower()
+    machine = 'x86_64' if machine == 'amd64' else machine
+    suffix = 'zip' if sys.platform == 'win32' else 'tar.gz'
+    name = f'mzpeak-convert-0.1.0-{platform.system().lower()}-{machine}.{suffix}'
     archive = output / name
-    with tarfile.open(archive, 'w:gz') as tar:
-        tar.add(bundle, arcname='mzpeak-convert')
+    if suffix == 'zip':
+        with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_DEFLATED) as zipped:
+            for path in sorted(bundle.rglob('*')):
+                if path.is_file():
+                    zipped.write(path, path.relative_to(bundle.parent))
+    else:
+        with tarfile.open(archive, 'w:gz') as tar:
+            tar.add(bundle, arcname='mzpeak-convert')
     (output / (name + '.sha256')).write_text(f'{sha256(archive)}  {name}\n')
     print(archive)
 
