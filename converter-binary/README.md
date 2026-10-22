@@ -2,14 +2,22 @@
 
 Download and extract the archive for your system from the
 [converter release](https://github.com/filiprumenovski/mzpeak-rs/releases/tag/converter-v0.1.0).
-**Available build: macOS on Apple Silicon; tested on macOS 26.5.1.** This build is
-ad-hoc signed, not Apple notarized. Other platforms are not yet packaged.
+Choose the archive for your system: `linux-x86_64.tar.gz`,
+`windows-x86_64.zip`, or `darwin-arm64.tar.gz`. The release page lists tested
+platforms and available downloads. Windows builds are not Authenticode signed;
+macOS builds are ad-hoc signed, not Apple notarized.
 
 Keep the executable and its `_internal` directory together. No Python, Rust,
 .NET, vendor runtime, or private repository access is required to run it.
 
 ```sh
 ./mzpeak-convert/mzpeak-convert input.raw new-output-directory
+```
+
+On Windows, extract the ZIP and use PowerShell:
+
+```powershell
+.\mzpeak-convert\mzpeak-convert.exe input.raw new-output-directory
 ```
 
 The output is `new-output-directory/complete.experimental.zip`. Open it with
