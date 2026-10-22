@@ -1,8 +1,5 @@
 name: Converter release downloads
 on:
-  push:
-    branches: [feat/converter-linux-windows]
-    paths: ['.github/workflows/converter-downloads.yml', 'converter-binary/smoke_release.py', 'converter-binary/validate_release.py', 'converter-binary/vendor_oracle.py', 'converter-binary/oracle/**']
   workflow_dispatch:
     inputs:
       release:
@@ -10,6 +7,12 @@ on:
         default: converter-v0.1.0
         required: true
         type: string
+      platform:
+        description: Platform to validate
+        default: both
+        required: true
+        type: choice
+        options: [both, linux, windows]
 permissions:
   contents: read
 jobs:
@@ -17,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, windows-2022]
+        os: ${{ fromJSON(inputs.platform == 'linux' && '["ubuntu-22.04"]' || inputs.platform == 'windows' && '["windows-2022"]' || '["ubuntu-22.04","windows-2022"]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     steps:
@@ -42,11 +45,17 @@ jobs:
           git -C vendor sparse-checkout set Libs/NetCore/Net8
           git -C vendor checkout cd0a429a9894c13cc8bc0a5a10d54f5b7eb991bb
       - name: Install the adapter and independent validator
-        shell: bash
+        shell: python
         run: |
-          python -m pip install ./source/python-adapter
-          dotnet build source/converter-binary/oracle/VendorOracle.csproj -c Release --source "$GITHUB_WORKSPACE/vendor/Libs/NetCore/Net8" --source https://api.nuget.org/v3/index.json
-          python -c "import os; from pathlib import Path; p=Path('source/converter-binary/oracle/bin/Release/net8.0/VendorOracle.dll').resolve(); open(os.environ['GITHUB_ENV'],'a').write('MZPEAK_VALIDATION_READER_DLL='+str(p)+'\n')"
+          import os, subprocess, sys
+          from pathlib import Path
+          subprocess.run([sys.executable, '-m', 'pip', 'install', './source/python-adapter'], check=True)
+          subprocess.run(['dotnet', 'build', 'source/converter-binary/oracle/VendorOracle.csproj',
+                          '-c', 'Release', '--source', str(Path('vendor/Libs/NetCore/Net8').resolve()),
+                          '--source', 'https://api.nuget.org/v3/index.json'], check=True)
+          dll = Path('source/converter-binary/oracle/bin/Release/net8.0/VendorOracle.dll').resolve()
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write('MZPEAK_VALIDATION_READER_DLL=' + str(dll) + '\n')
       - name: Download published bundle into a separate directory and test HeLa
         env:
           RELEASE_TAG: ${{ inputs.release || 'converter-v0.1.0' }}
