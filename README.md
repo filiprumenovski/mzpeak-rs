@@ -186,7 +186,7 @@ python -m pip install ./python-adapter
 python -m mzpeak_compat.example
 ```
 
-The bundled example compares seven synthetic scans against a matching official archive. The two archives total about **20 KB** and are included in the installed package. [Platform setup and tests →](python-adapter/README.md)
+The bundled example compares seven synthetic scans against a matching official archive. The two archives total about **20 KB** and are included in the installed package. [Platform setup and tests →](python-adapter/README.md) · [Fresh-clone and wheel verification →](benchmarks/raw-integer-2026-10/evidence/adapter-install-20261022.json)
 
 The same query function can read either archive:
 
