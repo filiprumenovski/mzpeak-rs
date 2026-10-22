@@ -51,3 +51,18 @@ python build.py --encoder /path/to/fast_raw \
   --manifest /path/to/native_metadata/Cargo.toml \
   --output /path/to/new-build-directory
 ```
+
+## Release checks
+
+The `Converter release downloads` workflow starts a fresh Linux or Windows runner.
+It downloads the published archive and checksum, extracts into a new folder, and
+runs the converter with an empty executable search path. It then checks every
+HeLa signal point against Thermo RawFileReader and acquisition metadata against
+a pinned independent export of the same SHA-256 RAW. Source-path differences
+are accepted only when source identity and SHA-1 match.
+
+The vendor oracle, .NET, Python, and the adapter are test dependencies. They are
+not dependencies of the converter executable. Oracle DLLs are fetched from the
+pinned upstream repository and are not included in the binary bundle. The test
+also checks output overwrite protection, fixed precision settings, and adapter
+readback. Failed runs retain logs; the workflow uploads small reports only.

@@ -104,7 +104,7 @@ def main():
     else:
         with tarfile.open(archive, 'w:gz') as tar:
             tar.add(bundle, arcname='mzpeak-convert')
-    (output / (name + '.sha256')).write_text(f'{sha256(archive)}  {name}\n')
+    (output / (name + '.sha256')).write_bytes(f'{sha256(archive)}  {name}\n'.encode())
     print(archive)
 
 
